@@ -10,10 +10,17 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "baseUrl": ".",
+   "baseUrl": "./src",
     "paths": {
-      "@/*": ["src/*"]
-    }
+       "@/*": ["*"], 
+      "@utils/*": ["utils/*"],
+      "@controllers/*": ["controllers/*"],
+      "@models/*": ["models/*"],
+      "@config/*": ["config/*"],
+      "@routes/*": ["routes/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@types/*": ["types/*"]
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
