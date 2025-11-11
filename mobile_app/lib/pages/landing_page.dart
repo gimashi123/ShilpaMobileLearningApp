@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/physical_imp/register_page.dart';
 
 class SecondPage extends StatelessWidget {
   const SecondPage({super.key, this.message});
@@ -7,13 +8,16 @@ class SecondPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Color(0xFF6B38FB), Color(0xFF22073E)], // soft purple → deep purple
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF6B38FB),
+              Color(0xFF22073E),
+            ], // soft purple → deep purple
           ),
         ),
         child: Center(
@@ -21,11 +25,18 @@ class SecondPage extends StatelessWidget {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF16082B),                // inner dark panel
+              color: const Color(0xFF16082B), // inner dark panel
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF8E5BFF), width: 6), // thick outer purple border
+              border: Border.all(
+                color: const Color(0xFF8E5BFF),
+                width: 6,
+              ), // thick outer purple border
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8)),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: ConstrainedBox(
@@ -37,30 +48,47 @@ class SecondPage extends StatelessWidget {
                     message ?? 'ඔබේ විශේෂ අවශ්‍යතාවය තෝරන්න',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // 2×2 responsive grid of buttons
                   Wrap(
-                    spacing: 16, runSpacing: 16, alignment: WrapAlignment.center,
+                    spacing: 16,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.center,
                     children: [
                       ModuleTile(
                         asset: 'assets/visual.png',
-                        onTap: () { /* Navigator.pushNamed(context, '/visual'); */ },
+                        onTap: () {
+                          /* Navigator.pushNamed(context, '/visual'); */
+                        },
                       ),
                       ModuleTile(
                         asset: 'assets/hearing.png',
-                        onTap: () { /* Navigator.pushNamed(context, '/hearing'); */ },
+                        onTap: () {
+                          /* Navigator.pushNamed(context, '/hearing'); */
+                        },
                       ),
                       ModuleTile(
                         asset: 'assets/physical.png',
-                        onTap: () { /* Navigator.pushNamed(context, '/physical'); */ },
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RegisterPage(),
+                            ),
+                          );
+                        },
                       ),
                       ModuleTile(
                         asset: 'assets/cognitive.png',
-                        onTap: () { /* Navigator.pushNamed(context, '/cognitive'); */ },
+                        onTap: () {
+                          /* Navigator.pushNamed(context, '/cognitive'); */
+                        },
                       ),
                     ],
                   ),
@@ -86,13 +114,21 @@ class ModuleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
-        width: 150, height: 120,
+        width: 150,
+        height: 120,
         decoration: BoxDecoration(
-          color: const Color(0xFFE9E7F0),                // light gray inside
+          color: const Color(0xFFE9E7F0), // light gray inside
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFB388FF), width: 3), // purple outline
+          border: Border.all(
+            color: const Color(0xFFB388FF),
+            width: 3,
+          ), // purple outline
           boxShadow: [
-            BoxShadow(color: const Color(0xFFB388FF).withOpacity(0.35), blurRadius: 10, offset: const Offset(0, 6)),
+            BoxShadow(
+              color: const Color(0xFFB388FF).withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
           ],
         ),
         child: Center(
