@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/pages/physical_imp/register_page.dart';
 
 class SecondPage extends StatelessWidget {
   const SecondPage({super.key, this.message});
@@ -76,12 +75,7 @@ class SecondPage extends StatelessWidget {
                       ModuleTile(
                         asset: 'assets/physical.png',
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RegisterPage(),
-                            ),
-                          );
+                          /* Navigator.pushNamed(context, '/physical'); */
                         },
                       ),
                       ModuleTile(
