@@ -8,7 +8,10 @@ export const registerSchema = z.object({
   student: z.object({
     grade: z.number().int().min(1).max(13).optional(),
     age: z.number().int().min(5).max(20).optional()
-  }).optional()
+  }).optional(),
+
+  // 👇 NEW
+  disabilityType: z.enum(['visual', 'hearing', 'physical', 'cognitive']),
 });
 
 export const loginSchema = z.object({

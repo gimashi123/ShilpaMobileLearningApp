@@ -1,55 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:mobile_app/pages/auth/create_account_screen.dart';
+import 'package:mobile_app/pages/models/disability_type.dart';
 
-class SecondPage extends StatelessWidget {
-  const SecondPage({super.key, this.message});
-  final String? message;
+class ChooseDisabilityPage extends StatefulWidget {
+  const ChooseDisabilityPage({super.key});
+
+  @override
+  State<ChooseDisabilityPage> createState() => _ChooseDisabilityPageState();
+}
+
+class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
+  final FlutterTts _tts = FlutterTts();
+
+  static const String _instructionText = 'ඔබේ විශේෂ අවශ්‍යතාව තෝරන්න';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakInstruction();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _speakInstruction() async {
+    await _tts.setSpeechRate(0.45);
+    await _tts.setPitch(1.0);
+    await _tts.setVolume(1.0);
+
+    var ok = await _tts.setLanguage('si-LK');
+    if (ok == 0) {
+      await _tts.setLanguage('en-US');
+    }
+
+    await _tts.stop();
+    await _tts.speak(_instructionText);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6B38FB),
-              Color(0xFF22073E),
-            ], // soft purple → deep purple
-          ),
-        ),
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF16082B), // inner dark panel
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFF8E5BFF),
-                width: 6,
-              ), // thick outer purple border
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
+      backgroundColor: const Color(0xFF5A2DCC),
+      body: Stack(
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C0430),
+                borderRadius: BorderRadius.circular(32),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    message ?? 'ඔබේ විශේෂ අවශ්‍යතාවය තෝරන්න',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
+                  const Text(
+                    "ඔබේ විශේෂ අවශ්‍යතාව තෝරන්න",
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
+
+                      fontSize: 20,
+
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -60,28 +78,67 @@ class SecondPage extends StatelessWidget {
                     runSpacing: 16,
                     alignment: WrapAlignment.center,
                     children: [
-                      ModuleTile(
-                        asset: 'assets/visual.png',
+                      // Visual
+                      _DisabilityCard(
+                        label: "දෘශ්‍ය",
+                        asset: "assets/visual.png",
                         onTap: () {
-                          /* Navigator.pushNamed(context, '/visual'); */
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(
+                                disabilityType: DisabilityType.visual,
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      ModuleTile(
-                        asset: 'assets/hearing.png',
+
+                      // Hearing
+                      _DisabilityCard(
+                        label: "ශ්‍රවණ",
+                        asset: "assets/hearing.png",
                         onTap: () {
-                          /* Navigator.pushNamed(context, '/hearing'); */
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(
+                                disabilityType: DisabilityType.hearing,
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      ModuleTile(
-                        asset: 'assets/physical.png',
+
+                      // Physical
+                      _DisabilityCard(
+                        label: "ශාරීරික",
+                        asset: "assets/physical.png",
                         onTap: () {
-                          /* Navigator.pushNamed(context, '/physical'); */
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(
+                                disabilityType: DisabilityType.physical,
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      ModuleTile(
-                        asset: 'assets/cognitive.png',
+
+                      // Cognitive
+                      _DisabilityCard(
+                        label: "ඥානීය",
+                        asset: "assets/cognitive.png",
                         onTap: () {
-                          /* Navigator.pushNamed(context, '/cognitive'); */
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(
+                                disabilityType: DisabilityType.cognitive,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ],
@@ -90,17 +147,38 @@ class SecondPage extends StatelessWidget {
               ),
             ),
           ),
-        ),
+
+          // 🔊 Replay button
+          Positioned(
+            top: 32,
+            right: 24,
+            child: Material(
+              color: Colors.white.withOpacity(0.9),
+              shape: const CircleBorder(),
+              elevation: 3,
+              child: IconButton(
+                icon: const Icon(Icons.volume_up, color: Color(0xFF5A2DCC)),
+                tooltip: 'ආවර්ජනයෙන් ශ්‍රවණය කරන්න',
+                onPressed: _speakInstruction,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// One square button with rounded corners, purple border, shadow
-class ModuleTile extends StatelessWidget {
-  const ModuleTile({super.key, required this.asset, required this.onTap});
+class _DisabilityCard extends StatelessWidget {
+  final String label;
   final String asset;
   final VoidCallback onTap;
+
+  const _DisabilityCard({
+    required this.label,
+    required this.asset,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -108,25 +186,30 @@ class ModuleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
-        width: 150,
-        height: 120,
+        width: 80,
+        height: 90,
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFFE9E7F0), // light gray inside
+          color: const Color(0xFFF7F4FF),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFB388FF),
-            width: 3,
-          ), // purple outline
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFB388FF).withOpacity(0.35),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Center(
-          child: Image.asset(asset, width: 64, height: 64, fit: BoxFit.contain),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(child: Image.asset(asset, fit: BoxFit.contain)),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+          ],
         ),
       ),
     );

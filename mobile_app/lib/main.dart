@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/auth/create_account_screen.dart';
+import 'package:mobile_app/pages/auth/login_screen.dart';
+import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
+import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
+import 'package:mobile_app/pages/subject/maths_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -15,7 +24,18 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (_) => const HomePage(),
-       
+        '/dashboard': (_) => const DashboardScreen(),
+        '/register': (_) => const RegisterPage(disabilityType: ''),
+        '/blindregister': (_) => const BlindRegisterPage(),
+        '/newlogin': (_) => const LoginPage(),
+
+        // disabletype navigation 👇👇👇
+        '/home_visual': (_) => const VisualDashboardScreen(),
+        '/home_hearing': (_) => const HearingDashboardScreen(),
+        '/home_physical': (_) => const PhysicalDashboardScreen(),
+        '/home_cognitive': (_) => const CognativeDashboardScreen(),
+
+        '/math_lessons': (_) => const MathLessonsPage(),
       },
     );
   }
@@ -27,17 +47,18 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       
       body: Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFF8E9FF), Color.fromARGB(255, 186, 173, 247)],
-      ),),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF8E9FF), Color.fromARGB(255, 186, 173, 247)],
+          ),
+        ),
         child: LayoutBuilder(
           builder: (context, c) {
-            final isWide = c.maxWidth >= 700; // Row on wide screens, Column on phones
+            final isWide =
+                c.maxWidth >= 700; // Row on wide screens, Column on phones
             final content = _DetailsPanel();
 
             if (isWide) {
@@ -57,10 +78,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                   // RIGHT: Details
-                  Expanded(
-                    flex: 2,
-                    child: content,
-                  ),
+                  Expanded(flex: 2, child: content),
                 ],
               );
             } else {
@@ -72,7 +90,6 @@ class HomePage extends StatelessWidget {
                     child: Image.asset(
                       'assets/mobile_logo.png',
                       fit: BoxFit.cover,
-                      
                     ),
                   ),
                   // BOTTOM: Details
@@ -107,33 +124,55 @@ class _DetailsPanel extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               // App name + tagline (Sinhala optional)
-              Text('Shilpa', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Shilpa',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text('ශිෂ්‍යයන් සඳහා සවිබල ගැන්වු ලෝකය',
-                  textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                'ශිෂ්‍යයන් සඳහා සවිබල ගැන්වු ලෝකය',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               const SizedBox(height: 24),
 
               // Buttons
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  label: const Text(('ආරම්භ කරමු'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    ('ආරම්භ කරමු'),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
                     shape: const StadiumBorder(),
-                    foregroundColor: const Color.fromARGB(255, 255, 255, 255), // icon/text color
-                    backgroundColor: const Color.fromARGB(255, 195, 90, 213), // button background color
+                    foregroundColor: const Color.fromARGB(
+                      255,
+                      255,
+                      255,
+                      255,
+                    ), // icon/text color
+                    backgroundColor: const Color.fromARGB(
+                      255,
+                      195,
+                      90,
+                      213,
+                    ), // button background color
                     iconColor: Colors.purple,
                   ),
                   onPressed: () {
-                     Navigator.of(context).push(
-                     MaterialPageRoute(builder: (_) => const SecondPage()),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ChooseDisabilityPage(),
+                      ),
                     );
                   },
                 ),
               ),
               const SizedBox(height: 12),
-              
             ],
           ),
         ),
@@ -141,5 +180,3 @@ class _DetailsPanel extends StatelessWidget {
     );
   }
 }
-
-
