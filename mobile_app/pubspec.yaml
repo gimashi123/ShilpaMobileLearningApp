@@ -30,10 +30,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_tts: ^3.8.0
+  http: ^1.0.0 
+  
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  speech_to_text: ^7.3.0
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +81,10 @@ flutter:
     - assets/visual.png
     - assets/physical.png
     - assets/hearing.png
+    - assets/login_image.png
+    - assets/login_page.png
+    
+    
 
   # To add assets to your application, add an assets section, like this:
   # assets:

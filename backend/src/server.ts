@@ -6,6 +6,8 @@ import crypto from 'crypto';
 import connectDB from './config/db.conf';
 import authRouter from './routes/auth.routes';
 import logger from './config/logger.conf';
+import lessonRoutes from './routes/lesson.routes';
+
 
 // Load .env from the backend root (process.cwd()) first, then fall back to src/.env
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -64,3 +66,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 app.listen(port, () => {
   logger.info(`Server is running on port ${port}`);
 });
+
+// Mount lesson routes
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api', lessonRoutes);
