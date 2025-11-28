@@ -1,7 +1,7 @@
 // src/routes/lesson.routes.ts
 import { Router } from 'express';
 import requireAuth from '../middlewares/auth.middleware';
-import isAdmin from '../middlewares/isAdmin';
+import isAdmin from '../middlewares/role.middleware';
 import { uploadLesson } from '../config/upload';
 import { createLesson, getLessons } from '../controllers/lesson.controller';
 
@@ -11,7 +11,7 @@ router.post(
   '/admin/lessons',
   requireAuth,
   isAdmin,
-  uploadLesson.any(),   // 👈 important
+  uploadLesson.any(),  
   createLesson
 );
 

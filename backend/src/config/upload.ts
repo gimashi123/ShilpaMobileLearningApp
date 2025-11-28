@@ -1,4 +1,3 @@
-// src/config/videoUpload.ts
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';

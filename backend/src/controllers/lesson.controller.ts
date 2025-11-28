@@ -2,6 +2,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import VideoLesson from '../models/Lessons';
+import { HTTP_STATUS } from '@/utils/http.codes';
 
 export const createLesson = async (req: AuthRequest, res: Response) => {
   try {
@@ -36,7 +37,7 @@ export const createLesson = async (req: AuthRequest, res: Response) => {
     return res.status(201).json({ success: true, data: videoLesson });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ message: 'Server error creating video lesson' });
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: 'Server error creating video lesson' });
   }
 };
 
@@ -53,6 +54,6 @@ export const getLessons = async (req: AuthRequest, res: Response) => {
     return res.json({ success: true, data: videos });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ message: 'Server error fetching video lessons' });
+    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: 'Server error fetching video lessons' });
   }
 };

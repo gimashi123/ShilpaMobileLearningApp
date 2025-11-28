@@ -114,7 +114,6 @@ const createLoginResponse = (user: any): AuthResponse => {
       email: user.email,
       role: user.role,
       student: user.student,
-      // 👇 NEW – make sure this is delivered to Flutter
       disabilityType: user.disabilityType,
     },
   };
