@@ -21,165 +21,197 @@ class PhysicalDashboardScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // TOP BAR
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: cs.primary.withOpacity(0.1),
-                      child: const Icon(Icons.person, size: 28),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    const SizedBox(width: 12),
-                    Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Hi, Chamindu 👋",
+                      children: [
+                        // TOP BAR
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: cs.primary.withOpacity(0.1),
+                              child: const Icon(Icons.person, size: 28),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  "Hi, Chamindu 👋",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  "Ready to learn something new today? physical",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () {},
+                              icon: const Icon(Icons.notifications_outlined),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // TODAY'S SUMMARY CARD
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 10,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      "Today’s Learning",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "3 lessons • 2 quizzes • 1 game",
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "Keep your 5-day streak! 🔥",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Image.asset(
+                                "assets/login_page.png", // or any small mascot image
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // QUICK STATS
+                        Row(
+                          children: [
+                            _SmallStatCard(
+                              icon: Icons.stars_rounded,
+                              label: "Stars",
+                              value: "120",
+                              color: const Color(0xFFFFCA28),
+                            ),
+                            const SizedBox(width: 12),
+                            _SmallStatCard(
+                              icon: Icons.emoji_events,
+                              label: "Badges",
+                              value: "5",
+                              color: const Color(0xFF4DB6AC),
+                            ),
+                            const SizedBox(width: 12),
+                            _SmallStatCard(
+                              icon: Icons.timelapse,
+                              label: "Minutes",
+                              value: "32",
+                              color: const Color(0xFF64B5F6),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // SUBJECTS TITLE
+                        const Text(
+                          "Your subjects",
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Text(
-                          "Ready to learn something new today? physical",
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                        const SizedBox(height: 8),
+
+                        // SUBJECT CHIPS
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: const [
+                              _SubjectChip(
+                                label: "Maths",
+                                icon: Icons.calculate,
+                              ),
+                              _SubjectChip(
+                                label: "Sinhala",
+                                icon: Icons.menu_book,
+                              ),
+                              _SubjectChip(
+                                label: "English",
+                                icon: Icons.translate,
+                              ),
+                              _SubjectChip(
+                                label: "Science",
+                                icon: Icons.science,
+                              ),
+                            ],
+                          ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // GRID OF CARDS (now non-expanded, inside scroll)
+                        const _LessonsGrid(),
                       ],
                     ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_outlined),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // TODAY'S SUMMARY CARD
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Today’s Learning",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "3 lessons • 2 quizzes • 1 game",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              "Keep your 5-day streak! 🔥",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Image.asset(
-                        "assets/login_page.png", // or any small mascot image
-                        height: 80,
-                        fit: BoxFit.contain,
-                      ),
-                    ],
                   ),
                 ),
-
-                const SizedBox(height: 18),
-
-                // QUICK STATS
-                Row(
-                  children: [
-                    _SmallStatCard(
-                      icon: Icons.stars_rounded,
-                      label: "Stars",
-                      value: "120",
-                      color: const Color(0xFFFFCA28),
-                    ),
-                    const SizedBox(width: 12),
-                    _SmallStatCard(
-                      icon: Icons.emoji_events,
-                      label: "Badges",
-                      value: "5",
-                      color: const Color(0xFF4DB6AC),
-                    ),
-                    const SizedBox(width: 12),
-                    _SmallStatCard(
-                      icon: Icons.timelapse,
-                      label: "Minutes",
-                      value: "32",
-                      color: const Color(0xFF64B5F6),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                // SUBJECTS TITLE
-                const Text(
-                  "Your subjects",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-
-                // SUBJECT CHIPS
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: const [
-                      _SubjectChip(label: "Maths", icon: Icons.calculate),
-                      _SubjectChip(label: "Sinhala", icon: Icons.menu_book),
-                      _SubjectChip(label: "English", icon: Icons.translate),
-                      _SubjectChip(label: "Science", icon: Icons.science),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // GRID OF CARDS
-                const Expanded(child: _LessonsGrid()),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -286,12 +318,23 @@ class _LessonsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
+    int crossAxisCount = 2; // default phones
+    if (width >= 900) {
+      crossAxisCount = 4; // large tablets
+    } else if (width >= 600) {
+      crossAxisCount = 3; // small/medium tablets
+    }
+
     return GridView.count(
       padding: const EdgeInsets.only(bottom: 8),
-      crossAxisCount: 2,
+      crossAxisCount: crossAxisCount,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       childAspectRatio: 3 / 2.5,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: const [
         _LessonCard(
           title: "Maths – Fractions",
@@ -390,7 +433,7 @@ class _LessonCard extends StatelessWidget {
                 value: progress,
                 minHeight: 6,
                 backgroundColor: Colors.white.withOpacity(0.6),
-                valueColor: AlwaysStoppedAnimation<Color>(
+                valueColor: const AlwaysStoppedAnimation<Color>(
                   Colors.deepPurpleAccent,
                 ),
               ),
