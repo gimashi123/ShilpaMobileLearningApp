@@ -16,7 +16,7 @@ class InputModeSwitch extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: cs.surface.withOpacity(0.9),
         borderRadius: BorderRadius.circular(24),
@@ -76,40 +76,23 @@ class _ModeChip extends StatelessWidget {
         button: true,
         label: label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: isSelected
-                  ? cs.primary.withOpacity(0.12)
+                  ? cs.primary.withOpacity(0.18)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: isSelected ? cs.primary : Colors.black54,
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: isSelected ? cs.primary : Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
+            child: Center(
+              child: Icon(
+                icon,
+                size: 20,
+                color: isSelected ? cs.primary : Colors.black54,
+              ),
             ),
           ),
         ),

@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
+import '../../components/input_mode_switch.dart';
+import '../../models/input_modes.dart';
 
-class PhysicalDashboardScreen extends StatelessWidget {
+class PhysicalDashboardScreen extends StatefulWidget {
   const PhysicalDashboardScreen({super.key});
+
+  @override
+  State<PhysicalDashboardScreen> createState() =>
+      _PhysicalDashboardScreenState();
+}
+
+class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
+  InputMode _selectedMode = InputMode.dwellTouch;
+
+  void _onInputModeChanged(InputMode mode) {
+    setState(() {
+      _selectedMode = mode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +81,14 @@ class PhysicalDashboardScreen extends StatelessWidget {
                               ],
                             ),
                             const Spacer(),
+                            SizedBox(
+                              width: 220,
+                              child: InputModeSwitch(
+                                selectedMode: _selectedMode,
+                                onChanged: _onInputModeChanged,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             IconButton(
                               onPressed: () {},
                               icon: const Icon(Icons.notifications_outlined),
