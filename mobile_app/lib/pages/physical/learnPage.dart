@@ -44,12 +44,16 @@ class _LearnPageState extends State<LearnPage> {
                         height: tabHeight,
                         selectedIndex: _tabIndex,
                         onChanged: (index) {
-                          setState(() => _tabIndex = index);
-                          // TODO: navigation
-                          // 0 -> HomePage
-                          // 1 -> LearnPage (current)
-                          // 2 -> GamesPage
-                          // 3 -> ProfilePage
+                          // Navigate back to Home (Dashboard) when Home tab is tapped
+                          if (index == 0) {
+                            Navigator.pop(context);
+                          } else {
+                            setState(() => _tabIndex = index);
+                            // TODO: Add navigation for other tabs
+                            // 1 -> LearnPage (current)
+                            // 2 -> GamesPage
+                            // 3 -> ProfilePage
+                          }
                         },
                         tabs: const ["Home", "Learn", "Games", "Profile"],
                       ),
@@ -70,14 +74,22 @@ class _LearnPageState extends State<LearnPage> {
 
               // ================= CONTENT =================
               Expanded(
-                child: ListView.separated(
+                child: GridView.builder(
                   physics: const BouncingScrollPhysics(),
-                  itemCount: 6,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, // 3 cards per row
+                    crossAxisSpacing: isTablet ? 18 : 14,
+                    mainAxisSpacing: isTablet ? 18 : 14,
+                    childAspectRatio: isTablet
+                        ? 0.85
+                        : 0.75, // Adjust card proportions
+                  ),
+                  itemCount: 12, // Increased to show more cards
                   itemBuilder: (context, index) {
                     return _LearnCard(
+                      index: index,
                       onTap: () {
-                        // TODO: open lesson
+                        // TODO: open lesson $index
                       },
                     );
                   },
@@ -205,71 +217,98 @@ class _AvatarButton extends StatelessWidget {
 // ================= LEARN CARD =================
 
 class _LearnCard extends StatelessWidget {
+  final int index;
   final VoidCallback onTap;
 
-  const _LearnCard({required this.onTap});
+  const _LearnCard({required this.index, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Varied colors for different cards to make it more engaging
+    final colors = [
+      const Color(0xFFFFB6C1), // Light pink
+      const Color(0xFFB6E5FF), // Light blue
+      const Color(0xFFB6FFB6), // Light green
+      const Color(0xFFFFE5B6), // Light orange
+      const Color(0xFFE5B6FF), // Light purple
+      const Color(0xFFFFFFB6), // Light yellow
+    ];
+
+    final labelColors = [
+      const Color(0xFFFF69B4), // Hot pink
+      const Color(0xFF4FC3F7), // Sky blue
+      const Color(0xFF66BB6A), // Green
+      const Color(0xFFFFB74D), // Orange
+      const Color(0xFFBA68C8), // Purple
+      const Color(0xFFFFD54F), // Yellow
+    ];
+
+    final cardColor = colors[index % colors.length];
+    final labelColor = labelColors[index % labelColors.length];
+
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
-        height: 230,
         decoration: BoxDecoration(
-          color: const Color(0xFFE9E9E9),
-          borderRadius: BorderRadius.circular(18),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            // -------- IMAGE PLACEHOLDER --------
+            // -------- IMAGE/ICON AREA --------
             Expanded(
               flex: 3,
               child: Stack(
                 children: [
                   Container(
                     width: double.infinity,
-                    color: Colors.black12,
-                    alignment: Alignment.center,
-                    child: const Text(
-                      "IMAGE HERE",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black54,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          labelColor.withOpacity(0.3),
+                          labelColor.withOpacity(0.1),
+                        ],
                       ),
                     ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.school_rounded,
+                      size: 48,
+                      color: Colors.black.withOpacity(0.4),
+                    ),
                   ),
-
-                  // 👉 Later replace above Container with:
-                  // Image.asset(
-                  //   "assets/learn_image.png",
-                  //   width: double.infinity,
-                  //   fit: BoxFit.cover,
-                  // ),
                   Positioned(
-                    left: 10,
-                    bottom: 10,
+                    left: 8,
+                    bottom: 8,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
+                        horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF64FF6A),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black, width: 2),
+                        color: labelColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black, width: 1.5),
                       ),
-                      child: const Text(
-                        "Learn",
-                        style: TextStyle(fontWeight: FontWeight.w800),
+                      child: Text(
+                        "Lesson ${index + 1}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -277,45 +316,52 @@ class _LearnCard extends StatelessWidget {
               ),
             ),
 
-            // -------- TEXT PLACEHOLDER --------
+            // -------- TITLE AREA --------
             Expanded(
               flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.9)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    _FakeLine(),
-                    SizedBox(height: 8),
-                    _FakeLine(),
-                    SizedBox(height: 8),
-                    _FakeLine(),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Topic ${index + 1}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.play_circle_outline,
+                          size: 14,
+                          color: Colors.black.withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Start Learning",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.black.withOpacity(0.6),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FakeLine extends StatelessWidget {
-  const _FakeLine();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 6,
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 30),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(6),
       ),
     );
   }
