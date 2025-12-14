@@ -11,231 +11,111 @@ class PhysicalDashboardScreen extends StatefulWidget {
 }
 
 class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
+  // Input mode switch (dwell / eye gaze / voice)
   InputMode _selectedMode = InputMode.dwellTouch;
 
+  // Top segmented tabs (Home/Learn/Games/Profile)
+  int _tabIndex = 0;
+
   void _onInputModeChanged(InputMode mode) {
-    setState(() {
-      _selectedMode = mode;
-    });
+    setState(() => _selectedMode = mode);
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final size = MediaQuery.of(context).size;
+
+    // Responsive values (phones + tablets)
+    final isTablet = size.shortestSide >= 600;
+    final pad = isTablet ? 18.0 : 14.0;
+
+    final topBarHeight = isTablet ? 64.0 : 56.0;
+    final tabsHeight = isTablet ? 52.0 : 46.0;
+
+    // Card size
+    final cardWidth = isTablet ? 420.0 : 320.0;
+    final cardHeight = isTablet ? 260.0 : 215.0;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFE3F2FD),
-              Color.fromARGB(255, 55, 35, 58),
-              Color(0xFFFFF8E1),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
+      backgroundColor: const Color(0xFF6E4BC6), // purple base like design
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(pad),
+          child: Column(
+            children: [
+              // ===== TOP BAR =====
+              SizedBox(
+                height: topBarHeight,
+                child: Row(
+                  children: [
+                    _TopSquareIconButton(
+                      icon: Icons.settings,
+                      onTap: () {
+                        // TODO: Settings
+                      },
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // TOP BAR
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: cs.primary.withOpacity(0.1),
-                              child: const Icon(Icons.person, size: 28),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  "Hi, Chamindu 👋",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  "Ready to learn something new today? physical",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Spacer(),
-                            SizedBox(
-                              width: 220,
-                              child: InputModeSwitch(
-                                selectedMode: _selectedMode,
-                                onChanged: _onInputModeChanged,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(Icons.notifications_outlined),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(width: 10),
 
-                        const SizedBox(height: 16),
-
-                        // TODAY'S SUMMARY CARD
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: 10,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
-                                    Text(
-                                      "Today’s Learning",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "3 lessons • 2 quizzes • 1 game",
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "Keep your 5-day streak! 🔥",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Image.asset(
-                                "assets/login_page.png", // or any small mascot image
-                                height: 80,
-                                fit: BoxFit.contain,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // QUICK STATS
-                        Row(
-                          children: [
-                            _SmallStatCard(
-                              icon: Icons.stars_rounded,
-                              label: "Stars",
-                              value: "120",
-                              color: const Color(0xFFFFCA28),
-                            ),
-                            const SizedBox(width: 12),
-                            _SmallStatCard(
-                              icon: Icons.emoji_events,
-                              label: "Badges",
-                              value: "5",
-                              color: const Color(0xFF4DB6AC),
-                            ),
-                            const SizedBox(width: 12),
-                            _SmallStatCard(
-                              icon: Icons.timelapse,
-                              label: "Minutes",
-                              value: "32",
-                              color: const Color(0xFF64B5F6),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        // SUBJECTS TITLE
-                        const Text(
-                          "Your subjects",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // SUBJECT CHIPS
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: const [
-                              _SubjectChip(
-                                label: "Maths",
-                                icon: Icons.calculate,
-                              ),
-                              _SubjectChip(
-                                label: "Sinhala",
-                                icon: Icons.menu_book,
-                              ),
-                              _SubjectChip(
-                                label: "English",
-                                icon: Icons.translate,
-                              ),
-                              _SubjectChip(
-                                label: "Science",
-                                icon: Icons.science,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // GRID OF CARDS (now non-expanded, inside scroll)
-                        const _LessonsGrid(),
-                      ],
+                    // Center segmented tabs
+                    Expanded(
+                      child: _SegmentedTabs(
+                        height: tabsHeight,
+                        selectedIndex: _tabIndex,
+                        onChanged: (i) => setState(() => _tabIndex = i),
+                        tabs: const ["Home", "Learn", "Games", "Profile"],
+                      ),
                     ),
+
+                    const SizedBox(width: 10),
+
+                    // Right side: InputModeSwitch + Bell
+                    // (Kept from your existing code, placed at top like requested)
+                    SizedBox(
+                      width: isTablet ? 280 : 220,
+                      child: InputModeSwitch(
+                        selectedMode: _selectedMode,
+                        onChanged: _onInputModeChanged,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    _TopSquareIconButton(
+                      icon: Icons.notifications_outlined,
+                      onTap: () {
+                        // TODO: Notifications
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // ===== CONTENT (Cards row like UI) =====
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: 3,
+                    separatorBuilder: (_, __) => const SizedBox(width: 18),
+                    itemBuilder: (context, index) {
+                      // You can switch card label based on tabIndex later if you want.
+                      final label = (index == 2) ? "Games" : "Learn";
+
+                      return _ModuleCard(
+                        width: cardWidth,
+                        height: cardHeight,
+                        label: label,
+                        onTap: () {
+                          // TODO: Navigate based on card
+                        },
+                      );
+                    },
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
       ),
@@ -243,227 +123,240 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
   }
 }
 
-// Small top stats
-class _SmallStatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
+/// ===== Segmented Tabs (Home / Learn / Games / Profile) =====
+class _SegmentedTabs extends StatelessWidget {
+  final List<String> tabs;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+  final double height;
 
-  const _SmallStatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
+  const _SegmentedTabs({
+    required this.tabs,
+    required this.selectedIndex,
+    required this.onChanged,
+    required this.height,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: color.withOpacity(0.18),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Subject chips
-class _SubjectChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _SubjectChip({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      height: height,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.deepPurple.shade100),
+        color: const Color(0xFFCDB7FF), // light purple bar
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.55), width: 2),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.deepPurple),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: Colors.deepPurple),
-          ),
-        ],
+        children: List.generate(tabs.length, (i) {
+          final selected = i == selectedIndex;
+
+          return Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => onChanged(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFF8A2BE2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  border: selected
+                      ? Border.all(color: Colors.black, width: 2)
+                      : null,
+                ),
+                child: Text(
+                  tabs[i],
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
 }
 
-// Grid of lesson cards
-class _LessonsGrid extends StatelessWidget {
-  const _LessonsGrid();
+/// ===== Simple square icon button (Settings / Bell) =====
+class _TopSquareIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TopSquareIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
-    int crossAxisCount = 2; // default phones
-    if (width >= 900) {
-      crossAxisCount = 4; // large tablets
-    } else if (width >= 600) {
-      crossAxisCount = 3; // small/medium tablets
-    }
-
-    return GridView.count(
-      padding: const EdgeInsets.only(bottom: 8),
-      crossAxisCount: crossAxisCount,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 3 / 2.5,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: const [
-        _LessonCard(
-          title: "Maths – Fractions",
-          subtitle: "2/5 lessons done",
-          progress: 0.4,
-          color: Color(0xFFFFF3E0),
-          icon: Icons.pie_chart_outline_outlined,
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.black.withOpacity(0.55), width: 2),
         ),
-        _LessonCard(
-          title: "English – Reading",
-          subtitle: "Story: The Lost Cat",
-          progress: 0.7,
-          color: Color(0xFFE3F2FD),
-          icon: Icons.menu_book_outlined,
-        ),
-        _LessonCard(
-          title: "Sinhala – Grammar",
-          subtitle: "New words",
-          progress: 0.25,
-          color: Color(0xFFF3E5F5),
-          icon: Icons.text_fields,
-        ),
-        _LessonCard(
-          title: "Fun Quiz",
-          subtitle: "Mixed subjects",
-          progress: 0.0,
-          color: Color(0xFFE8F5E9),
-          icon: Icons.quiz_outlined,
-        ),
-      ],
+        child: Icon(icon, size: 26, color: Colors.black87),
+      ),
     );
   }
 }
 
-class _LessonCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final double progress; // 0.0–1.0
-  final Color color;
-  final IconData icon;
+/// ===== Big module card like your UI =====
+/// Runs without images: uses a placeholder.
+/// Later: replace the placeholder with Image.asset(...)
+class _ModuleCard extends StatelessWidget {
+  final double width;
+  final double height;
+  final String label;
+  final VoidCallback onTap;
 
-  const _LessonCard({
-    required this.title,
-    required this.subtitle,
-    required this.progress,
-    required this.color,
-    required this.icon,
+  const _ModuleCard({
+    required this.width,
+    required this.height,
+    required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: () {
-        // TODO: navigate to lesson / game
-      },
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        width: width,
+        height: height,
         decoration: BoxDecoration(
-          color: color,
+          color: const Color(0xFFE9E9E9),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              child: Icon(icon, size: 20, color: Colors.deepPurple),
+            // ===== IMAGE AREA (placeholder for now) =====
+            Expanded(
+              flex: 3,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black12,
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "IMAGE PLACEHOLDER",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+
+                    // ✅ Later, replace the Container above with this:
+                    // Positioned.fill(
+                    //   child: Image.asset(
+                    //     "assets/your_image.png",
+                    //     fit: BoxFit.cover,
+                    //   ),
+                    // ),
+                  ),
+                  Positioned(
+                    left: 10,
+                    bottom: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF64FF6A),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: Colors.black54),
-            ),
-            const Spacer(),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: Colors.white.withOpacity(0.6),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Colors.deepPurpleAccent,
+
+            // ===== TEXT LINES AREA (as in UI) =====
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    _FakeLineRow(),
+                    SizedBox(height: 8),
+                    _FakeLineRow(),
+                    SizedBox(height: 8),
+                    _FakeLineRow(),
+                  ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FakeLineRow extends StatelessWidget {
+  const _FakeLineRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        _Line(w: 38),
+        SizedBox(width: 10),
+        _Line(w: 38),
+        SizedBox(width: 10),
+        _Line(w: 38),
+      ],
+    );
+  }
+}
+
+class _Line extends StatelessWidget {
+  final double w;
+  const _Line({required this.w});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: w,
+      height: 6,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(6),
       ),
     );
   }
