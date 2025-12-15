@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/services/auth_api.dart'; // adjust path if needed
+import 'package:mobile_app/services/auth_api.dart';
+import 'package:mobile_app/session/session.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -33,17 +34,24 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       // 1️⃣ Call backend login – EXPECTS { token, user }
-      final result = await AuthApi.login(
-        email: email,
-        password: password,
-      );
+      final result = await AuthApi.login(email: email, password: password);
 
-      // 2️⃣ Extract user + disabilityType safely
+      final token = result['token'];
       final user = result['user'] as Map<String, dynamic>?;
-      final String? disabilityType =
-          user != null ? user['disabilityType'] as String? : null;
 
-      // 3️⃣ Decide which route to open
+      // 2️⃣ Save ALL important data to Session
+      Session.token = token?.toString();
+      Session.userId = user?['id']?.toString();
+      Session.userName = user?['name']?.toString();
+      Session.email = user?['email']?.toString();
+      Session.disabilityType = user?['disabilityType']?.toString();
+
+      print('JWT token set: ${Session.token}');
+      print('Session.userName = ${Session.userName}');
+      print('Session.disabilityType = ${Session.disabilityType}');
+
+      // 3️⃣ Decide which route to open based on disabilityType
+      final String? disabilityType = Session.disabilityType;
       String targetRoute = '/dashboard'; // fallback
 
       if (disabilityType == 'visual') {
@@ -61,14 +69,14 @@ class _LoginPageState extends State<LoginPage> {
       // 4️⃣ Navigate to dashboard for that disability type
       Navigator.pushReplacementNamed(context, targetRoute);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login successful")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login successful")));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -134,8 +142,9 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icon(Icons.email_rounded),
                             border: InputBorder.none,
                             hintText: "Email",
-                            contentPadding:
-                                EdgeInsets.symmetric(horizontal: 20),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -164,8 +173,9 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icon(Icons.lock),
                             border: InputBorder.none,
                             hintText: "Password",
-                            contentPadding:
-                                EdgeInsets.symmetric(horizontal: 20),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -214,11 +224,10 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-          // 📱 Responsive layout: side-by-side on wide, stacked on small
           if (isWide) {
             return Row(
               children: [
-                // LEFT SIDE — CHILDREN IMAGE
+                // LEFT SIDE — IMAGE
                 Expanded(
                   flex: 1,
                   child: Container(
@@ -239,7 +248,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                // RIGHT SIDE — LOGIN FORM
+                // RIGHT SIDE — FORM
                 Expanded(flex: 1, child: formCard),
               ],
             );

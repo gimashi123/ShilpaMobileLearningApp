@@ -8,9 +8,31 @@ import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
+import 'package:mobile_app/pages/quiz.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 
-void main() => runApp(const MyApp());
+// Speech service
+import 'package:mobile_app/services/speech_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  print("LOG: main() started");
+
+  // Start Flutter UI first
+  runApp(const MyApp());
+
+  // Initialize Speech-to-Text in background (do NOT block UI)
+  // If this is heavy, it won't freeze the splash screen now.
+  SpeechService.instance
+      .init()
+      .then((_) {
+        print("LOG: SpeechService init completed");
+      })
+      .catchError((e, st) {
+        print("ERROR: SpeechService init failed: $e");
+      });
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -29,13 +51,14 @@ class MyApp extends StatelessWidget {
         '/blindregister': (_) => const BlindRegisterPage(),
         '/newlogin': (_) => const LoginPage(),
 
-        // disabletype navigation 👇👇👇
+        // disability-type navigation
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
         '/home_physical': (_) => const PhysicalDashboardScreen(),
         '/home_cognitive': (_) => const CognativeDashboardScreen(),
 
-        '/math_lessons': (_) => const MathLessonsPage(),
+        '/math_lessons': (_) => const StudentLessonsPage(),
+        '/quiz': (_) => const QuizPage(),
       },
     );
   }
@@ -57,14 +80,12 @@ class HomePage extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, c) {
-            final isWide =
-                c.maxWidth >= 700; // Row on wide screens, Column on phones
+            final isWide = c.maxWidth >= 700;
             final content = _DetailsPanel();
 
             if (isWide) {
               return Row(
                 children: [
-                  // LEFT: Image
                   Expanded(
                     flex: 3,
                     child: Container(
@@ -77,14 +98,12 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // RIGHT: Details
                   Expanded(flex: 2, child: content),
                 ],
               );
             } else {
               return Column(
                 children: [
-                  // TOP: Image
                   AspectRatio(
                     aspectRatio: 16 / 9,
                     child: Image.asset(
@@ -92,7 +111,6 @@ class HomePage extends StatelessWidget {
                       fit: BoxFit.cover,
                     ),
                   ),
-                  // BOTTOM: Details
                   Expanded(child: content),
                 ],
               );
@@ -116,14 +134,12 @@ class _DetailsPanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo
               CircleAvatar(
                 radius: 44,
                 backgroundColor: cs.surfaceContainerHighest,
                 backgroundImage: const AssetImage('assets/mobile_logo.png'),
               ),
               const SizedBox(height: 16),
-              // App name + tagline (Sinhala optional)
               Text(
                 'Shilpa',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -137,31 +153,18 @@ class _DetailsPanel extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
-
-              // Buttons
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   label: const Text(
-                    ('ආරම්භ කරමු'),
+                    'ආරම්භ කරමු',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
                     shape: const StadiumBorder(),
-                    foregroundColor: const Color.fromARGB(
-                      255,
-                      255,
-                      255,
-                      255,
-                    ), // icon/text color
-                    backgroundColor: const Color.fromARGB(
-                      255,
-                      195,
-                      90,
-                      213,
-                    ), // button background color
-                    iconColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color.fromARGB(255, 195, 90, 213),
                   ),
                   onPressed: () {
                     Navigator.of(context).push(
@@ -170,6 +173,7 @@ class _DetailsPanel extends StatelessWidget {
                       ),
                     );
                   },
+                  icon: const Icon(Icons.play_arrow),
                 ),
               ),
               const SizedBox(height: 12),

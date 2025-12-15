@@ -1,10 +1,8 @@
 import { loginSchema, registerSchema } from "@/types/zod/auth.schema";
-import User from '../models/BlindStudent';
-
+import User from "../models/BlindStudent";
 import { Request, Response } from "express";
 import { signToken } from "@/utils/jwt.utils";
 import { HTTP_STATUS } from "@/utils/http.codes";
-import logger from "@/config/logger.conf";
 import { errorResponse, successResponse } from "@/types/global.types";
 import { AuthResponse } from "@/types/auth.types";
 
@@ -12,68 +10,109 @@ export const registerUser = async (req: Request, res: Response) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
 
-    if (!parsed.success)
+    if (!parsed.success) {
       return errorResponse(
         res,
         "Invalid input",
         HTTP_STATUS.BAD_REQUEST,
         parsed.error.flatten(),
       );
-
-    // Check if email already exists
-    const { email } = parsed.data;
-    const existing = await User.findOne({ email });
-    if (existing)
-      return errorResponse(
-        res,
-        "Email already in use",
-        HTTP_STATUS.CONFLICT,
-      );
-
-    const user = new User(parsed.data as any);
-    try {
-      logger.info('Registering new user: ', user.email);
-      await user.save();
-      logger.info('User Registered Successfully: ', user.email);
-    } catch (saveErr) {
-      logger.error(
-        'USER_SAVE_ERROR',
-        saveErr && (saveErr as Error).stack
-          ? (saveErr as Error).stack
-          : saveErr,
-      );
-
-      const saveMessage =
-        process.env.NODE_ENV === 'production'
-          ? 'Server error'
-          : (saveErr && (saveErr as any).message
-              ? (saveErr as any).message
-              : 'Server error');
-      return errorResponse(res, saveMessage, HTTP_STATUS.INTERNAL_SERVER_ERROR);
     }
 
-    const response = createLoginResponse(user);
+    const data = parsed.data as any;
 
+    const {
+      name,
+      email,
+      password,
+      role,
+      disabilityType,
+      grade,
+      age,
+    } = data;
+
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return errorResponse(res, "Email already in use", HTTP_STATUS.CONFLICT);
+    }
+
+    const finalRole: string = role ?? "student";
+
+    // ------- build student subdocument only for students -------
+    let student: { grade?: number; age?: number } | undefined = undefined;
+
+    if (finalRole === "student") {
+      // disabilityType REQUIRED for students
+      if (!disabilityType) {
+        return errorResponse(
+          res,
+          "disabilityType is required for students",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      if (grade === undefined || grade === null || grade === "") {
+        return errorResponse(
+          res,
+          "Grade is required for students",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      const g = Number(grade);
+      if (![3, 4, 5].includes(g)) {
+        return errorResponse(
+          res,
+          "Grade must be 3, 4 or 5",
+          HTTP_STATUS.BAD_REQUEST,
+        );
+      }
+
+      const ageNum =
+        age !== undefined && age !== null && age !== ""
+          ? Number(age)
+          : undefined;
+
+      student = {
+        grade: g,
+        ...(ageNum ? { age: ageNum } : {}),
+      };
+    }
+
+    const user = new User({
+      name,
+      email,
+      password,
+      role: finalRole,
+      ...(disabilityType ? { disabilityType } : {}),
+      ...(student ? { student } : {}),
+    });
+
+    await user.save();
+
+    const response = createLoginResponse(user);
     return successResponse(
       res,
       "User registered successfully",
       response,
       HTTP_STATUS.CREATED,
     );
-  } catch (err) {
-    logger.error(
-      'REGISTER_ERROR',
-      err && (err as Error).stack ? (err as Error).stack : err,
-    );
-    const devMessage =
-      process.env.NODE_ENV === 'production'
-        ? 'Server error'
-        : (err && (err as Error).message
-            ? (err as Error).message
-            : 'Server error');
+  } catch (err: any) {
+    // TEMP: help debugging instead of generic "Server error"
+    console.error("REGISTER_ERROR", err);
+
+    // If it is a Mongoose validation error, surface message
+    if (err.name === "ValidationError") {
+      return errorResponse(
+        res,
+        err.message,
+        HTTP_STATUS.BAD_REQUEST,
+      );
+    }
+
     return errorResponse(
       res,
-      devMessage,
+      "Server error",
       HTTP_STATUS.INTERNAL_SERVER_ERROR,
     );
   }
@@ -82,30 +121,40 @@ export const registerUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success)
-      return res
-        .status(400)
-        .json({ message: 'Invalid input', errors: parsed.error.flatten() });
+    if (!parsed.success) {
+      return errorResponse(
+        res,
+        "Invalid input",
+        HTTP_STATUS.BAD_REQUEST,
+        parsed.error.flatten(),
+      );
+    }
 
     const { email, password } = parsed.data;
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) return errorResponse(res, 'Invalid credentials', HTTP_STATUS.BAD_REQUEST);
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return errorResponse(res, "Invalid credentials", HTTP_STATUS.BAD_REQUEST);
+    }
 
     const ok = await (user as any).comparePassword(password);
-    if (!ok) return errorResponse(res, 'Invalid credentials', HTTP_STATUS.BAD_REQUEST);
+    if (!ok) {
+      return errorResponse(res, "Invalid credentials", HTTP_STATUS.BAD_REQUEST);
+    }
 
     const response = createLoginResponse(user);
-
     return successResponse(res, "Login successful", response, HTTP_STATUS.OK);
   } catch (err) {
-    console.error('LOGIN_ERROR', err);
-    return errorResponse(res, 'Server error', HTTP_STATUS.INTERNAL_SERVER_ERROR);
+    console.error("LOGIN_ERROR", err);
+    return errorResponse(
+      res,
+      "Server error",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
   }
 };
 
 const createLoginResponse = (user: any): AuthResponse => {
   const token = signToken(user.id, user.role);
-
   return {
     token,
     user: {
@@ -113,8 +162,8 @@ const createLoginResponse = (user: any): AuthResponse => {
       name: user.name,
       email: user.email,
       role: user.role,
-      student: user.student,
       disabilityType: user.disabilityType,
+      student: user.student,
     },
   };
 };

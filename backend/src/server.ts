@@ -63,9 +63,13 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // Start the server
-app.listen(port, () => {
+app.listen({
+  port: port,
+  host: '0.0.0.0'
+}, () => {
   logger.info(`Server is running on port ${port}`);
 });
+
 
 // Mount lesson routes
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

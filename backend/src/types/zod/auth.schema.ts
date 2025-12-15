@@ -1,17 +1,20 @@
-import z from "zod";
+import { z } from "zod";
 
 export const registerSchema = z.object({
-  name: z.string().min(2),
+  name: z.string(),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(['student','parent','teacher','admin']).default('student'),
-  student: z.object({
-    grade: z.number().int().min(1).max(13).optional(),
-    age: z.number().int().min(5).max(20).optional()
-  }).optional(),
 
-  // 👇 NEW
-  disabilityType: z.enum(['visual', 'hearing', 'physical', 'cognitive']),
+  // role – if omitted, controller will default to "student"
+  role: z.enum(["student", "parent", "teacher", "admin"]).optional(),
+
+  // OPTIONAL HERE – controller will enforce for students
+  disabilityType: z
+    .enum(["visual", "hearing", "physical", "cognitive"])
+    .optional(),
+
+  grade: z.union([z.string(), z.number()]).optional(),
+  age: z.union([z.string(), z.number()]).optional(),
 });
 
 export const loginSchema = z.object({
