@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../components/common_header.dart';
 import '../../models/input_modes.dart';
 import '../physical/learnPage.dart';
+import '../physical/gamesPage.dart';
 
 class PhysicalDashboardScreen extends StatefulWidget {
   const PhysicalDashboardScreen({super.key});
@@ -91,13 +92,8 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
         // Learn Content
         return const LearnContent();
       case 2:
-        // Games Content Placeholder
-        return const Center(
-          child: Text(
-            "Games Coming Soon",
-            style: TextStyle(color: Colors.white, fontSize: 24),
-          ),
-        );
+        // Games Content
+        return const GamesContent();
       case 3:
         // Profile Content Placeholder
         return const Center(
