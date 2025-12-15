@@ -5,6 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 
+void main() {
+  runApp(const IqGame());
+}
+
 /// =======================
 /// Settings (sound default ON)
 /// =======================
@@ -78,47 +82,75 @@ class IqGame extends StatelessWidget {
   }
 }
 
+/// =====================================
+/// ✅ RESPONSIVE MENU (FIXED)
+/// - Full screen gradient (no white area)
+/// - Buttons scale on phone/tablet
+/// =====================================
 class Menu extends StatelessWidget {
   const Menu({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.purple.shade300, Colors.blue.shade300],
+      body: SizedBox.expand(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.purple.shade300, Colors.blue.shade300],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 50),
-              GameButton(
-                title: '🚀 පටන් ගමු',
-                color: Colors.orange,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SequentialGameFlow(),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final w = c.maxWidth;
+                final h = c.maxHeight;
+
+                final contentMaxW = w < 600 ? w * 0.88 : 520.0; // tablet cap
+                final btnH = (h * 0.11).clamp(64.0, 90.0);
+
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentMaxW),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GameButton(
+                            title: '🚀 පටන් ගමු',
+                            color: Colors.orange,
+                            height: btnH,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SequentialGameFlow(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          GameButton(
+                            title: '📊 ලකුණු බලමු',
+                            color: Colors.pink,
+                            height: btnH,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ScoreHistoryScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              GameButton(
-                title: '📊 ලකුණු බලමු',
-                color: Colors.pink,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ScoreHistoryScreen(),
-                  ),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -148,6 +180,7 @@ class ScoreHistoryScreen extends StatelessWidget {
           child: Text(
             'ලකුණු ඉතිහාස විශේෂාංගය ළඟදීම එනවා!',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -217,80 +250,86 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
             ),
           ),
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '🎉  ඉදිරියට යමු 🎉',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    '🎉  ඉදිරියට යමු 🎉',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                ScoreCard(
-                  title: 'හැඩ ගැලපීමෙන් ලකුණු',
-                  score: shapeGameScore,
-                  color: Colors.orange,
-                ),
-                const SizedBox(height: 20),
-                ScoreCard(
-                  title: 'පාට ගැලපීමෙන් ලකුණු',
-                  score: colorGameScore,
-                  color: Colors.pink,
-                ),
-                const SizedBox(height: 20),
-                ScoreCard(
-                  title: 'බැලුම් පිපිරීමෙන් ලකුණු',
-                  score: popGameScore,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 40),
-                Container(
-                  width: 300,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
+                  const SizedBox(height: 30),
+                  ScoreCard(
+                    title: 'හැඩ ගැලපීමෙන් ලකුණු',
+                    score: shapeGameScore,
+                    color: Colors.orange,
                   ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        '🏆 මුළු ලකුණු',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple,
+                  const SizedBox(height: 14),
+                  ScoreCard(
+                    title: 'පාට ගැලපීමෙන් ලකුණු',
+                    score: colorGameScore,
+                    color: Colors.pink,
+                  ),
+                  const SizedBox(height: 14),
+                  ScoreCard(
+                    title: 'බෝල පිපිරීමෙන් ලකුණු',
+                    score: popGameScore,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 26),
+                  Container(
+                    width: 320,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '$totalScore',
-                        style: const TextStyle(
-                          fontSize: 60,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          '🏆 මුළු ලකුණු',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        Text(
+                          '$totalScore',
+                          style: const TextStyle(
+                            fontSize: 60,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 40),
-                GameButton(
-                  title: '🏠 ආපසු මුලට',
-                  color: Colors.purple,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
+                  const SizedBox(height: 26),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: GameButton(
+                      title: '🏠 ආපසු මුලට',
+                      color: Colors.purple,
+                      onTap: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -315,84 +354,104 @@ class ScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              title,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Text(
+              '$score',
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-          ),
-          Text(
-            '$score',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
+/// =====================================
+/// ✅ RESPONSIVE BUTTON (FIXED)
+/// - No fixed width
+/// - FittedBox to avoid overflow
+/// =====================================
 class GameButton extends StatelessWidget {
   final String title;
   final Color color;
   final VoidCallback onTap;
+  final double? height;
 
   const GameButton({
     Key? key,
     required this.title,
     required this.color,
     required this.onTap,
+    this.height,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final btnH = height ?? 80.0;
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 280,
-        height: 80,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+      child: SizedBox(
+        width: double.infinity,
+        height: btnH,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -613,7 +672,7 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('ඔබේ ලකුණු:', style: TextStyle(fontSize: 20)),
+            const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 20)),
             const SizedBox(height: 10),
             Text(
               '$score',
@@ -637,7 +696,6 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
 
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted) return;
-      // ✅ FIX: close dialog reliably
       Navigator.of(context, rootNavigator: true).pop();
       widget.onGameComplete(score);
     });
@@ -654,7 +712,7 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Match Shapes'),
+        title: const Text('හැඩ ගලපමු'),
         backgroundColor: Colors.orange,
         actions: [
           IconButton(
@@ -663,7 +721,7 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
               size: 30,
             ),
             onPressed: toggleHint,
-            tooltip: 'Hint',
+            tooltip: 'උදව්',
           ),
         ],
       ),
@@ -684,7 +742,7 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
                 children: [
                   Column(
                     children: [
-                      const Text('Score:', style: TextStyle(fontSize: 16)),
+                      const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$score',
                         style: const TextStyle(
@@ -696,7 +754,7 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
                   ),
                   Column(
                     children: [
-                      const Text('Time Left:', style: TextStyle(fontSize: 16)),
+                      const Text('ඉතිරි කාලය:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$timeLeft',
                         style: TextStyle(
@@ -712,11 +770,10 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Match this shape:',
+              'මේ හැඩය ගලපමු:',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 550),
               switchInCurve: Curves.easeOutBack,
@@ -751,7 +808,6 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
                 ),
               ),
             ),
-
             const SizedBox(height: 40),
             Expanded(
               child: GridView.builder(
@@ -863,7 +919,7 @@ class ShapePainter extends CustomPainter {
 }
 
 /// =====================================
-/// Color Match Game (with same dialog fix)
+/// Color Match Game
 /// =====================================
 class ColorMatchGame extends StatefulWidget {
   final Function(int score) onGameComplete;
@@ -888,10 +944,10 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
   Color? selectedColor;
 
   final Map<String, Color> colorOptions = {
-    'Crimson Red': const Color(0xFFDC143C),
-    'Light Blue': const Color(0xFF87CEEB),
-    'Green': const Color(0xFF00FF00),
-    'Yellow': const Color(0xFFFFFF00),
+    'රතු': const Color(0xFFDC143C),
+    'ලා නිල්': const Color(0xFF87CEEB),
+    'කොල': const Color(0xFF00FF00),
+    'කහ': const Color(0xFFFFFF00),
   };
 
   String targetColorName = '';
@@ -1083,7 +1139,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Your Score:', style: TextStyle(fontSize: 20)),
+            const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 20)),
             const SizedBox(height: 10),
             Text(
               '$score',
@@ -1097,7 +1153,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
             const CircularProgressIndicator(),
             const SizedBox(height: 10),
             const Text(
-              'Moving to Pop Bubbles in 5 seconds...',
+              'පොඩ්ඩක් ඉන්න...',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
@@ -1107,7 +1163,6 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
 
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted) return;
-      // ✅ FIX: close dialog reliably
       Navigator.of(context, rootNavigator: true).pop();
       widget.onGameComplete(score);
     });
@@ -1124,7 +1179,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Match Colors'),
+        title: const Text('පාට ගලපමු'),
         backgroundColor: Colors.pink,
         actions: [
           IconButton(
@@ -1133,7 +1188,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
               size: 30,
             ),
             onPressed: toggleHint,
-            tooltip: 'Hint',
+            tooltip: 'උදව්',
           ),
         ],
       ),
@@ -1154,7 +1209,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
                 children: [
                   Column(
                     children: [
-                      const Text('Score:', style: TextStyle(fontSize: 16)),
+                      const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$score',
                         style: const TextStyle(
@@ -1166,7 +1221,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
                   ),
                   Column(
                     children: [
-                      const Text('Time Left:', style: TextStyle(fontSize: 16)),
+                      const Text('ඉතිරි කාලය:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$timeLeft',
                         style: TextStyle(
@@ -1182,7 +1237,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Match this color:',
+              'මේ පාට ගලපමු:',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
@@ -1191,7 +1246,6 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 550),
               switchInCurve: Curves.easeOutBack,
@@ -1231,7 +1285,6 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
             Expanded(
               child: GridView.builder(
@@ -1299,7 +1352,7 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
 }
 
 /// =====================================
-/// Pop Bubbles Game (with same dialog fix)
+/// Pop Bubbles Game
 /// =====================================
 class PopBubblesGame extends StatefulWidget {
   final Function(int score) onGameComplete;
@@ -1534,11 +1587,11 @@ class _PopBubblesGameState extends State<PopBubblesGame>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('🎉 Pop Bubbles Complete!'),
+        title: const Text('🎉 බෝල පිපිරවීම සම්පුර්ණයි!'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Your Score:', style: TextStyle(fontSize: 20)),
+            const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 20)),
             const SizedBox(height: 10),
             Text(
               '$score',
@@ -1552,7 +1605,7 @@ class _PopBubblesGameState extends State<PopBubblesGame>
             const CircularProgressIndicator(),
             const SizedBox(height: 10),
             const Text(
-              'Calculating final results...',
+              'මුළු ලකුණු ගණනය කරමින්...',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
@@ -1562,7 +1615,6 @@ class _PopBubblesGameState extends State<PopBubblesGame>
 
     Future.delayed(const Duration(seconds: 5), () {
       if (!mounted) return;
-      // ✅ FIX: close dialog reliably
       Navigator.of(context, rootNavigator: true).pop();
       widget.onGameComplete(score);
     });
@@ -1583,13 +1635,13 @@ class _PopBubblesGameState extends State<PopBubblesGame>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pop Bubbles'),
+        title: const Text('බෝල පුපුරවමු'),
         backgroundColor: Colors.green,
         actions: [
           IconButton(
             icon: const Icon(Icons.lightbulb_outline, size: 30),
             onPressed: onHintPressed,
-            tooltip: 'Hint',
+            tooltip: 'උදව්',
           ),
         ],
       ),
@@ -1610,7 +1662,7 @@ class _PopBubblesGameState extends State<PopBubblesGame>
                 children: [
                   Column(
                     children: [
-                      const Text('Score:', style: TextStyle(fontSize: 16)),
+                      const Text('මගේ ලකුණු:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$score',
                         style: const TextStyle(
@@ -1622,7 +1674,7 @@ class _PopBubblesGameState extends State<PopBubblesGame>
                   ),
                   Column(
                     children: [
-                      const Text('Time Left:', style: TextStyle(fontSize: 16)),
+                      const Text('ඉතිරි කාලය:', style: TextStyle(fontSize: 16)),
                       Text(
                         '$timeLeft',
                         style: TextStyle(

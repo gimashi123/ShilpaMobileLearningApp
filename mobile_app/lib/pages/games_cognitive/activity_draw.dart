@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as Math;
 
-// void main() {
-//   runApp(const LineTracingGame());
-// }
-
-// class LineTracingGame extends StatelessWidget {
-//   const LineTracingGame({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Line Tracing Game',
-//       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-//       home: const GameScreen(),
-//     );
-//   }
-// }
-
 class ActivityDraw extends StatefulWidget {
   const ActivityDraw({Key? key}) : super(key: key);
 
@@ -128,7 +111,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '✨ Trace the Lines ✨',
+          '✨ කෙලින් ඉරි අදිමු ✨',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
@@ -186,12 +169,12 @@ class _ActivityDrawState extends State<ActivityDraw> {
                               ? _previousTrace
                               : null,
                           icon: const Icon(Icons.arrow_back),
-                          label: const Text('Previous'),
+                          label: const Text('පෙර'),
                         ),
                         ElevatedButton.icon(
                           onPressed: _resetCurrentTrace,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Clear'),
+                          label: const Text('මකන්න'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                           ),
@@ -201,7 +184,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
                               ? _nextTrace
                               : null,
                           icon: const Icon(Icons.arrow_forward),
-                          label: const Text('Next'),
+                          label: const Text('ඉදිරියට'),
                         ),
                       ],
                     ),
