@@ -381,7 +381,10 @@ class _ModuleCard extends StatelessWidget {
               flex: 2,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(color: Colors.grey.shade50),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +402,7 @@ class _ModuleCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
 
                     // Progress bar
                     Column(
@@ -430,7 +433,7 @@ class _ModuleCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         // Linear progress bar
                         Container(
                           height: 8,
