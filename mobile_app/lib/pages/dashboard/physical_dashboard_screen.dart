@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../components/input_mode_switch.dart';
+import '../../components/common_header.dart';
 import '../../models/input_modes.dart';
 import '../physical/learnPage.dart';
 
@@ -31,7 +31,6 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
     final pad = isTablet ? 18.0 : 14.0;
 
     final topBarHeight = isTablet ? 64.0 : 56.0;
-    final tabsHeight = isTablet ? 52.0 : 46.0;
 
     // Calculate available height for cards
     // Total height - SafeArea padding - top bar - spacing - section title
@@ -61,263 +60,162 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
           child: Column(
             children: [
               // ===== TOP BAR =====
-              SizedBox(
-                height: topBarHeight,
-                child: Row(
-                  children: [
-                    _TopSquareIconButton(
-                      icon: Icons.settings,
-                      onTap: () {
-                        // TODO: Settings
-                      },
-                    ),
-                    const SizedBox(width: 10),
-
-                    // Center segmented tabs
-                    Expanded(
-                      child: _SegmentedTabs(
-                        height: tabsHeight,
-                        selectedIndex: _tabIndex,
-                        onChanged: (i) async {
-                          // Don't navigate if already on Home
-                          if (i == 0) {
-                            setState(() => _tabIndex = 0);
-                            return;
-                          }
-
-                          setState(() => _tabIndex = i);
-
-                          // Navigate to LearnPage when Learn tab is tapped
-                          if (i == 1) {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LearnPage(),
-                              ),
-                            );
-                            // Reset to Home tab when returning from Learn page
-                            setState(() => _tabIndex = 0);
-                          }
-                          // TODO: Add navigation for other tabs (Games, Profile)
-                        },
-                        tabs: const ["Home", "Learn", "Games", "Profile"],
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    // Right side: InputModeSwitch + Bell
-                    // (Kept from your existing code, placed at top like requested)
-                    SizedBox(
-                      width: isTablet ? 280 : 220,
-                      child: InputModeSwitch(
-                        selectedMode: _selectedMode,
-                        onChanged: _onInputModeChanged,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _TopSquareIconButton(
-                      icon: Icons.notifications_outlined,
-                      onTap: () {
-                        // TODO: Notifications
-                      },
-                    ),
-                  ],
-                ),
+              CommonHeader(
+                selectedIndex: _tabIndex,
+                inputMode: _selectedMode,
+                onInputModeChanged: _onInputModeChanged,
+                onTabChanged: (i) {
+                  setState(() => _tabIndex = i);
+                },
               ),
 
               const SizedBox(height: 14),
 
-              // ===== SECTION TITLE =====
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Continue Learning",
-                    style: TextStyle(
-                      fontSize: isTablet ? 24 : 20,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.3),
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // ===== CONTENT (Cards row - Horizontal Scroll) =====
-              Expanded(
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(
-                    bottom: 8,
-                  ), // Add bottom padding
-                  itemCount: 6, // More cards to show ongoing activities
-                  separatorBuilder: (_, __) => const SizedBox(width: 18),
-                  itemBuilder: (context, index) {
-                    // Sample data for ongoing lessons and games
-                    final items = [
-                      {
-                        'title': 'Alphabet Learning',
-                        'type': 'Learn',
-                        'progress': 0.65,
-                        'icon': Icons.abc_rounded,
-                      },
-                      {
-                        'title': 'Number Matching',
-                        'type': 'Game',
-                        'progress': 0.40,
-                        'icon': Icons.numbers_rounded,
-                      },
-                      {
-                        'title': 'Shape Recognition',
-                        'type': 'Learn',
-                        'progress': 0.85,
-                        'icon': Icons.category_rounded,
-                      },
-                      {
-                        'title': 'Color Puzzle',
-                        'type': 'Game',
-                        'progress': 0.30,
-                        'icon': Icons.palette_rounded,
-                      },
-                      {
-                        'title': 'Word Building',
-                        'type': 'Learn',
-                        'progress': 0.55,
-                        'icon': Icons.spellcheck_rounded,
-                      },
-                      {
-                        'title': 'Memory Game',
-                        'type': 'Game',
-                        'progress': 0.75,
-                        'icon': Icons.psychology_rounded,
-                      },
-                    ];
-
-                    final item = items[index];
-
-                    return _ModuleCard(
-                      width: cardWidth,
-                      height: cardHeight,
-                      title: item['title'] as String,
-                      label: item['type'] as String,
-                      progress: item['progress'] as double,
-                      icon: item['icon'] as IconData,
-                      onTap: () {
-                        // Navigate to LearnPage when a Learn card is tapped
-                        if (item['type'] == 'Learn') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LearnPage(),
-                            ),
-                          );
-                        }
-                        // TODO: Add navigation for Games
-                      },
-                    );
-                  },
-                ),
-              ),
+              Expanded(child: _buildContent(isTablet, cardWidth, cardHeight)),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildContent(bool isTablet, double cardWidth, double cardHeight) {
+    switch (_tabIndex) {
+      case 0:
+        return _HomeContent(
+          isTablet: isTablet,
+          cardWidth: cardWidth,
+          cardHeight: cardHeight,
+        );
+      case 1:
+        // Learn Content
+        return const LearnContent();
+      case 2:
+        // Games Content Placeholder
+        return const Center(
+          child: Text(
+            "Games Coming Soon",
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
+        );
+      case 3:
+        // Profile Content Placeholder
+        return const Center(
+          child: Text(
+            "Profile Coming Soon",
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 }
 
-/// ===== Segmented Tabs (Home / Learn / Games / Profile) =====
-class _SegmentedTabs extends StatelessWidget {
-  final List<String> tabs;
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
-  final double height;
+class _HomeContent extends StatelessWidget {
+  final bool isTablet;
+  final double cardWidth;
+  final double cardHeight;
 
-  const _SegmentedTabs({
-    required this.tabs,
-    required this.selectedIndex,
-    required this.onChanged,
-    required this.height,
+  const _HomeContent({
+    required this.isTablet,
+    required this.cardWidth,
+    required this.cardHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFCDB7FF), // light purple bar
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.55), width: 2),
-      ),
-      child: Row(
-        children: List.generate(tabs.length, (i) {
-          final selected = i == selectedIndex;
-
-          return Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => onChanged(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? const Color(0xFF8A2BE2)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  border: selected
-                      ? Border.all(color: Colors.black, width: 2)
-                      : null,
-                ),
-                child: Text(
-                  tabs[i],
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: selected ? Colors.white : Colors.black87,
+    return Column(
+      children: [
+        // ===== SECTION TITLE =====
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              "Continue Learning",
+              style: TextStyle(
+                fontSize: isTablet ? 24 : 20,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.3),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
                   ),
-                ),
+                ],
               ),
             ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-/// ===== Simple square icon button (Settings / Bell) =====
-class _TopSquareIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _TopSquareIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        width: 46,
-        height: 46,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.92),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black.withOpacity(0.55), width: 2),
+          ),
         ),
-        child: Icon(icon, size: 26, color: Colors.black87),
-      ),
+
+        // ===== CONTENT (Cards row - Horizontal Scroll) =====
+        Expanded(
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 8), // Add bottom padding
+            itemCount: 6, // More cards to show ongoing activities
+            separatorBuilder: (_, __) => const SizedBox(width: 18),
+            itemBuilder: (context, index) {
+              // Sample data for ongoing lessons and games
+              final items = [
+                {
+                  'title': 'Alphabet Learning',
+                  'type': 'Learn',
+                  'progress': 0.65,
+                  'icon': Icons.abc_rounded,
+                },
+                {
+                  'title': 'Number Matching',
+                  'type': 'Game',
+                  'progress': 0.40,
+                  'icon': Icons.numbers_rounded,
+                },
+                {
+                  'title': 'Shape Recognition',
+                  'type': 'Learn',
+                  'progress': 0.85,
+                  'icon': Icons.category_rounded,
+                },
+                {
+                  'title': 'Color Puzzle',
+                  'type': 'Game',
+                  'progress': 0.30,
+                  'icon': Icons.palette_rounded,
+                },
+                {
+                  'title': 'Word Building',
+                  'type': 'Learn',
+                  'progress': 0.55,
+                  'icon': Icons.spellcheck_rounded,
+                },
+                {
+                  'title': 'Memory Game',
+                  'type': 'Game',
+                  'progress': 0.75,
+                  'icon': Icons.psychology_rounded,
+                },
+              ];
+
+              final item = items[index];
+
+              return _ModuleCard(
+                width: cardWidth,
+                height: cardHeight,
+                title: item['title'] as String,
+                label: item['type'] as String,
+                progress: item['progress'] as double,
+                icon: item['icon'] as IconData,
+                onTap: () {
+                  // TODO: Handle card tap
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
