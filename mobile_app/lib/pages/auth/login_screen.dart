@@ -33,15 +33,14 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       // 1️⃣ Call backend login – EXPECTS { token, user }
-      final result = await AuthApi.login(
-        email: email,
-        password: password,
-      );
+      final result = await AuthApi.login(email: email, password: password);
 
       // 2️⃣ Extract user + disabilityType safely
       final user = result['user'] as Map<String, dynamic>?;
-      final String? disabilityType =
-          user != null ? user['disabilityType'] as String? : null;
+      AuthApi.currentUser = user;
+      final String? disabilityType = user != null
+          ? user['disabilityType'] as String?
+          : null;
 
       // 3️⃣ Decide which route to open
       String targetRoute = '/dashboard'; // fallback
@@ -61,14 +60,14 @@ class _LoginPageState extends State<LoginPage> {
       // 4️⃣ Navigate to dashboard for that disability type
       Navigator.pushReplacementNamed(context, targetRoute);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login successful")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login successful")));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -134,8 +133,9 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icon(Icons.email_rounded),
                             border: InputBorder.none,
                             hintText: "Email",
-                            contentPadding:
-                                EdgeInsets.symmetric(horizontal: 20),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -164,8 +164,9 @@ class _LoginPageState extends State<LoginPage> {
                             prefixIcon: Icon(Icons.lock),
                             border: InputBorder.none,
                             hintText: "Password",
-                            contentPadding:
-                                EdgeInsets.symmetric(horizontal: 20),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../components/common_header.dart';
 import '../../models/input_modes.dart';
 import '../physical/learnPage.dart';
+import '../physical/profilePage.dart';
 import '../physical/gamesPage.dart';
 
 class PhysicalDashboardScreen extends StatefulWidget {
@@ -95,13 +96,8 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
         // Games Content
         return const GamesContent();
       case 3:
-        // Profile Content Placeholder
-        return const Center(
-          child: Text(
-            "Profile Coming Soon",
-            style: TextStyle(color: Colors.white, fontSize: 24),
-          ),
-        );
+        // Profile Content
+        return const ProfilePage();
       default:
         return const SizedBox.shrink();
     }
