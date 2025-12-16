@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/input_modes.dart';
+import '../services/auth_api.dart';
 
 class CommonHeader extends StatelessWidget {
   final int selectedIndex;
@@ -125,14 +126,73 @@ class CommonHeader extends StatelessWidget {
           const SizedBox(width: 10),
 
           // ===== PROFILE PHOTO =====
-          InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: () {
-              // Trigger Profile tab selection if clicked directly?
-              // Or let page handle it?
-              // For now, let's treat it as clicking the profile tab (index 3)
-              onTabChanged(3);
+          PopupMenuButton<String>(
+            offset: const Offset(0, 54),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: Colors.black.withOpacity(0.2), width: 1),
+            ),
+            elevation: 4,
+            tooltip: 'Profile Options',
+            onSelected: (value) {
+              if (value == 'profile') {
+                onTabChanged(3);
+              } else if (value == 'logout') {
+                try {
+                  AuthApi.logout();
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/newlogin',
+                    (route) => false,
+                  );
+                } catch (e) {
+                  debugPrint("Logout error: $e");
+                }
+              }
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person,
+                      color: const Color(0xFF6E4BC6),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "Profile",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout_rounded,
+                      color: Colors.red.shade400,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "Log Out",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             child: Container(
               width: 46,
               height: 46,

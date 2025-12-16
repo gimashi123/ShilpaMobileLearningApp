@@ -57,4 +57,8 @@ class AuthApi {
 
     return {'token': json['data']['token'], 'user': json['data']['user']};
   }
+
+  static void logout() {
+    currentUser = null;
+  }
 }
