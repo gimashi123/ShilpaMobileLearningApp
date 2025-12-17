@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/pages/physical/lesson_detail_screen.dart';
 
 class LearnContent extends StatefulWidget {
   const LearnContent({super.key});
@@ -157,7 +158,19 @@ class _LearnContentState extends State<LearnContent> {
                       grade: lesson['grade'] as String,
                       subject: lesson['subject'] as String,
                       onTap: () {
-                        // TODO: open lesson
+                        // Navigate to the lesson detail content
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LessonDetailScreen(
+                              title: lesson['title'] as String,
+                              subject: lesson['subject'] as String,
+                              grade: lesson['grade'] as String,
+                              // We can pass a nice color based on index if we want
+                              themeColor: const Color(0xFF6C63FF),
+                            ),
+                          ),
+                        );
                       },
                     );
                   },
