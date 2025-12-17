@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../components/input_aware_button.dart';
 import '../models/input_modes.dart';
 import '../services/auth_api.dart';
 
@@ -120,6 +121,7 @@ class CommonHeader extends StatelessWidget {
               selectedIndex: selectedIndex,
               onChanged: onTabChanged,
               tabs: const ["Home", "Learn", "Games", "Profile"],
+              inputMode: inputMode,
             ),
           ),
 
@@ -225,12 +227,14 @@ class _SegmentedTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
   final double height;
+  final InputMode inputMode;
 
   const _SegmentedTabs({
     required this.tabs,
     required this.selectedIndex,
     required this.onChanged,
     required this.height,
+    required this.inputMode,
   });
 
   @override
@@ -248,9 +252,10 @@ class _SegmentedTabs extends StatelessWidget {
           final selected = i == selectedIndex;
 
           return Expanded(
-            child: InkWell(
+            child: InputAwareButton(
               borderRadius: BorderRadius.circular(14),
               onTap: () => onChanged(i),
+              inputMode: inputMode,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 alignment: Alignment.center,

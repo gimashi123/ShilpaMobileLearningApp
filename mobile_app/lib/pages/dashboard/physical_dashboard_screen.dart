@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../components/common_header.dart';
+import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 import '../physical/learnPage.dart';
 import '../physical/profilePage.dart';
@@ -88,13 +89,14 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
           isTablet: isTablet,
           cardWidth: cardWidth,
           cardHeight: cardHeight,
+          inputMode: _selectedMode,
         );
       case 1:
         // Learn Content
-        return const LearnContent();
+        return LearnContent(inputMode: _selectedMode);
       case 2:
         // Games Content
-        return const GamesContent();
+        return GamesContent(inputMode: _selectedMode);
       case 3:
         // Profile Content
         return const ProfilePage();
@@ -108,11 +110,13 @@ class _HomeContent extends StatelessWidget {
   final bool isTablet;
   final double cardWidth;
   final double cardHeight;
+  final InputMode inputMode;
 
   const _HomeContent({
     required this.isTablet,
     required this.cardWidth,
     required this.cardHeight,
+    required this.inputMode,
   });
 
   @override
@@ -200,6 +204,7 @@ class _HomeContent extends StatelessWidget {
                 label: item['type'] as String,
                 progress: item['progress'] as double,
                 icon: item['icon'] as IconData,
+                inputMode: inputMode,
                 onTap: () {
                   // TODO: Handle card tap
                 },
@@ -222,6 +227,7 @@ class _ModuleCard extends StatelessWidget {
   final double progress; // 0.0 to 1.0
   final IconData icon;
   final VoidCallback onTap;
+  final InputMode inputMode;
 
   const _ModuleCard({
     required this.width,
@@ -231,6 +237,7 @@ class _ModuleCard extends StatelessWidget {
     required this.progress,
     required this.icon,
     required this.onTap,
+    required this.inputMode,
   });
 
   @override
@@ -241,9 +248,10 @@ class _ModuleCard extends StatelessWidget {
         ? const Color(0xFFFFB74D)
         : const Color(0xFF64FF6A);
 
-    return InkWell(
+    return InputAwareButton(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
+      inputMode: inputMode,
       child: Container(
         width: width,
         height: height,

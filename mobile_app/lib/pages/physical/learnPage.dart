@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/physical/lesson_detail_screen.dart';
+import '../../components/input_aware_button.dart';
+import '../../models/input_modes.dart';
 
 class LearnContent extends StatefulWidget {
-  const LearnContent({super.key});
+  final InputMode inputMode;
+
+  const LearnContent({super.key, required this.inputMode});
 
   @override
   State<LearnContent> createState() => _LearnContentState();
@@ -157,6 +161,7 @@ class _LearnContentState extends State<LearnContent> {
                       title: lesson['title'] as String,
                       grade: lesson['grade'] as String,
                       subject: lesson['subject'] as String,
+                      inputMode: widget.inputMode,
                       onTap: () {
                         // Navigate to the lesson detail content
                         Navigator.push(
@@ -166,6 +171,7 @@ class _LearnContentState extends State<LearnContent> {
                               title: lesson['title'] as String,
                               subject: lesson['subject'] as String,
                               grade: lesson['grade'] as String,
+                              inputMode: widget.inputMode,
                               // We can pass a nice color based on index if we want
                               themeColor: const Color(0xFF6C63FF),
                             ),
@@ -209,32 +215,41 @@ class _LearnContentState extends State<LearnContent> {
           final isSelected = option == selectedValue;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              showCheckmark: false, // Cleaner look
-              label: Text(
-                option,
-                style: TextStyle(
-                  // Use a darker purple for better readability on white
-                  color: isSelected ? const Color(0xFF4527A0) : Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) onSelected(option);
+            child: InputAwareButton(
+              onTap: () {
+                if (!isSelected) onSelected(option);
               },
-              elevation: 0,
-              pressElevation: 0,
-              // Transparent with white border when unselected
-              backgroundColor: Colors.transparent,
-              selectedColor: Colors.white,
-              // Add white border to unselected, no border to selected
-              side: isSelected
-                  ? const BorderSide(color: Colors.transparent, width: 0)
-                  : const BorderSide(color: Colors.white, width: 1.5),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              inputMode: widget.inputMode,
+              borderRadius: BorderRadius.circular(20),
+              child: IgnorePointer(
+                child: ChoiceChip(
+                  showCheckmark: false, // Cleaner look
+                  label: Text(
+                    option,
+                    style: TextStyle(
+                      // Use a darker purple for better readability on white
+                      color: isSelected
+                          ? const Color(0xFF4527A0)
+                          : Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {}, // Handled by InputAwareButton
+                  elevation: 0,
+                  pressElevation: 0,
+                  // Transparent with white border when unselected
+                  backgroundColor: Colors.transparent,
+                  selectedColor: Colors.white,
+                  // Add white border to unselected, no border to selected
+                  side: isSelected
+                      ? const BorderSide(color: Colors.transparent, width: 0)
+                      : const BorderSide(color: Colors.white, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
               ),
             ),
           );
@@ -252,6 +267,7 @@ class _LearnCard extends StatelessWidget {
   final String grade;
   final String subject;
   final VoidCallback onTap;
+  final InputMode inputMode;
 
   const _LearnCard({
     required this.index,
@@ -259,6 +275,7 @@ class _LearnCard extends StatelessWidget {
     required this.grade,
     required this.subject,
     required this.onTap,
+    required this.inputMode,
   });
 
   @override
@@ -285,9 +302,10 @@ class _LearnCard extends StatelessWidget {
     final cardColor = colors[index % colors.length];
     final labelColor = labelColors[index % labelColors.length];
 
-    return InkWell(
+    return InputAwareButton(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
+      inputMode: inputMode,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../components/input_aware_button.dart';
+import '../../models/input_modes.dart';
 
 class GamesContent extends StatelessWidget {
-  const GamesContent({super.key});
+  final InputMode inputMode;
+
+  const GamesContent({super.key, required this.inputMode});
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +24,7 @@ class GamesContent extends StatelessWidget {
       itemBuilder: (context, index) {
         return _GameCard(
           index: index,
+          inputMode: inputMode,
           onTap: () {
             // TODO: open game $index
           },
@@ -34,8 +39,13 @@ class GamesContent extends StatelessWidget {
 class _GameCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
+  final InputMode inputMode;
 
-  const _GameCard({required this.index, required this.onTap});
+  const _GameCard({
+    required this.index,
+    required this.onTap,
+    required this.inputMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +72,10 @@ class _GameCard extends StatelessWidget {
     final cardColor = colors[index % colors.length];
     final labelColor = labelColors[index % labelColors.length];
 
-    return InkWell(
+    return InputAwareButton(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
+      inputMode: inputMode,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,
