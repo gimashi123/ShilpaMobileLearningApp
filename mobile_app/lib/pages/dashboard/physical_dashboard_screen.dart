@@ -45,7 +45,7 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
         topBarHeight -
         14 - // spacing after top bar
         36 - // section title height (text + padding)
-        20; // bottom spacing buffer (increased for safety)
+        28; // bottom spacing buffer (increased for safety)
 
     // Card size - make height responsive to available space
     final cardWidth = isTablet ? 420.0 : 320.0;
@@ -383,7 +383,7 @@ class _ModuleCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 10,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(color: Colors.grey.shade50),
                 child: Column(
@@ -397,6 +397,8 @@ class _ModuleCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                         color: Colors.black87,
+                        height:
+                            1.1, // Added to reduce line height and save space
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

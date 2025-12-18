@@ -114,6 +114,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
       onPointerCancel: (_) => _resetDwell(),
       behavior: HitTestBehavior.opaque,
       child: Stack(
+        clipBehavior: Clip.antiAlias,
         children: [
           widget.child,
           if (_touchPosition != null)

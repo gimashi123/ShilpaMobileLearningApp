@@ -35,15 +35,20 @@ class LessonDetailScreen extends StatelessWidget {
                     onTap: () => Navigator.pop(context),
                     inputMode: inputMode,
                     borderRadius: BorderRadius.circular(30),
-                    child: IgnorePointer(
-                      child: IconButton(
-                        onPressed: () {}, // Handled by InputAwareButton
-                        icon: const Icon(Icons.arrow_back_ios_rounded),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.grey[100],
-                          padding: const EdgeInsets.only(
-                            left: 8,
-                          ), // Visual center usually needs offset for back arrow
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      child: IgnorePointer(
+                        child: IconButton(
+                          onPressed: () {}, // Handled by InputAwareButton
+                          icon: const Icon(Icons.arrow_back_ios_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.grey[100],
+                            padding: const EdgeInsets.only(
+                              left: 8,
+                            ), // Visual center usually needs offset for back arrow
+                          ),
                         ),
                       ),
                     ),
@@ -182,26 +187,29 @@ class LessonDetailScreen extends StatelessWidget {
                             },
                             inputMode: inputMode,
                             borderRadius: BorderRadius.circular(16),
-                            child: IgnorePointer(
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: themeColor,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: IgnorePointer(
+                                child: ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: themeColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: themeColor.withOpacity(0.4),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                   ),
-                                  elevation: 4,
-                                  shadowColor: themeColor.withOpacity(0.4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: const Text(
-                                  "Enroll Now",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                  child: const Text(
+                                    "Enroll Now",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -216,36 +224,42 @@ class LessonDetailScreen extends StatelessWidget {
                             },
                             inputMode: inputMode,
                             borderRadius: BorderRadius.circular(16),
-                            child: IgnorePointer(
-                              child: OutlinedButton(
-                                onPressed: () {},
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  side: BorderSide(color: themeColor, width: 2),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.quiz_rounded,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: IgnorePointer(
+                                child: OutlinedButton(
+                                  onPressed: () {},
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    side: BorderSide(
                                       color: themeColor,
-                                      size: 20,
+                                      width: 2,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "Attempt Quiz",
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.quiz_rounded,
                                         color: themeColor,
+                                        size: 20,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Attempt Quiz",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: themeColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -328,24 +342,27 @@ class LessonDetailScreen extends StatelessWidget {
                               },
                               inputMode: inputMode,
                               borderRadius: BorderRadius.circular(12),
-                              child: IgnorePointer(
-                                child: ElevatedButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: IgnorePointer(
+                                  child: ElevatedButton(
+                                    onPressed: () {},
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    "Play Related Games",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                    child: const Text(
+                                      "Play Related Games",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
