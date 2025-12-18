@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../components/common_header.dart';
-import '../../components/input_aware_button.dart';
-import '../../models/input_modes.dart';
-import '../physical/learnPage.dart';
-import '../physical/profilePage.dart';
-import '../physical/gamesPage.dart';
+import 'package:mobile_app/session/session.dart';
 
 class PhysicalDashboardScreen extends StatefulWidget {
   const PhysicalDashboardScreen({super.key});
@@ -15,473 +10,339 @@ class PhysicalDashboardScreen extends StatefulWidget {
 }
 
 class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
-  // Input mode switch (dwell / eye gaze / voice)
-  InputMode _selectedMode = InputMode.dwellTouch;
+  String userName = "";
 
-  // Top segmented tabs (Home/Learn/Games/Profile)
-  int _tabIndex = 0;
-
-  void _onInputModeChanged(InputMode mode) {
-    setState(() => _selectedMode = mode);
+  @override
+  void initState() {
+    super.initState();
+    // load name from Session (set at login)
+    userName = Session.userName ?? "Student";
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    // Responsive values (phones + tablets)
-    final isTablet = size.shortestSide >= 600;
-    final pad = isTablet ? 18.0 : 14.0;
-
-    final topBarHeight = isTablet ? 64.0 : 56.0;
-
-    // Calculate available height for cards
-    // Total height - SafeArea padding - top bar - spacing - section title
-    final availableHeight =
-        size.height -
-        MediaQuery.of(context).padding.top -
-        MediaQuery.of(context).padding.bottom -
-        (pad * 2) - // top and bottom padding
-        topBarHeight -
-        14 - // spacing after top bar
-        36 - // section title height (text + padding)
-        28; // bottom spacing buffer (increased for safety)
-
-    // Card size - make height responsive to available space
-    final cardWidth = isTablet ? 420.0 : 320.0;
-    // Use 80% of available height to ensure no overflow
-    final cardHeight = (availableHeight * 0.80).clamp(
-      isTablet ? 220.0 : 180.0, // minimum height
-      isTablet ? 280.0 : 240.0, // maximum height
-    );
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF6E4BC6), // purple base like design
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(pad),
-          child: Column(
-            children: [
-              // ===== TOP BAR =====
-              CommonHeader(
-                selectedIndex: _tabIndex,
-                inputMode: _selectedMode,
-                onInputModeChanged: _onInputModeChanged,
-                onTabChanged: (i) {
-                  setState(() => _tabIndex = i);
-                },
-              ),
-
-              const SizedBox(height: 14),
-
-              Expanded(child: _buildContent(isTablet, cardWidth, cardHeight)),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFE3F2FD),
+              Color.fromARGB(255, 55, 35, 58),
+              Color(0xFFFFF8E1),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildContent(bool isTablet, double cardWidth, double cardHeight) {
-    switch (_tabIndex) {
-      case 0:
-        return _HomeContent(
-          isTablet: isTablet,
-          cardWidth: cardWidth,
-          cardHeight: cardHeight,
-          inputMode: _selectedMode,
-        );
-      case 1:
-        // Learn Content
-        return LearnContent(inputMode: _selectedMode);
-      case 2:
-        // Games Content
-        return GamesContent(inputMode: _selectedMode);
-      case 3:
-        // Profile Content
-        return const ProfilePage();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-}
-
-class _HomeContent extends StatelessWidget {
-  final bool isTablet;
-  final double cardWidth;
-  final double cardHeight;
-  final InputMode inputMode;
-
-  const _HomeContent({
-    required this.isTablet,
-    required this.cardWidth,
-    required this.cardHeight,
-    required this.inputMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // ===== SECTION TITLE =====
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "Continue Learning",
-              style: TextStyle(
-                fontSize: isTablet ? 24 : 20,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withOpacity(0.3),
-                    offset: const Offset(0, 2),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // ===== CONTENT (Cards row - Horizontal Scroll) =====
-        Expanded(
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 8), // Add bottom padding
-            itemCount: 6, // More cards to show ongoing activities
-            separatorBuilder: (_, __) => const SizedBox(width: 18),
-            itemBuilder: (context, index) {
-              // Sample data for ongoing lessons and games
-              final items = [
-                {
-                  'title': 'Alphabet Learning',
-                  'type': 'Learn',
-                  'progress': 0.65,
-                  'icon': Icons.abc_rounded,
-                },
-                {
-                  'title': 'Number Matching',
-                  'type': 'Game',
-                  'progress': 0.40,
-                  'icon': Icons.numbers_rounded,
-                },
-                {
-                  'title': 'Shape Recognition',
-                  'type': 'Learn',
-                  'progress': 0.85,
-                  'icon': Icons.category_rounded,
-                },
-                {
-                  'title': 'Color Puzzle',
-                  'type': 'Game',
-                  'progress': 0.30,
-                  'icon': Icons.palette_rounded,
-                },
-                {
-                  'title': 'Word Building',
-                  'type': 'Learn',
-                  'progress': 0.55,
-                  'icon': Icons.spellcheck_rounded,
-                },
-                {
-                  'title': 'Memory Game',
-                  'type': 'Game',
-                  'progress': 0.75,
-                  'icon': Icons.psychology_rounded,
-                },
-              ];
-
-              final item = items[index];
-
-              return _ModuleCard(
-                width: cardWidth,
-                height: cardHeight,
-                title: item['title'] as String,
-                label: item['type'] as String,
-                progress: item['progress'] as double,
-                icon: item['icon'] as IconData,
-                inputMode: inputMode,
-                onTap: () {
-                  // TODO: Handle card tap
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// ===== Big module card with progress tracking =====
-/// Shows ongoing lessons and games with completion percentage
-class _ModuleCard extends StatelessWidget {
-  final double width;
-  final double height;
-  final String title;
-  final String label;
-  final double progress; // 0.0 to 1.0
-  final IconData icon;
-  final VoidCallback onTap;
-  final InputMode inputMode;
-
-  const _ModuleCard({
-    required this.width,
-    required this.height,
-    required this.title,
-    required this.label,
-    required this.progress,
-    required this.icon,
-    required this.onTap,
-    required this.inputMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final progressPercent = (progress * 100).toInt();
-    final isGame = label == 'Game';
-    final badgeColor = isGame
-        ? const Color(0xFFFFB74D)
-        : const Color(0xFF64FF6A);
-
-    return InputAwareButton(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      inputMode: inputMode,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.2), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            // ===== IMAGE/ICON AREA =====
-            Expanded(
-              flex: 3,
-              child: Stack(
-                children: [
-                  // Gradient background
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isGame
-                              ? [
-                                  const Color(0xFFFFE082),
-                                  const Color(0xFFFFB74D),
-                                ]
-                              : [
-                                  const Color(0xFFB2FF59),
-                                  const Color(0xFF66BB6A),
-                                ],
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        icon,
-                        size: 64,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ),
-
-                  // Type badge (Learn/Game)
-                  Positioned(
-                    left: 12,
-                    top: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black, width: 1.5),
-                      ),
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Progress percentage badge
-                  Positioned(
-                    right: 12,
-                    top: 12,
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 2),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Circular progress indicator
-                          SizedBox(
-                            width: 46,
-                            height: 46,
-                            child: CircularProgressIndicator(
-                              value: progress,
-                              strokeWidth: 4,
-                              backgroundColor: Colors.grey.shade300,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                progress >= 0.7
-                                    ? Colors.green
-                                    : progress >= 0.4
-                                    ? Colors.orange
-                                    : Colors.red,
-                              ),
-                            ),
-                          ),
-                          // Percentage text
-                          Text(
-                            '$progressPercent%',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ===== TITLE AND PROGRESS BAR AREA =====
-            Expanded(
-              flex: 2,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(color: Colors.grey.shade50),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // =====================================================
+                // TOP BAR WITH REAL USER NAME
+                // =====================================================
+                Row(
                   children: [
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        color: Colors.black87,
-                        height:
-                            1.1, // Added to reduce line height and save space
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: cs.primary.withOpacity(0.1),
+                      child: const Icon(Icons.person, size: 28),
                     ),
+                    const SizedBox(width: 12),
 
-                    const SizedBox(height: 4),
-
-                    // Progress bar
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
+                        Text(
+                          "Hi, $userName 👋",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Text(
+                          "Ready to learn something new today? physical",
+                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.notifications_outlined),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // =====================================================
+                // TODAY'S SUMMARY CARD
+                // =====================================================
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
                             Text(
-                              'Progress',
+                              "Today’s Learning",
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black.withOpacity(0.6),
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
+                            SizedBox(height: 4),
                             Text(
-                              '$progressPercent% Complete',
+                              "3 lessons • 2 quizzes • 1 game",
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: progress >= 0.7
-                                    ? Colors.green.shade700
-                                    : progress >= 0.4
-                                    ? Colors.orange.shade700
-                                    : Colors.red.shade700,
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              "Keep your 5-day streak! 🔥",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        // Linear progress bar
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: Colors.black.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: progress,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: progress >= 0.7
-                                      ? [
-                                          Colors.green.shade400,
-                                          Colors.green.shade600,
-                                        ]
-                                      : progress >= 0.4
-                                      ? [
-                                          Colors.orange.shade400,
-                                          Colors.orange.shade600,
-                                        ]
-                                      : [
-                                          Colors.red.shade400,
-                                          Colors.red.shade600,
-                                        ],
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset(
+                        "assets/login_page.png",
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 18),
+
+                // =====================================================
+                // SUBJECTS TITLE
+                // =====================================================
+                const Text(
+                  "ඔබගේ විෂයන් ",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+
+                // =====================================================
+                // SUBJECT CHIPS
+                // =====================================================
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _SubjectChip(
+                        label: "ගණිතය",
+                        icon: Icons.calculate,
+                        onTap: () {
+                          Navigator.pushNamed(context, '/math_lessons');
+                        },
+                      ),
+                      _SubjectChip(
+                        label: "සිංහල",
+                        icon: Icons.menu_book,
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Sinhala lessons coming soon!"),
+                            ),
+                          );
+                        },
+                      ),
+                      _SubjectChip(
+                        label: "ප්‍රශ්න",
+                        icon: Icons.quiz,
+                        onTap: () {
+                          Navigator.pushNamed(context, '/quiz');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // =====================================================
+                // GRID OF LESSON CARDS
+                // =====================================================
+                const Expanded(child: _LessonsGrid()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+//=====================================================
+// Subject chip widget
+//=====================================================
+class _SubjectChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SubjectChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.deepPurple.shade100),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: Colors.deepPurple),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Colors.deepPurple),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+//=====================================================
+// Lessons Grid
+//=====================================================
+class _LessonsGrid extends StatelessWidget {
+  const _LessonsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      padding: const EdgeInsets.only(bottom: 8),
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 3 / 2.5,
+      children: [
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/math_lessons');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 238, 235, 235),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text(
+                "ගණිතය",
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ),
+
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/quiz');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 244, 243, 241),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text(
+                "සිංහල",
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ),
+
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/quiz');
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text(
+                "ප්‍රශ්න",
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

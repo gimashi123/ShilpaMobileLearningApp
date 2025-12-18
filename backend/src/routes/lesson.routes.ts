@@ -1,21 +1,23 @@
 // src/routes/lesson.routes.ts
-import { Router } from 'express';
-import requireAuth from '../middlewares/auth.middleware';
-import isAdmin from '../middlewares/role.middleware';
-import { uploadLesson } from '../config/upload';
-import { createLesson, getLessons } from '../controllers/lesson.controller';
+import { Router } from "express";
+import {
+  createLesson,
+  getLessons,
+  getMyLessons,
+} from "../controllers/lesson.controller";
+import authMiddleware from "../middlewares/auth.middleware";
+import { uploadVideoLesson } from "../middlewares/uploadVideoLessons";
 
 const router = Router();
 
 router.post(
-  '/admin/lessons',
-  requireAuth,
-  isAdmin,
-  uploadLesson.any(),  
-  createLesson
+  "/lessons",
+  authMiddleware,
+  uploadVideoLesson.any(),
+  createLesson,
 );
 
-router.get('/lessons', requireAuth, getLessons);
-router.get('/lessons/grade', requireAuth, getLessons);
+router.get("/lessons", getLessons);
+router.get("/lessons/my", authMiddleware, getMyLessons);
 
 export default router;

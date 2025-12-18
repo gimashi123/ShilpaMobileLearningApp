@@ -3,7 +3,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/services/auth_api.dart';
 
 class RegisterPage extends StatefulWidget {
-  final String disabilityType; // 👈 visual / hearing / physical / cognitive
+  final String disabilityType; // visual / hearing / physical / cognitive
 
   const RegisterPage({super.key, required this.disabilityType});
 
@@ -18,6 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
+  final TextEditingController _gradeCtrl = TextEditingController(); // 👈 NEW
 
   // Role (default = student)
   String _selectedRole = 'student';
@@ -26,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final FlutterTts _tts = FlutterTts();
   static const String _welcomeText =
       'ශිෂ්‍ය ගිණුමක් නිර්මාණය කරන්න. '
-      'ඔබගේ නම, ඊමේල් ලිපිනය, සංකේත පදය සහ භූමිකාව තෝරන්න.';
+      'ඔබගේ නම, ඊමේල් ලිපිනය, සංකේත පදය, ශ්‍රේණිය සහ භූමිකාව තෝරන්න.';
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _gradeCtrl.dispose();
     super.dispose();
   }
 
@@ -82,7 +84,7 @@ class _RegisterPageState extends State<RegisterPage> {
       case 'hearing':
         return 'ශ්‍රවණ අබාධිත ශිෂ්‍ය';
       case 'physical':
-        return 'ශාරීരික අබාධිත ශිෂ්‍ය';
+        return 'ශාරීරික අබාධිත ශිෂ්‍ය';
       case 'cognitive':
         return 'ඥානීය / බුද්ධිමය ශිෂ්‍ය';
       default:
@@ -119,14 +121,46 @@ class _RegisterPageState extends State<RegisterPage> {
       final email = _emailCtrl.text.trim();
       final password = _passwordCtrl.text.trim();
       final role = _selectedRole;
+      final gradeText = _gradeCtrl.text.trim();
+
+      // extra safety: backend also checks, but we guard here
+      String? gradeToSend;
+      if (role == 'student') {
+        if (gradeText.isEmpty) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("ශ්‍රේණිය අවශ්‍යයි")));
+          await _speak('කරුණාකර ඔබගේ ශ්‍රේණිය ඇතුල් කරන්න.');
+          return;
+        }
+        final g = int.tryParse(gradeText);
+        if (g == null || g < 3 || g > 5) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය")),
+          );
+          await _speak('ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය.');
+          return;
+        }
+        gradeToSend = gradeText; // backend will convert to number
+      }
 
       try {
+        // If disabilityType is empty (e.g. direct nav), default to 'visual' or handle error
+        final disabilityToUse = widget.disabilityType.isEmpty
+            ? 'visual'
+            : widget.disabilityType;
+
+        print(
+          "DEBUG: Registering with $email, role=$role, disability=$disabilityToUse type=${widget.disabilityType}",
+        );
+
         await AuthApi.register(
           name: name,
           email: email,
           password: password,
           role: role,
-          disabilityType: widget.disabilityType, // 👈 send to backend
+          disabilityType: disabilityToUse,
+          grade: gradeToSend, // 👈 NEW
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -138,6 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/newlogin');
       } catch (e) {
+        print("DEBUG: Registration error: $e");
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Register failed: $e")));
@@ -171,9 +206,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFFE3F2FD), // very light blue
-                  Color(0xFFF3E5F5), // very light purple
-                  Color(0xFFFFF8E1), // very light yellow
+                  Color(0xFFE3F2FD),
+                  Color(0xFFF3E5F5),
+                  Color(0xFFFFF8E1),
                 ],
               ),
             ),
@@ -203,7 +238,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                 ),
-
                 isWide
                     ? Row(
                         children: [
@@ -252,7 +286,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           Expanded(flex: 5, child: _buildFormCard()),
                         ],
                       ),
-
                 Positioned(
                   right: 16,
                   top: 32,
@@ -396,6 +429,30 @@ class _RegisterPageState extends State<RegisterPage> {
                         ? "Password අකුරු 6ක් වත් අවශ්‍යයි"
                         : null,
                   ),
+                  const SizedBox(height: 14),
+
+                  // Grade (only validated for student)
+                  TextFormField(
+                    controller: _gradeCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.black87),
+                    decoration: _inputStyle(
+                      "ඇතුල් කරන්න: ශ්‍රේණිය (3 / 4 / 5)",
+                      Icons.class_,
+                    ),
+                    validator: (v) {
+                      if (_selectedRole != 'student') return null;
+                      if (v == null || v.isEmpty) {
+                        return "ශ්‍රේණිය අවශ්‍යයි";
+                      }
+                      final g = int.tryParse(v);
+                      if (g == null || g < 3 || g > 5) {
+                        return "ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය";
+                      }
+                      return null;
+                    },
+                  ),
+
                   const SizedBox(height: 14),
 
                   // Role dropdown

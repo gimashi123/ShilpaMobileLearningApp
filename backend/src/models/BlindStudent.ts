@@ -2,8 +2,6 @@ import { Schema, model, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export type Role = 'student' | 'parent' | 'teacher' | 'admin';
-
-// 👇 NEW type
 export type DisabilityType = 'visual' | 'hearing' | 'physical' | 'cognitive';
 
 interface StudentProfile {
@@ -17,8 +15,7 @@ export interface IUser extends Document {
   password: string;
   role: Role;
   student?: StudentProfile;
-  // 👇 NEW
-  disabilityType: DisabilityType;
+  disabilityType?: DisabilityType; // 👈 now optional at TS level
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -30,7 +27,7 @@ const StudentProfileSchema = new Schema<StudentProfile>(
   { _id: false },
 );
 
-const BlindSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
     email: {
@@ -49,29 +46,30 @@ const BlindSchema = new Schema<IUser>(
     },
     student: StudentProfileSchema,
 
-    // 👇 NEW FIELD – REQUIRED
+    // ⚠️ REQUIRED ONLY FOR STUDENT
     disabilityType: {
       type: String,
       enum: ['visual', 'hearing', 'physical', 'cognitive'],
-      required: true,
+      required: function () {
+        // @ts-ignore
+        return this.role === 'student';
+      },
     },
   },
   { timestamps: true },
 );
 
-BlindSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
-  // @ts-ignore - Mongoose typing
+  // @ts-ignore
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-BlindSchema.methods.comparePassword = function (candidate: string) {
+UserSchema.methods.comparePassword = function (candidate: string) {
   // @ts-ignore
   return bcrypt.compare(candidate, this.password);
 };
 
-// NOTE: model name string kept same as your file; if you already have data,
-// changing this string would create a new collection.
-export default model<IUser>(' BlindSchema', BlindSchema);
+export default model<IUser>('User', UserSchema);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/services/auth_api.dart'; // adjust path if needed
+import 'package:mobile_app/services/auth_api.dart';
+import 'package:mobile_app/session/session.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -35,14 +36,22 @@ class _LoginPageState extends State<LoginPage> {
       // 1️⃣ Call backend login – EXPECTS { token, user }
       final result = await AuthApi.login(email: email, password: password);
 
-      // 2️⃣ Extract user + disabilityType safely
+      final token = result['token'];
       final user = result['user'] as Map<String, dynamic>?;
-      AuthApi.currentUser = user;
-      final String? disabilityType = user != null
-          ? user['disabilityType'] as String?
-          : null;
 
-      // 3️⃣ Decide which route to open
+      // 2️⃣ Save ALL important data to Session
+      Session.token = token?.toString();
+      Session.userId = user?['id']?.toString();
+      Session.userName = user?['name']?.toString();
+      Session.email = user?['email']?.toString();
+      Session.disabilityType = user?['disabilityType']?.toString();
+
+      print('JWT token set: ${Session.token}');
+      print('Session.userName = ${Session.userName}');
+      print('Session.disabilityType = ${Session.disabilityType}');
+
+      // 3️⃣ Decide which route to open based on disabilityType
+      final String? disabilityType = Session.disabilityType;
       String targetRoute = '/dashboard'; // fallback
 
       if (disabilityType == 'visual') {
@@ -215,11 +224,10 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
 
-          // 📱 Responsive layout: side-by-side on wide, stacked on small
           if (isWide) {
             return Row(
               children: [
-                // LEFT SIDE — CHILDREN IMAGE
+                // LEFT SIDE — IMAGE
                 Expanded(
                   flex: 1,
                   child: Container(
@@ -240,7 +248,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                // RIGHT SIDE — LOGIN FORM
+                // RIGHT SIDE — FORM
                 Expanded(flex: 1, child: formCard),
               ],
             );
