@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/session/session.dart';
+import '../../models/input_modes.dart';
+import '../../components/input_mode_switch.dart';
+import '../../components/input_aware_button.dart';
 
 class PhysicalDashboardScreen extends StatefulWidget {
   const PhysicalDashboardScreen({super.key});
@@ -11,6 +14,7 @@ class PhysicalDashboardScreen extends StatefulWidget {
 
 class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
   String userName = "";
+  InputMode _inputMode = InputMode.dwellTouch;
 
   @override
   void initState() {
@@ -77,6 +81,20 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                       icon: const Icon(Icons.notifications_outlined),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // =====================================================
+                // INPUT MODE SWITCH
+                // =====================================================
+                InputModeSwitch(
+                  selectedMode: _inputMode,
+                  onChanged: (mode) {
+                    setState(() {
+                      _inputMode = mode;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -167,6 +185,7 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                       _SubjectChip(
                         label: "ගණිතය",
                         icon: Icons.calculate,
+                        inputMode: _inputMode,
                         onTap: () {
                           Navigator.pushNamed(context, '/math_lessons');
                         },
@@ -174,6 +193,7 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                       _SubjectChip(
                         label: "සිංහල",
                         icon: Icons.menu_book,
+                        inputMode: _inputMode,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -185,6 +205,7 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                       _SubjectChip(
                         label: "ප්‍රශ්න",
                         icon: Icons.quiz,
+                        inputMode: _inputMode,
                         onTap: () {
                           Navigator.pushNamed(context, '/quiz');
                         },
@@ -198,7 +219,7 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                 // =====================================================
                 // GRID OF LESSON CARDS
                 // =====================================================
-                const Expanded(child: _LessonsGrid()),
+                Expanded(child: _LessonsGrid(inputMode: _inputMode)),
               ],
             ),
           ),
@@ -215,18 +236,21 @@ class _SubjectChip extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final InputMode inputMode;
 
   const _SubjectChip({
     required this.label,
     required this.icon,
     required this.onTap,
+    required this.inputMode,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
+    return InputAwareButton(
       onTap: onTap,
+      inputMode: inputMode,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -254,7 +278,8 @@ class _SubjectChip extends StatelessWidget {
 // Lessons Grid
 //=====================================================
 class _LessonsGrid extends StatelessWidget {
-  const _LessonsGrid();
+  final InputMode inputMode;
+  const _LessonsGrid({required this.inputMode});
 
   @override
   Widget build(BuildContext context) {
@@ -265,10 +290,12 @@ class _LessonsGrid extends StatelessWidget {
       mainAxisSpacing: 12,
       childAspectRatio: 3 / 2.5,
       children: [
-        InkWell(
+        InputAwareButton(
+          inputMode: inputMode,
           onTap: () {
             Navigator.pushNamed(context, '/math_lessons');
           },
+          borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -291,10 +318,12 @@ class _LessonsGrid extends StatelessWidget {
           ),
         ),
 
-        InkWell(
+        InputAwareButton(
+          inputMode: inputMode,
           onTap: () {
             Navigator.pushNamed(context, '/quiz');
           },
+          borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -317,10 +346,12 @@ class _LessonsGrid extends StatelessWidget {
           ),
         ),
 
-        InkWell(
+        InputAwareButton(
+          inputMode: inputMode,
           onTap: () {
             Navigator.pushNamed(context, '/quiz');
           },
+          borderRadius: BorderRadius.circular(18),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
