@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
-import 'package:mobile_app/pages/physical/gamesPage.dart';
+import 'games_content.dart';
 
 class LessonDetailScreen extends StatelessWidget {
   final String title;

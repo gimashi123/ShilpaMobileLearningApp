@@ -81,4 +81,26 @@ class AuthApi {
     final data = json['data'] as Map<String, dynamic>;
     return {'token': data['token'], 'user': data['user']};
   }
+
+  // ---------- FETCH PROFILE ----------
+  static Future<Map<String, dynamic>> fetchProfile(String token) async {
+    final url = Uri.parse('$baseUrl/api/auth/me');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final json = jsonDecode(response.body);
+
+    if (response.statusCode != 200 || json['success'] == false) {
+      final msg = json['message'] ?? 'Failed to fetch profile';
+      throw Exception(msg);
+    }
+
+    return json['data'] as Map<String, dynamic>;
+  }
 }

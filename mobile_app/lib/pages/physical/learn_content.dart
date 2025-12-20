@@ -3,6 +3,7 @@ import 'package:mobile_app/pages/physical/lesson_detail_screen.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 
+/// Learn content (Learn tab)
 class LearnContent extends StatefulWidget {
   final InputMode inputMode;
 
@@ -67,7 +68,6 @@ class _LearnContentState extends State<LearnContent> {
       'index': 8,
     },
     {'title': 'Division', 'subject': 'Maths', 'grade': 'Grade 5', 'index': 9},
-    // Add more dummy data to ensure filters work visibly
     {
       'title': 'Colors (Sin)',
       'subject': 'Sinhala',
@@ -172,7 +172,6 @@ class _LearnContentState extends State<LearnContent> {
                               subject: lesson['subject'] as String,
                               grade: lesson['grade'] as String,
                               inputMode: widget.inputMode,
-                              // We can pass a nice color based on index if we want
                               themeColor: const Color(0xFF6C63FF),
                             ),
                           ),
@@ -223,11 +222,10 @@ class _LearnContentState extends State<LearnContent> {
               borderRadius: BorderRadius.circular(20),
               child: IgnorePointer(
                 child: ChoiceChip(
-                  showCheckmark: false, // Cleaner look
+                  showCheckmark: false,
                   label: Text(
                     option,
                     style: TextStyle(
-                      // Use a darker purple for better readability on white
                       color: isSelected
                           ? const Color(0xFF4527A0)
                           : Colors.white,
@@ -236,13 +234,11 @@ class _LearnContentState extends State<LearnContent> {
                     ),
                   ),
                   selected: isSelected,
-                  onSelected: (selected) {}, // Handled by InputAwareButton
+                  onSelected: (selected) {},
                   elevation: 0,
                   pressElevation: 0,
-                  // Transparent with white border when unselected
                   backgroundColor: Colors.transparent,
                   selectedColor: Colors.white,
-                  // Add white border to unselected, no border to selected
                   side: isSelected
                       ? const BorderSide(color: Colors.transparent, width: 0)
                       : const BorderSide(color: Colors.white, width: 1.5),

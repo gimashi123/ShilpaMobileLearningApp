@@ -153,6 +153,31 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
+export const getMe = async (req: any, res: Response) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return errorResponse(res, "User not found", HTTP_STATUS.NOT_FOUND);
+    }
+
+    return successResponse(res, "Profile fetched", {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      disabilityType: user.disabilityType,
+      student: user.student,
+    });
+  } catch (err) {
+    console.error("GET_ME_ERROR", err);
+    return errorResponse(
+      res,
+      "Server error",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+    );
+  }
+};
+
 const createLoginResponse = (user: any): AuthResponse => {
   const token = signToken(user.id, user.role);
   return {

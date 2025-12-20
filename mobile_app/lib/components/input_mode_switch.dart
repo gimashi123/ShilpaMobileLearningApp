@@ -26,6 +26,14 @@ class InputModeSwitch extends StatelessWidget {
       child: Row(
         children: [
           _ModeChip(
+            label: "Standard",
+            icon: Icons.fingerprint,
+            mode: InputMode.standard,
+            currentMode: selectedMode,
+            isSelected: selectedMode == InputMode.standard,
+            onTap: () => onChanged(InputMode.standard),
+          ),
+          _ModeChip(
             label: "Dwell",
             icon: Icons.touch_app,
             mode: InputMode.dwellTouch,

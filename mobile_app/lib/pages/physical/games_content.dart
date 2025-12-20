@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 
+/// Games content (Games tab)
 class GamesContent extends StatelessWidget {
   final InputMode inputMode;
 
@@ -18,7 +19,7 @@ class GamesContent extends StatelessWidget {
         crossAxisCount: 3, // 3 cards per row
         crossAxisSpacing: isTablet ? 18 : 14,
         mainAxisSpacing: isTablet ? 18 : 14,
-        childAspectRatio: isTablet ? 0.85 : 0.75, // Adjust card proportions
+        childAspectRatio: isTablet ? 0.85 : 0.75,
       ),
       itemCount: 12, // Number of games
       itemBuilder: (context, index) {
@@ -68,7 +69,6 @@ class _GameCard extends StatelessWidget {
       const Color(0xFFFFD54F), // Yellow
     ];
 
-    // Shift colors slightly from learn page or keep same logic
     final cardColor = colors[index % colors.length];
     final labelColor = labelColors[index % labelColors.length];
 
@@ -111,7 +111,7 @@ class _GameCard extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: Icon(
-                      Icons.videogame_asset_rounded, // Game icon
+                      Icons.videogame_asset_rounded,
                       size: 48,
                       color: Colors.black.withOpacity(0.4),
                     ),
