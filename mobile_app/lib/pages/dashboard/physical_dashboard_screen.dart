@@ -3,6 +3,7 @@ import 'package:mobile_app/session/session.dart';
 import '../../models/input_modes.dart';
 import '../../components/input_mode_switch.dart';
 import '../../components/input_aware_button.dart';
+import '../../components/common_header.dart';
 
 class PhysicalDashboardScreen extends StatefulWidget {
   const PhysicalDashboardScreen({super.key});
@@ -15,6 +16,7 @@ class PhysicalDashboardScreen extends StatefulWidget {
 class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
   String userName = "";
   InputMode _inputMode = InputMode.dwellTouch;
+  int _selectedTab = 0; // 0: Home, 1: Learn, 2: Games, 3: Profile
 
   @override
   void initState() {
@@ -25,8 +27,6 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -47,40 +47,35 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // =====================================================
-                // TOP BAR WITH REAL USER NAME
+                // COMMON HEADER WITH NAVIGATION
                 // =====================================================
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: cs.primary.withOpacity(0.1),
-                      child: const Icon(Icons.person, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Hi, $userName 👋",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const Text(
-                          "Ready to learn something new today? physical",
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.notifications_outlined),
-                    ),
-                  ],
+                CommonHeader(
+                  userName: userName,
+                  inputMode: _inputMode,
+                  selectedTab: _selectedTab,
+                  onTabChanged: (index) {
+                    setState(() {
+                      _selectedTab = index;
+                    });
+                    // Handle navigation based on selected tab
+                    switch (index) {
+                      case 0:
+                        // Already on Home (Dashboard)
+                        break;
+                      case 1:
+                        // Navigate to Learn page
+                        Navigator.pushNamed(context, '/learn');
+                        break;
+                      case 2:
+                        // Navigate to Games page
+                        Navigator.pushNamed(context, '/games');
+                        break;
+                      case 3:
+                        // Navigate to Profile page
+                        Navigator.pushNamed(context, '/profile');
+                        break;
+                    }
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -96,75 +91,6 @@ class _PhysicalDashboardScreenState extends State<PhysicalDashboardScreen> {
                     });
                   },
                 ),
-
-                const SizedBox(height: 16),
-
-                // =====================================================
-                // TODAY'S SUMMARY CARD
-                // =====================================================
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 10,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Today’s Learning",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "3 lessons • 2 quizzes • 1 game",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              "Keep your 5-day streak! 🔥",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Image.asset(
-                        "assets/login_page.png",
-                        height: 80,
-                        fit: BoxFit.contain,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 18),
 
                 // =====================================================
                 // SUBJECTS TITLE
