@@ -218,11 +218,16 @@ class CognativeDashboardScreen extends StatelessWidget {
                             icon: Icons.menu_book,
                             onTap: () {
                               Navigator.pushNamed(context, '/activity_draw');
-                              // ScaffoldMessenger.of(context).showSnackBar(
-                              //   const SnackBar(
-                              //     content: Text("Sinhala lessons coming soon!"),
-                              //   ),
-                              // );
+                            },
+                          ),
+                          _SubjectChip(
+                            label: "Find Image",
+                            icon: Icons.menu_book,
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/activity_findImage',
+                              );
                             },
                           ),
                         ],

@@ -64,7 +64,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
   void _onLevelCompleted(int index) {
     setState(() {
       _showNotification = true;
-      _notificationTitle = 'Amazing! You did it!';
+      _notificationTitle = 'පුදුමයි! ඔයා ඒක කළා!';
       _notificationEmoji = '🌟';
       _notificationColor = Colors.green.shade400;
     });
@@ -80,7 +80,6 @@ class _ActivityDrawState extends State<ActivityDraw> {
       if (index < tracePaths.length - 1) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
-          // make sure user is still on the same level
           if (_currentTraceIndex == index) {
             _nextTrace();
           }
@@ -92,7 +91,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
   void _onLevelFailed(int index) {
     setState(() {
       _showNotification = true;
-      _notificationTitle = 'Nice try! Let\'s practice again!';
+      _notificationTitle = 'හොඳ උත්සාහයක්! අපි නැවත පුහුණු වෙමු!';
       _notificationEmoji = '💪';
       _notificationColor = Colors.orange.shade400;
     });
@@ -131,8 +130,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  physics:
-                      const NeverScrollableScrollPhysics(), // disable swipe
+                  physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) {
                     setState(() {
                       _currentTraceIndex = index;
@@ -193,6 +191,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
               ),
             ],
           ),
+
           // Large notification card overlay
           if (_showNotification)
             Center(
@@ -409,6 +408,13 @@ class _TracingCanvasState extends State<TracingCanvas> {
     return enoughCoverage && fewOffPath && longEnough && notTooLong;
   }
 
+  // ✅ NEW: require the last visible dot to be traced
+  bool _isEndDotTraced() {
+    final dots = widget.tracePath.dots;
+    if (dots.isEmpty) return false;
+    return dots.last.isTraced;
+  }
+
   void _handlePoint(Offset point) {
     _updateDotTracing(point); // for visual feedback
     _updateSampleCoverage(point); // for accuracy
@@ -417,7 +423,10 @@ class _TracingCanvasState extends State<TracingCanvas> {
   void _evaluateAttempt() {
     if (_alreadyCompleted) return;
 
-    if (_isTraceComplete()) {
+    // ✅ FIX: only success if trace is complete AND last dot is traced
+    final ok = _isTraceComplete() && _isEndDotTraced();
+
+    if (ok) {
       _alreadyCompleted = true;
       widget.onCompleted?.call();
     } else {
@@ -529,7 +538,7 @@ class GuideLinePainter extends CustomPainter {
     // 3) Draw visible guide dots
     _drawDots(canvas);
 
-    // 4) Draw arrows between dots (direction from dot[i] -> dot[i+1])
+    // 4) Draw arrows between dots
     _drawArrowsBetweenDots(canvas);
   }
 
@@ -545,7 +554,6 @@ class GuideLinePainter extends CustomPainter {
         break;
 
       case PathType.wave:
-        // centered, 2 cycles
         final startY = 100.0;
         final endY = size.height - 100;
         final baseX = centerX;

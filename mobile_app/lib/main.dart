@@ -7,6 +7,7 @@ import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
 import 'package:mobile_app/pages/games_cognitive/iq.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
         // cognitive disability games
         '/iq_game': (_) => const IqGame(),
         '/activity_draw': (_) => const ActivityDraw(),
+        '/activity_findImage': (_) => const PuzzleApp(),
       },
     );
   }
