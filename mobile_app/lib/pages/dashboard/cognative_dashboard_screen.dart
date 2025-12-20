@@ -230,6 +230,16 @@ class CognativeDashboardScreen extends StatelessWidget {
                               );
                             },
                           ),
+                          _SubjectChip(
+                            label: "Count Numbers",
+                            icon: Icons.menu_book,
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/activity_findImage',
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
