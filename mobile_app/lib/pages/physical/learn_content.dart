@@ -14,12 +14,7 @@ class LearnContent extends StatefulWidget {
 }
 
 class _LearnContentState extends State<LearnContent> {
-  // Filter States
   String _selectedSubject = 'Sinhala'; // Default
-  String _selectedGrade = 'Grade 3'; // Default
-
-  final List<String> _subjects = ['Sinhala', 'Maths'];
-  final List<String> _grades = ['Grade 3', 'Grade 4', 'Grade 5'];
 
   // Mock Data
   final List<Map<String, dynamic>> _allLessons = [
@@ -84,40 +79,97 @@ class _LearnContentState extends State<LearnContent> {
 
     // Filter Logic
     final filteredLessons = _allLessons.where((lesson) {
-      return lesson['subject'] == _selectedSubject &&
-          lesson['grade'] == _selectedGrade;
+      return lesson['subject'] == _selectedSubject;
     }).toList();
 
     return Column(
       children: [
-        // ===== FILTERS SECTION =====
+        // ===== SUBJECT TOGGLE SECTION =====
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          margin: const EdgeInsets.only(bottom: 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                // Subject Filter
-                _buildFilterGroup(
-                  "Subject",
-                  _subjects,
-                  _selectedSubject,
-                  (val) => setState(() => _selectedSubject = val),
+          height: 56,
+          margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Row(
+            children: [
+              // SINHALA TAB
+              Expanded(
+                child: InputAwareButton(
+                  onTap: () => setState(() => _selectedSubject = 'Sinhala'),
+                  inputMode: widget.inputMode,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      color: _selectedSubject == 'Sinhala'
+                          ? Colors.orangeAccent
+                          : Colors.transparent,
+                      boxShadow: _selectedSubject == 'Sinhala'
+                          ? [
+                              BoxShadow(
+                                color: Colors.orangeAccent.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Sinhala",
+                      style: TextStyle(
+                        color: _selectedSubject == 'Sinhala'
+                            ? Colors.black87
+                            : Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                 ),
-
-                const SizedBox(width: 24),
-
-                // Grade Filter
-                _buildFilterGroup(
-                  "Grade",
-                  _grades,
-                  _selectedGrade,
-                  (val) => setState(() => _selectedGrade = val),
-                  isGrade: true,
+              ),
+              const SizedBox(width: 4),
+              // MATHS TAB
+              Expanded(
+                child: InputAwareButton(
+                  onTap: () => setState(() => _selectedSubject = 'Maths'),
+                  inputMode: widget.inputMode,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      color: _selectedSubject == 'Maths'
+                          ? Colors.blueAccent
+                          : Colors.transparent,
+                      boxShadow: _selectedSubject == 'Maths'
+                          ? [
+                              BoxShadow(
+                                color: Colors.blueAccent.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "Maths",
+                      style: TextStyle(
+                        color: _selectedSubject == 'Maths'
+                            ? Colors.black87
+                            : Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
 
@@ -135,7 +187,7 @@ class _LearnContentState extends State<LearnContent> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        "No lessons found for\n$_selectedSubject - $_selectedGrade",
+                        "No lessons found for\n$_selectedSubject",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: const Color.fromARGB(255, 31, 31, 31),
@@ -181,75 +233,6 @@ class _LearnContentState extends State<LearnContent> {
                   },
                 ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildFilterGroup(
-    String label,
-    List<String> options,
-    String selectedValue,
-    Function(String) onSelected, {
-    bool isGrade = false,
-  }) {
-    return Row(
-      children: [
-        Text(
-          "$label:",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: 16,
-            shadows: [
-              Shadow(
-                color: Colors.black26,
-                offset: Offset(0, 1),
-                blurRadius: 2,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        ...options.map((option) {
-          final isSelected = option == selectedValue;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InputAwareButton(
-              onTap: () {
-                if (!isSelected) onSelected(option);
-              },
-              inputMode: widget.inputMode,
-              borderRadius: BorderRadius.circular(20),
-              child: IgnorePointer(
-                child: ChoiceChip(
-                  showCheckmark: false,
-                  label: Text(
-                    option,
-                    style: TextStyle(
-                      color: isSelected
-                          ? const Color(0xFF4527A0)
-                          : Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  selected: isSelected,
-                  onSelected: (selected) {},
-                  elevation: 0,
-                  pressElevation: 0,
-                  backgroundColor: Colors.transparent,
-                  selectedColor: Colors.white,
-                  side: isSelected
-                      ? const BorderSide(color: Colors.transparent, width: 0)
-                      : const BorderSide(color: Colors.white, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
       ],
     );
   }
