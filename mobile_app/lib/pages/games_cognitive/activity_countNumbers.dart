@@ -189,7 +189,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
                 children: [
                   IconButton(
                     onPressed: () => Navigator.maybePop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.red),
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
                   const SizedBox(width: 4),
                   const Expanded(

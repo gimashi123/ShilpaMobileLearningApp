@@ -236,7 +236,7 @@ class CognativeDashboardScreen extends StatelessWidget {
                             onTap: () {
                               Navigator.pushNamed(
                                 context,
-                                '/activity_findImage',
+                                '/activity_countNumbers',
                               );
                             },
                           ),

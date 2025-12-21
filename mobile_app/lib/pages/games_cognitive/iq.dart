@@ -5,10 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 
-void main() {
-  runApp(const IqGame());
-}
-
 /// =======================
 /// Settings (sound default ON)
 /// =======================
@@ -83,9 +79,7 @@ class IqGame extends StatelessWidget {
 }
 
 /// =====================================
-/// ✅ RESPONSIVE MENU (FIXED)
-/// - Full screen gradient (no white area)
-/// - Buttons scale on phone/tablet
+/// Menu
 /// =====================================
 class Menu extends StatelessWidget {
   const Menu({Key? key}) : super(key: key);
@@ -108,7 +102,7 @@ class Menu extends StatelessWidget {
                 final w = c.maxWidth;
                 final h = c.maxHeight;
 
-                final contentMaxW = w < 600 ? w * 0.88 : 520.0; // tablet cap
+                final contentMaxW = w < 600 ? w * 0.88 : 520.0;
                 final btnH = (h * 0.11).clamp(64.0, 90.0);
 
                 return Center(
@@ -249,87 +243,103 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
               colors: [Colors.green.shade300, Colors.blue.shade300],
             ),
           ),
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    '🎉  ඉදිරියට යමු 🎉',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 30),
-                  ScoreCard(
-                    title: 'හැඩ ගැලපීමෙන් ලකුණු',
-                    score: shapeGameScore,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(height: 14),
-                  ScoreCard(
-                    title: 'පාට ගැලපීමෙන් ලකුණු',
-                    score: colorGameScore,
-                    color: Colors.pink,
-                  ),
-                  const SizedBox(height: 14),
-                  ScoreCard(
-                    title: 'බෝල පිපිරීමෙන් ලකුණු',
-                    score: popGameScore,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(height: 26),
-                  Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        const Text(
-                          '🏆 මුළු ලකුණු',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '$totalScore',
-                          style: const TextStyle(
-                            fontSize: 60,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  ConstrainedBox(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, c) {
+                return Center(
+                  child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: GameButton(
-                      title: '🏠 ආපසු මුලට',
-                      color: Colors.purple,
-                      onTap: () => Navigator.pop(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 20,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '🎉  ඉදිරියට යමු 🎉',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 30),
+                            ScoreCard(
+                              title: 'හැඩ ගැලපීමෙන් ලකුණු',
+                              score: shapeGameScore,
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(height: 14),
+                            ScoreCard(
+                              title: 'පාට ගැලපීමෙන් ලකුණු',
+                              score: colorGameScore,
+                              color: Colors.pink,
+                            ),
+                            const SizedBox(height: 14),
+                            ScoreCard(
+                              title: 'බෝල පිපිරීමෙන් ලකුණු',
+                              score: popGameScore,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(height: 26),
+                            Container(
+                              width: 320,
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    '🏆 මුළු ලකුණු',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.purple,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    '$totalScore',
+                                    style: const TextStyle(
+                                      fontSize: 60,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 26),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: GameButton(
+                                title: '🏠 ආපසු මුලට',
+                                color: Colors.purple,
+                                onTap: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -398,11 +408,6 @@ class ScoreCard extends StatelessWidget {
   }
 }
 
-/// =====================================
-/// ✅ RESPONSIVE BUTTON (FIXED)
-/// - No fixed width
-/// - FittedBox to avoid overflow
-/// =====================================
 class GameButton extends StatelessWidget {
   final String title;
   final Color color;
@@ -545,6 +550,9 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
     hintBlinkTimer?.cancel();
 
     setState(() {
+      // ✅ FIX: clear previous selection so hint can highlight the correct tile
+      selectedShape = null;
+
       showHint = true;
       hintBlinkOn = true;
       hintBlinkTicks = 0;
@@ -808,61 +816,74 @@ class _ShapeMatchGameState extends State<ShapeMatchGame> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+
+            const SizedBox(height: 16),
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 20,
-                  mainAxisSpacing: 20,
-                ),
-                itemCount: shapes.length,
-                itemBuilder: (context, index) {
-                  final shape = shapes[index];
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final tileW = (c.maxWidth - 20) / 2;
+                  final tileH = (c.maxHeight - 20) / 2;
+                  final ratio = tileW / tileH;
 
-                  final isSelected = selectedShape == shape;
-                  final isCorrect = isSelected && shape == targetShape;
-                  final isWrong = isSelected && shape != targetShape;
-
-                  final isHintTarget = showHint && (shape == targetShape);
-                  final blinkGreen = isHintTarget && hintBlinkOn;
-
-                  return GestureDetector(
-                    onTap: () => checkMatch(shape),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isCorrect
-                            ? Colors.green.shade300
-                            : isWrong
-                            ? Colors.red.shade300
-                            : (blinkGreen
-                                  ? Colors.green.shade300
-                                  : Colors.white),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                          ),
-                        ],
-                        border: Border.all(
-                          color: blinkGreen ? Colors.white : Colors.transparent,
-                          width: blinkGreen ? 3 : 0,
-                        ),
-                      ),
-                      child: Center(
-                        child: CustomPaint(
-                          size: const Size(80, 80),
-                          painter: ShapePainter(
-                            shape,
-                            (isCorrect || isWrong || blinkGreen)
-                                ? Colors.white
-                                : Colors.purple,
-                          ),
-                        ),
-                      ),
+                  return GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 20,
+                      mainAxisSpacing: 20,
+                      childAspectRatio: ratio,
                     ),
+                    itemCount: shapes.length,
+                    itemBuilder: (context, index) {
+                      final shape = shapes[index];
+
+                      final isSelected = selectedShape == shape;
+                      final isCorrect = isSelected && shape == targetShape;
+                      final isWrong = isSelected && shape != targetShape;
+
+                      final isHintTarget = showHint && (shape == targetShape);
+                      final blinkGreen = isHintTarget && hintBlinkOn;
+
+                      return GestureDetector(
+                        onTap: () => checkMatch(shape),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isCorrect
+                                ? Colors.green.shade300
+                                : isWrong
+                                ? Colors.red.shade300
+                                : (blinkGreen
+                                      ? Colors.green.shade300
+                                      : Colors.white),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 10,
+                              ),
+                            ],
+                            border: Border.all(
+                              color: blinkGreen
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              width: blinkGreen ? 3 : 0,
+                            ),
+                          ),
+                          child: Center(
+                            child: CustomPaint(
+                              size: const Size(80, 80),
+                              painter: ShapePainter(
+                                shape,
+                                (isCorrect || isWrong || blinkGreen)
+                                    ? Colors.white
+                                    : Colors.purple,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -1010,6 +1031,9 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
     hintBlinkTimer?.cancel();
 
     setState(() {
+      // ✅ FIX: clear previous selection so hint can highlight the correct tile
+      selectedColor = null;
+
       showHint = true;
       hintBlinkOn = true;
       hintBlinkTicks = 0;
@@ -1285,61 +1309,76 @@ class _ColorMatchGameState extends State<ColorMatchGame> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+
+            const SizedBox(height: 16),
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 20,
-                  mainAxisSpacing: 20,
-                ),
-                itemCount: colorOptions.length,
-                itemBuilder: (context, index) {
-                  final entry = colorOptions.entries.elementAt(index);
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final tileW = (c.maxWidth - 20) / 2;
+                  final tileH = (c.maxHeight - 20) / 2;
+                  final ratio = tileW / tileH;
 
-                  final isSelected = selectedColor == entry.value;
-                  final isCorrect = isSelected && entry.value == targetColor;
-                  final isWrong = isSelected && entry.value != targetColor;
-
-                  final isHintTarget = showHint && (entry.value == targetColor);
-                  final blinkGreen = isHintTarget && hintBlinkOn;
-
-                  return GestureDetector(
-                    onTap: () => checkMatch(entry.key, entry.value),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: blinkGreen ? Colors.white : entry.value,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: blinkGreen
-                              ? Colors.green
-                              : (isCorrect
-                                    ? Colors.green
-                                    : (isWrong ? Colors.red : Colors.white)),
-                          width: blinkGreen ? 6 : (isSelected ? 5 : 3),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          entry.key,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: blinkGreen
-                                ? Colors.green.shade900
-                                : Colors.black,
-                          ),
-                        ),
-                      ),
+                  return GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 20,
+                      mainAxisSpacing: 20,
+                      childAspectRatio: ratio,
                     ),
+                    itemCount: colorOptions.length,
+                    itemBuilder: (context, index) {
+                      final entry = colorOptions.entries.elementAt(index);
+
+                      final isSelected = selectedColor == entry.value;
+                      final isCorrect =
+                          isSelected && entry.value == targetColor;
+                      final isWrong = isSelected && entry.value != targetColor;
+
+                      final isHintTarget =
+                          showHint && (entry.value == targetColor);
+                      final blinkGreen = isHintTarget && hintBlinkOn;
+
+                      return GestureDetector(
+                        onTap: () => checkMatch(entry.key, entry.value),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: blinkGreen ? Colors.white : entry.value,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: blinkGreen
+                                  ? Colors.green
+                                  : (isCorrect
+                                        ? Colors.green
+                                        : (isWrong
+                                              ? Colors.red
+                                              : Colors.white)),
+                              width: blinkGreen ? 6 : (isSelected ? 5 : 3),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              entry.key,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: blinkGreen
+                                    ? Colors.green.shade900
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

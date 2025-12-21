@@ -30,10 +30,10 @@ class PuzzleScreen extends StatefulWidget {
 class _PuzzleScreenState extends State<PuzzleScreen> {
   /* ---- IMAGE PLAYLIST ---- */
   final List<String> imagePool = [
-    "assets/img1.png",
-    "assets/img2.png",
-    "assets/img3.png",
-    "assets/img4.png",
+    "assets/images/cognitive/monkey.png",
+    "assets/images/cognitive/panda.png",
+    "assets/images/cognitive/dog.png",
+    "assets/images/cognitive/cat.png",
   ];
 
   late List<String> _playlist;
@@ -94,8 +94,24 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: green,
-        foregroundColor: Colors.white,
-        title: const Text("රූපය කොයමු"),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          tooltip: "Back",
+        ),
+        title: const Text(
+          "රූපය හොයමු",
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        // same right-side spacing like your first code (SizedBox width 48)
+        actions: const [SizedBox(width: 48)],
       ),
       body: LayoutBuilder(
         builder: (context, c) {
@@ -112,12 +128,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   fit: StackFit.expand,
                   children: [
                     Image.asset(currentImage, fit: BoxFit.cover),
-
                     GestureDetector(
                       onTapDown: (d) => _onTap(d.localPosition),
                       child: CustomPaint(painter: PiecePainter(pieces)),
                     ),
-
                     if (completed)
                       const Center(
                         child: Text(
