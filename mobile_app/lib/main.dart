@@ -8,8 +8,12 @@ import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
+import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
+import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
+import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
+import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
 
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
@@ -59,6 +63,9 @@ class MyApp extends StatelessWidget {
 
         '/math_lessons': (_) => const StudentLessonsPage(),
         '/quiz': (_) => const QuizPage(),
+        '/quizdashboard': (_) => const VisualQuizDashboard(),
+        '/profile': (_) => const ProfileScreen(),
+        '/lessons': (_) => const VisualLessonDashboard(),
       },
     );
   }
