@@ -7,6 +7,10 @@ import connectDB from './config/db.conf';
 import authRouter from './routes/auth.routes';
 import logger from './config/logger.conf';
 import lessonRoutes from './routes/lesson.routes';
+import brailleRoutes from './routes/braill';
+
+
+
 
 
 // Load .env from the backend root (process.cwd()) first, then fall back to src/.env
@@ -76,4 +80,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api', lessonRoutes);
 
 app.use("/api/quizzes", require("./routes/quiz").default);
+
+
+app.use("/api/braille", brailleRoutes);
 

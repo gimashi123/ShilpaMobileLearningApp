@@ -95,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
-                  vertical: 24,
+                  vertical: 300,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -110,18 +110,20 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: Form(
                   key: _formKey,
+
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
                         "Welcome!",
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 30,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF333333),
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       const Text(
                         "Start your learning journey 🌟",
                         textAlign: TextAlign.center,
@@ -141,7 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: const InputDecoration(
                             prefixIcon: Icon(Icons.email_rounded),
                             border: InputBorder.none,
-                            hintText: "Email",
+                            hintText: "ඇතුලත් කරන්න : Email",
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 20,
                             ),
@@ -162,8 +164,9 @@ class _LoginPageState extends State<LoginPage> {
 
                       // Password
                       Container(
+                        height: 80,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F7),
+                          color: const Color.fromARGB(255, 233, 233, 233),
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: TextFormField(
@@ -172,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: const InputDecoration(
                             prefixIcon: Icon(Icons.lock),
                             border: InputBorder.none,
-                            hintText: "Password",
+                            hintText: "ඇතුලත් කරන්න : Password",
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 20,
                             ),
@@ -193,7 +196,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       // Login button
                       SizedBox(
-                        width: double.infinity,
+                        width: 600,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           child: _isLoading
