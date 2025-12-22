@@ -1,60 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/session/session.dart';
+
+
+class NavItem {
+  final String label;
+  final String route;
+  const NavItem({required this.label, required this.route});
+}
 
 class TopNavBar extends StatelessWidget {
-  final int selectedTab; // 0 Home, 1 පාඩම්, 2 Games, 3 ප්‍රශ්න, 4 Profile
-
-
-    //final disabilityType = Session.disabilityType;
+  /// selectedTab is the index of the *visible* items list
+  final int selectedTab;
 
   const TopNavBar({super.key, required this.selectedTab});
 
-  void _navigate(BuildContext context, int index) {
-    if (index == selectedTab) return;
+  List<NavItem> _buildItems() {
+    final type = (Session.disabilityType ?? "").toLowerCase();
 
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home_hearing');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/hearing_lessons');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/games');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/quizhear');
-        break;
-      case 4:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
+    // Common items for everyone
+    final common = <NavItem>[
+      const NavItem(label: "Profile", route: "/profile"),
+    ];
+
+    // Disability-specific items
+    switch (type) {
+      case "hearing":
+        return [
+          const NavItem(label: "Home", route: "/home_hearing"),
+          const NavItem(label: "පාඩම්", route: "/hearing_lessons"),
+          const NavItem(label: "Games", route: "/games_hearing"),
+          const NavItem(label: "ප්‍රශ්න", route: "/quizhear"),
+          ...common,
+        ];
+
+      case "visual":
+        return [
+          const NavItem(label: "Home", route: "/home_visual"),
+          const NavItem(label: "පාඩම්", route: "/visual_lessons"),
+          const NavItem(label: "Games Visual", route: "/games_visual"),
+          const NavItem(label: "ප්‍රශ්න", route: "/quizvisual"),
+          ...common,
+        ];
+
+      case "physical":
+        return [
+          const NavItem(label: "Home", route: "/home_physical"),
+          const NavItem(label: "පාඩම්", route: "/physical_lessons"),
+          const NavItem(label: "Games", route: "/games_physical"),
+          const NavItem(label: "ප්‍රශ්න", route: "/quizphysical"),
+          ...common,
+        ];
+
+      case "cognitive":
+        return [
+          const NavItem(label: "Home", route: "/home_cognitive"),
+          const NavItem(label: "පාඩම්", route: "/cognitive_lessons"),
+          const NavItem(label: "Games", route: "/games_cognitive"),
+          const NavItem(label: "ප්‍රශ්න", route: "/quizcognitive"),
+          ...common,
+        ];
+
+      default:
+        // Fallback if disabilityType is missing/unknown
+        return [
+          const NavItem(label: "Home", route: "/home"),
+          const NavItem(label: "Profile", route: "/profile"),
+        ];
     }
+  }
+
+  void _navigate(BuildContext context, String route) {
+    Navigator.pushReplacementNamed(context, route);
   }
 
   @override
   Widget build(BuildContext context) {
+    final items = _buildItems();
+
+    // Safety if selectedTab is out of range
+    final safeSelected = selectedTab.clamp(0, items.length - 1);
+
     return Row(
       children: [
-        // Settings
-        // Container(
-        //   width: 78,
-        //   height: 58,
-        //   decoration: BoxDecoration(
-        //     color: Colors.white,
-        //     borderRadius: BorderRadius.circular(14),
-        //     border: Border.all(color: Colors.black, width: 3),
-        //   ),
-        //   child: Row(
-        //     mainAxisAlignment: MainAxisAlignment.center,
-        //     children: const [
-        //       Icon(Icons.settings, size: 30),
-        //       SizedBox(width: 6),
-        //       Icon(Icons.arrow_drop_down, size: 30, color: Colors.redAccent),
-        //     ],
-        //   ),
-        // ),
         const SizedBox(width: 14),
-
-        // Tabs
         Expanded(
           child: Container(
             height: 58,
@@ -65,41 +93,21 @@ class TopNavBar extends StatelessWidget {
               border: Border.all(color: Colors.black, width: 3),
             ),
             child: Row(
-              children: [
-                _TabBtn("Home", selectedTab == 0, () => _navigate(context, 0)),
-                _TabBtn("පාඩම්", selectedTab == 1, () => _navigate(context, 1)),
-                _TabBtn("Games", selectedTab == 2, () => _navigate(context, 2)),
-                _TabBtn(
-                  "ප්‍රශ්න",
-                  selectedTab == 3,
-                  () => _navigate(context, 3),
-                ),
-                _TabBtn(
-                  "Profile",
-                  selectedTab == 4,
-                  () => _navigate(context, 4),
-                ),
-              ],
+              children: List.generate(items.length, (i) {
+                final item = items[i];
+                return _TabBtn(
+                  item.label,
+                  i == safeSelected,
+                  () {
+                    if (i == safeSelected) return;
+                    _navigate(context, item.route);
+                  },
+                );
+              }),
             ),
           ),
         ),
-
         const SizedBox(width: 14),
-
-        // Avatar
-        // Container(
-        //   width: 62,
-        //   height: 62,
-        //   decoration: BoxDecoration(
-        //     shape: BoxShape.circle,
-        //     border: Border.all(color: Colors.black, width: 3),
-        //     gradient: const LinearGradient(
-        //       colors: [Color(0xFF7AF2D6), Color(0xFFB6FF8F)],
-        //     ),
-        //   ),
-        //   child: const Icon(Icons.person, size: 34),
-
-        // ),
       ],
     );
   }
@@ -131,6 +139,7 @@ class _TabBtn extends StatelessWidget {
           ),
           child: Text(
             text,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
