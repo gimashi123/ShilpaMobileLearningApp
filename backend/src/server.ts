@@ -74,3 +74,6 @@ app.listen({
 // Mount lesson routes
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api', lessonRoutes);
+
+app.use("/api/quizzes", require("./routes/quiz").default);
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/lesson_dashboard/hearing_lesson.dart';
 import 'package:mobile_app/pages/auth/create_account_screen.dart';
 import 'package:mobile_app/pages/auth/login_screen.dart';
 import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
@@ -9,6 +10,9 @@ import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
+import 'package:mobile_app/pages/quiz/hearing_quiz_screen.dart';
+import 'package:mobile_app/pages/quiz/quiz_hub.dart';
+import 'package:mobile_app/pages/subject/hearing_math.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 
 // Speech service
@@ -59,7 +63,31 @@ class MyApp extends StatelessWidget {
 
         '/math_lessons': (_) => const StudentLessonsPage(),
         '/quiz': (_) => const QuizPage(),
+        '/quizhear': (_) => const QuizPageSimple(),
+        '/general_quiz': (_) => const QuizHubPage(),
+        '/hearing_lessons': (_) => const HearingLesson(),
+      
+        
       },
+      onGenerateRoute: (settings) {
+  if (settings.name == '/quizhearing') {
+    final op = settings.arguments as Op;
+    return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
+  }
+  if (settings.name == '/result') {
+    final args = settings.arguments as ResultArgs;
+    return MaterialPageRoute(
+      builder: (_) => ResultPage(
+        op: args.op,
+        correctCount: args.correctCount,
+        score: args.score,
+      ),
+    );
+  }
+  return null;
+},
+
+
     );
   }
 }
