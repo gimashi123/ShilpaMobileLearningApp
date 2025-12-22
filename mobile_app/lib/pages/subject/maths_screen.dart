@@ -4,9 +4,6 @@ import 'package:mobile_app/pages/video_player_page.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/services/lessons_api.dart';
 import 'package:mobile_app/session/session.dart';
-import 'package:mobile_app/widgets/top_nav_bar.dart';
-
-
 
 class StudentLessonsPage extends StatefulWidget {
   const StudentLessonsPage({super.key});

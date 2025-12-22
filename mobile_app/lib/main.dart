@@ -53,6 +53,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
       initialRoute: '/',
       routes: {
+
+        //common navigation
         '/': (_) => const HomePage(),
         '/dashboard': (_) => const DashboardScreen(),
         '/register': (_) => const RegisterPage(disabilityType: ''),
@@ -60,6 +62,8 @@ class MyApp extends StatelessWidget {
         '/newlogin': (_) => const LoginPage(),
 
         // disability-type navigation
+
+        // -- visual navigation
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
         '/home_physical': (_) => const PhysicalDashboardScreen(),
