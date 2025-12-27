@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/input_modes.dart';
+import '../services/eye_tracking_service.dart';
 
 class InputAwareButton extends StatefulWidget {
   final Widget child;
@@ -30,6 +31,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
   late AnimationController _controller;
   Timer? _dwellTimer;
   Offset? _touchPosition;
+  StreamSubscription? _gazeSubscription;
+  bool _isGazeInside = false;
 
   @override
   void initState() {
@@ -38,6 +41,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
       vsync: this,
       duration: widget.dwellDuration,
     );
+    _updateGazeSubscription();
   }
 
   @override
@@ -46,12 +50,50 @@ class _InputAwareButtonState extends State<InputAwareButton>
     if (oldWidget.dwellDuration != widget.dwellDuration) {
       _controller.duration = widget.dwellDuration;
     }
+
+    if (oldWidget.inputMode != widget.inputMode) {
+      _updateGazeSubscription();
+    }
+  }
+
+  void _updateGazeSubscription() {
+    _gazeSubscription?.cancel();
+    _gazeSubscription = null;
+    _isGazeInside = false;
+    _resetDwell();
+
+    if (widget.inputMode == InputMode.eyeGaze) {
+      _gazeSubscription = EyeTrackingService().gazeStream.listen((data) {
+        _checkGazeHit(data.x, data.y);
+      });
+    }
+  }
+
+  void _checkGazeHit(double gazeX, double gazeY) {
+    if (!mounted || widget.onTap == null) return;
+
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    final Offset localPos = box.globalToLocal(Offset(gazeX, gazeY));
+    final bool isInside = box.size.contains(localPos);
+
+    if (isInside && !_isGazeInside) {
+      _isGazeInside = true;
+      _handleDwellStart(localPos);
+    } else if (!isInside && _isGazeInside) {
+      _isGazeInside = false;
+      _resetDwell();
+    } else if (isInside && _isGazeInside) {
+      _handleDwellUpdate(localPos);
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _dwellTimer?.cancel();
+    _gazeSubscription?.cancel();
     super.dispose();
   }
 
@@ -97,12 +139,34 @@ class _InputAwareButtonState extends State<InputAwareButton>
 
   @override
   Widget build(BuildContext context) {
-    // If not dwell mode, behave like a standard InkWell
-    if (widget.inputMode != InputMode.dwellTouch) {
+    // If not dwell or gaze mode, behave like a standard InkWell
+    if (widget.inputMode != InputMode.dwellTouch &&
+        widget.inputMode != InputMode.eyeGaze) {
       return InkWell(
         onTap: widget.onTap,
         borderRadius: widget.borderRadius,
         child: widget.child,
+      );
+    }
+
+    if (widget.inputMode == InputMode.eyeGaze) {
+      return Stack(
+        clipBehavior: Clip.antiAlias,
+        children: [
+          widget.child,
+          if (_touchPosition != null)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _DwellPainter(
+                    position: _touchPosition!,
+                    progress: _controller,
+                    color: widget.progressColor,
+                  ),
+                ),
+              ),
+            ),
+        ],
       );
     }
 
