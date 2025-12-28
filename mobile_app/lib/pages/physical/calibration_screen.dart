@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:eye_tracking/eye_tracking_platform_interface.dart';
 import '../../services/eye_tracking_service.dart';
 
 class CalibrationScreen extends StatefulWidget {
@@ -15,9 +14,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   List<CalibrationPoint> _points = [];
   int _currentIndex = -1;
   bool _isCalibrating = false;
+  bool _isInitializing = true;
   double _progress = 0.0;
   Timer? _collectionTimer;
-  String _message = "Prepare to follow the red dot with your eyes.";
+  String _message = "Initializing camera... Please wait.";
 
   @override
   void initState() {
@@ -26,23 +26,43 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   }
 
   Future<void> _initCalibration() async {
-    final success = await _service.initialize();
-    if (!success) {
+    try {
+      final result = await _service.initialize();
+      if (!mounted) return;
+
+      if (!result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.error ??
+                  "Failed to initialize Eye Tracking. Please check camera permissions.",
+            ),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
+
+      setState(() {
+        _isInitializing = false;
+        _message = "Prepare to follow the red dot with your eyes.";
+      });
+
+      // Start tracking to get camera active
+      await _service.startTracking();
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Failed to initialize Eye Tracking. Please check camera permissions.",
-            ),
+          SnackBar(
+            content: Text("Critical Camera Error: $e"),
+            backgroundColor: Colors.red,
           ),
         );
         Navigator.pop(context);
       }
-      return;
     }
-
-    // Start tracking to get camera active
-    await _service.startTracking();
   }
 
   void _start() async {
@@ -76,6 +96,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     _collectionTimer = Timer.periodic(const Duration(milliseconds: 200), (
       timer,
     ) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       count++;
       setState(() {
         _progress = count / maxCount;
@@ -85,19 +109,25 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
       if (count >= maxCount) {
         timer.cancel();
-        setState(() {
-          _currentIndex++;
-        });
-        // Short pause before next point
-        Future.delayed(const Duration(milliseconds: 500), _processNextPoint);
+        if (mounted) {
+          setState(() {
+            _currentIndex++;
+          });
+          // Short pause before next point
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _processNextPoint();
+          });
+        }
       }
     });
   }
 
   Future<void> _finish() async {
-    setState(() {
-      _message = "Calculating accuracy...";
-    });
+    if (mounted) {
+      setState(() {
+        _message = "Calculating accuracy...";
+      });
+    }
 
     await _service.finishCalibration();
     final accuracy = await _service.getCalibrationAccuracy();
@@ -152,17 +182,19 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 children: [
                   const SizedBox(height: 100),
                   ElevatedButton(
-                    onPressed: _start,
+                    onPressed: _isInitializing ? null : _start,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 40,
                         vertical: 20,
                       ),
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: _isInitializing
+                          ? Colors.grey
+                          : Colors.blueAccent,
                     ),
-                    child: const Text(
-                      "Start Calibration",
-                      style: TextStyle(fontSize: 20),
+                    child: Text(
+                      _isInitializing ? "Initializing..." : "Start Calibration",
+                      style: const TextStyle(fontSize: 20),
                     ),
                   ),
                 ],

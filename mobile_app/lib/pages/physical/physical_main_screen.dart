@@ -74,10 +74,12 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     await _eyeTrackingService.startTracking();
     _gazeSubscription?.cancel();
     _gazeSubscription = _eyeTrackingService.gazeStream.listen((data) {
-      setState(() {
-        _gazeX = data.x;
-        _gazeY = data.y;
-      });
+      if (mounted) {
+        setState(() {
+          _gazeX = data.x;
+          _gazeY = data.y;
+        });
+      }
     });
   }
 
@@ -85,10 +87,12 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     _gazeSubscription?.cancel();
     _gazeSubscription = null;
     await _eyeTrackingService.stopTracking();
-    setState(() {
-      _gazeX = -100;
-      _gazeY = -100;
-    });
+    if (mounted) {
+      setState(() {
+        _gazeX = -100;
+        _gazeY = -100;
+      });
+    }
   }
 
   @override
