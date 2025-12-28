@@ -93,27 +93,49 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     const maxCount = 10;
 
     _collectionTimer?.cancel();
-    _collectionTimer = Timer.periodic(const Duration(milliseconds: 200), (
+    StreamSubscription? tempSub;
+
+    _collectionTimer = Timer.periodic(const Duration(milliseconds: 100), (
       timer,
-    ) async {
+    ) {
       if (!mounted) {
         timer.cancel();
+        tempSub?.cancel();
         return;
       }
-      count++;
-      setState(() {
-        _progress = count / maxCount;
-      });
 
-      await _service.addCalibrationPoint(_points[_currentIndex]);
+      // We don't increment 'count' here anymore.
+      // We do it inside the gaze listener below.
+    });
+
+    tempSub = _service.gazeStream.listen((data) {
+      if (!mounted || !_isCalibrating) return;
+
+      debugPrint("Gaze: Conf=${data.confidence} X=${data.x} Y=${data.y}");
+
+      // Only progress if we see a valid face (confidence > 0.5)
+      if (data.confidence > 0.5) {
+        count++;
+        if (mounted) {
+          setState(() {
+            _progress = count / maxCount;
+          });
+        }
+
+        // Tell the service to pair this current gaze position with the physical dot position
+        _service.addCalibrationPoint(
+          _points[_currentIndex],
+          currentGaze: Offset(data.x, data.y),
+        );
+      }
 
       if (count >= maxCount) {
-        timer.cancel();
+        tempSub?.cancel();
+        _collectionTimer?.cancel();
         if (mounted) {
           setState(() {
             _currentIndex++;
           });
-          // Short pause before next point
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) _processNextPoint();
           });
