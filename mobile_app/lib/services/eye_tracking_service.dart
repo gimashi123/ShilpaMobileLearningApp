@@ -62,10 +62,12 @@ class EyeTrackingService {
 
   // Smoothing
   final List<Offset> _history = [];
-  static const int _historyLimit = 8;
+  static const int _historyLimit = 10;
 
   Future<EyeTrackingInitializationResult> initialize() async {
     if (_isInitialized) return EyeTrackingInitializationResult(success: true);
+
+    debugPrint("EyeTracking: Starting initialization...");
 
     var status = await Permission.camera.status;
     if (!status.isGranted) {
@@ -111,8 +113,10 @@ class EyeTrackingService {
 
       await _cameraController!.initialize();
       _isInitialized = true;
+      debugPrint("EyeTracking: Initialization successful.");
       return EyeTrackingInitializationResult(success: true);
     } catch (e) {
+      debugPrint("EyeTracking: Initialization error: $e");
       return EyeTrackingInitializationResult(
         success: false,
         error: "Init Error: $e",
@@ -124,13 +128,14 @@ class EyeTrackingService {
     if (!_isInitialized || _isTracking || _cameraController == null) return;
 
     _isTracking = true;
+    debugPrint("EyeTracking: Image stream started.");
+
     _cameraController!.startImageStream((image) async {
       if (!_isTracking || _isProcessing) return;
-
-      // Throttle: Only process if the previous frame is done
       _isProcessing = true;
+
       try {
-        final inputImage = _inputImageFromCameraImage(image);
+        final inputImage = _processCameraImage(image);
         if (inputImage == null) {
           _isProcessing = false;
           return;
@@ -145,20 +150,109 @@ class EyeTrackingService {
             image.height.toDouble(),
           );
         } else {
-          // No face detected - send a low confidence signal
+          // Send 0 confidence to indicate no face detected
           _gazeController.add(
             GazeData(x: -1, y: -1, confidence: 0, timestamp: DateTime.now()),
           );
         }
       } catch (e) {
-        // Silently skip corrupted frames (common on emulators)
-        debugPrint("EyeTracking: Frame skipped due to conversion error.");
+        debugPrint("EyeTracking: Processing error: $e");
       } finally {
-        // Delay slightly to give the CPU a break
-        await Future.delayed(const Duration(milliseconds: 50));
+        // Essential delay for emulator stability
+        await Future.delayed(const Duration(milliseconds: 100));
         _isProcessing = false;
       }
     });
+  }
+
+  InputImage? _processCameraImage(CameraImage image) {
+    try {
+      final sensorOrientation =
+          _cameraController!.description.sensorOrientation;
+      final rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
+      if (rotation == null) return null;
+
+      // FOR ANDROID, WE MANUALLY CONVERT TO NV21 TO PREVENT IllegalArgumentException
+      if (Platform.isAndroid) {
+        final nv21Bytes = _yuv420ToNv21(image);
+        return InputImage.fromBytes(
+          bytes: nv21Bytes,
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation,
+            format: InputImageFormat.nv21, // Use NV21 explicitly
+            bytesPerRow: image.width,
+          ),
+        );
+      } else {
+        // IOS logic (BGRA8888)
+        final format = InputImageFormatValue.fromRawValue(image.format.raw);
+        if (format == null) return null;
+
+        final WriteBuffer allBytes = WriteBuffer();
+        for (final Plane plane in image.planes) {
+          allBytes.putUint8List(plane.bytes);
+        }
+        final bytes = allBytes.done().buffer.asUint8List();
+
+        return InputImage.fromBytes(
+          bytes: bytes,
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: rotation,
+            format: format,
+            bytesPerRow: image.planes[0].bytesPerRow,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("EyeTracking: Image conversion failed: $e");
+      return null;
+    }
+  }
+
+  Uint8List _yuv420ToNv21(CameraImage image) {
+    final width = image.width;
+    final height = image.height;
+    final yPlane = image.planes[0];
+    final uPlane = image.planes[1];
+    final vPlane = image.planes[2];
+
+    final yBuffer = yPlane.bytes;
+    final uBuffer = uPlane.bytes;
+    final vBuffer = vPlane.bytes;
+
+    final numPixels = width * height;
+    final nv21 = Uint8List(numPixels * 3 ~/ 2);
+
+    // Y plane - copy row by row to strip padding
+    int id = 0;
+    for (int row = 0; row < height; row++) {
+      for (int col = 0; col < width; col++) {
+        nv21[id++] = yBuffer[row * yPlane.bytesPerRow + col];
+      }
+    }
+
+    // U and V planes are interleaved for NV21
+    final uvWidth = width ~/ 2;
+    final uvHeight = height ~/ 2;
+
+    // In NV21, the UV plane follows the Y plane and consists of interleaved V and U samples.
+    // For each 2x2 block of pixels, there is one V and one U sample.
+    for (int row = 0; row < uvHeight; row++) {
+      for (int col = 0; col < uvWidth; col++) {
+        // vPlane and uPlane might have different bytesPerPixel (usually 1 or 2)
+        final vIndex =
+            row * vPlane.bytesPerRow + (col * (vPlane.bytesPerPixel ?? 1));
+        final uIndex =
+            row * uPlane.bytesPerRow + (col * (uPlane.bytesPerPixel ?? 1));
+
+        nv21[id++] = vBuffer[vIndex];
+        nv21[id++] = uBuffer[uIndex];
+      }
+    }
+
+    return nv21;
   }
 
   void _processFace(Face face, double imgWidth, double imgHeight) {
@@ -166,18 +260,16 @@ class EyeTrackingService {
     final rightEye = face.landmarks[FaceLandmarkType.rightEye];
 
     if (leftEye != null && rightEye != null) {
-      // Raw coordinates from camera
       double rawX = (leftEye.position.x + rightEye.position.x) / 2;
       double rawY = (leftEye.position.y + rightEye.position.y) / 2;
 
-      // Normalization (0 to 1) based on image size
       double normX = rawX / imgWidth;
       double normY = rawY / imgHeight;
 
       final view = PlatformDispatcher.instance.views.first;
       final size = view.physicalSize / view.devicePixelRatio;
 
-      // Basic Screen Mapping (Assuming front camera is mirrored)
+      // Mirroring adjustment for front camera
       double x = (1.0 - normX) * size.width;
       double y = normY * size.height;
 
@@ -185,7 +277,7 @@ class EyeTrackingService {
       x = (x + _gazeOffset.dx) * _scaleX;
       y = (y + _gazeOffset.dy) * _scaleY;
 
-      // Smoothing (Sliding Average)
+      // Smoothing
       _history.add(Offset(x, y));
       if (_history.length > _historyLimit) _history.removeAt(0);
 
@@ -195,41 +287,12 @@ class EyeTrackingService {
           _history.map((e) => e.dy).reduce((a, b) => a + b) / _history.length;
 
       _gazeController.add(
-        GazeData(x: avgX, y: avgY, confidence: 0.95, timestamp: DateTime.now()),
+        GazeData(x: avgX, y: avgY, confidence: 0.9, timestamp: DateTime.now()),
       );
     }
   }
 
-  InputImage? _inputImageFromCameraImage(CameraImage image) {
-    if (_cameraController == null) return null;
-    final camera = _cameraController!.description;
-
-    final rotation = InputImageRotationValue.fromRawValue(
-      camera.sensorOrientation,
-    );
-    if (rotation == null) return null;
-
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null) return null;
-
-    // Standard Concatenation - Most reliable for modern ML Kit plugins
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
-
-    return InputImage.fromBytes(
-      bytes: bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes[0].bytesPerRow,
-      ),
-    );
-  }
-
+  // --- CALIBRATION INTERFACE ---
   Future<void> startCalibration(List<CalibrationPoint> points) async {
     await clearCalibration();
   }
@@ -252,7 +315,7 @@ class EyeTrackingService {
   Future<void> finishCalibration() async {
     if (_calibrationSamples.isEmpty) return;
 
-    // Calibration Order 2 is the CENTER point
+    // Center point (order 2) is used for basic drift correction
     if (_calibrationSamples.containsKey(2)) {
       final samples = _calibrationSamples[2]!;
       double avgGazeX =
@@ -264,12 +327,12 @@ class EyeTrackingService {
       final size = view.physicalSize / view.devicePixelRatio;
       final screenCenter = Offset(size.width / 2, size.height / 2);
 
-      // Store the global drift offset
       _gazeOffset = Offset(
         screenCenter.dx - avgGazeX,
         screenCenter.dy - avgGazeY,
       );
     }
+    debugPrint("EyeTracking: Calibration Finished. Offset: $_gazeOffset");
   }
 
   Future<void> stopTracking() async {
