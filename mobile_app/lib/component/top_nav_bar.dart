@@ -28,7 +28,7 @@ class TopNavBar extends StatelessWidget {
         return [
           const NavItem(label: "Home", route: "/home_hearing"),
           const NavItem(label: "පාඩම්", route: "/hearing_lessons"),
-          const NavItem(label: "Games", route: "/games_hearing"),
+          const NavItem(label: "Games", route: "/hearing_games"),
           const NavItem(label: "ප්‍රශ්න", route: "/quizhear"),
           ...common,
         ];

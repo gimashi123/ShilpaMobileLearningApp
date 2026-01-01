@@ -299,7 +299,7 @@ class _LessonsGrid extends StatelessWidget {
           ),
         ),
         InkWell(
-          onTap: () => Navigator.pushNamed(context, '/quiz'),
+          onTap: () => Navigator.pushNamed(context, '/quizhear'),
           child: const _GridCard(
             bg: Color(0xFFFFF3E0),
             text: "ප්‍රශ්න",
