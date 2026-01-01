@@ -7,19 +7,22 @@ This API exposes machine learning models for the Shilpa Mobile Learning App.
 1. **Install dependencies:**
 ```bash
 cd python-server
+python -m venv .venv # only if theres no .venv in the python-server directory
 pip install -r requirements.txt
 ```
-
 2. **Configure environment:**
 ```bash
 cp .env.example .env
 # Edit .env if needed
 ```
-
-3. **Run the server:**
+3. **Run Venv**
+```bash
+.venv\Scripts\activate # only if venv is not activated
+```
+4. **Run the server:**
 ```bash
 python app.py
-```
+```bash
 
 The server will start on `http://localhost:8000` by default.
 

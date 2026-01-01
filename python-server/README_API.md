@@ -17,6 +17,11 @@ BACKEND_URL=http://localhost:3000
 
 
 
+
+
+# Python Server Up and Running Guide
+
+
 ------------
 
 1. create venv 
