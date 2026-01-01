@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/pages/auth/create_account_screen.dart';
@@ -45,116 +47,196 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
 
   @override
   Widget build(BuildContext context) {
+    final cards = [
+      _DisabilityCard(
+        label: "දෘශ්‍ය",
+        asset: "assets/visual.png",
+        accent: const Color(0xFF6C3BFF),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const RegisterPage(
+                disabilityType: DisabilityType.visual,
+              ),
+            ),
+          );
+        },
+      ),
+      _DisabilityCard(
+        label: "ශ්‍රවණ",
+        asset: "assets/hearing.png",
+        accent: const Color(0xFF00C2A8),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const RegisterPage(
+                disabilityType: DisabilityType.hearing,
+              ),
+            ),
+          );
+        },
+      ),
+      _DisabilityCard(
+        label: "ශාරීරික",
+        asset: "assets/physical.png",
+        accent: const Color(0xFFFF7A5A),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const RegisterPage(
+                disabilityType: DisabilityType.physical,
+              ),
+            ),
+          );
+        },
+      ),
+      _DisabilityCard(
+        label: "ඥානීය",
+        asset: "assets/cognitive.png",
+        accent: const Color(0xFF4DA0FF),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const RegisterPage(
+                disabilityType: DisabilityType.cognitive,
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+
     return Scaffold(
-      backgroundColor: const Color(0xFF5A2DCC),
       body: Stack(
         children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.all(24),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C0430),
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "ඔබේ විශේෂ අවශ්‍යතාව තෝරන්න",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Visual
-                      _DisabilityCard(
-                        label: "දෘශ්‍ය",
-                        asset: "assets/visual.png",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(
-                                disabilityType: DisabilityType.visual,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Hearing
-                      _DisabilityCard(
-                        label: "ශ්‍රවණ",
-                        asset: "assets/hearing.png",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(
-                                disabilityType: DisabilityType.hearing,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Physical
-                      _DisabilityCard(
-                        label: "ශාරීරික",
-                        asset: "assets/physical.png",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(
-                                disabilityType: DisabilityType.physical,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Cognitive
-                      _DisabilityCard(
-                        label: "ඥානීය",
-                        asset: "assets/cognitive.png",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterPage(
-                                disabilityType: DisabilityType.cognitive,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+          // gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF5A2DCC), Color(0xFF1E0747)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
 
-          // 🔊 Replay button
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      constraints: const BoxConstraints(maxWidth: 920),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF9A6CFF), Color(0xFF6C3BFF)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.25),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.accessibility_new, color: Colors.white, size: 34),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      "ඔබේ විශේෂ අවශ්‍යතාව තෝරන්න",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [
+                                          Shadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 4)
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      "ඔබට සුදුසු කණ්ඩායම තෝරන්න — පහසුවෙන් කරගන්න.",
+                                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Cards (responsive Wrap)
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            alignment: WrapAlignment.center,
+                            children: cards,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Replay floating button
           Positioned(
-            top: 32,
-            right: 24,
-            child: Material(
-              color: Colors.white.withOpacity(0.9),
-              shape: const CircleBorder(),
-              elevation: 3,
-              child: IconButton(
-                icon: const Icon(Icons.volume_up, color: Color(0xFF5A2DCC)),
-                tooltip: 'ආවර්ජනයෙන් ශ්‍රවණය කරන්න',
-                onPressed: _speakInstruction,
+            top: 20,
+            right: 18,
+            child: Semantics(
+              button: true,
+              label: 'Replay instruction',
+              child: Material(
+                elevation: 6,
+                shape: const CircleBorder(),
+                color: Colors.white,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _speakInstruction,
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(Icons.volume_up, color: Color(0xFF5A2DCC)),
+                  ),
+                ),
               ),
             ),
           ),
@@ -167,44 +249,86 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
 class _DisabilityCard extends StatelessWidget {
   final String label;
   final String asset;
+  final Color accent;
   final VoidCallback onTap;
 
   const _DisabilityCard({
     required this.label,
     required this.asset,
     required this.onTap,
+    this.accent = const Color(0xFF6C3BFF),
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        width: 80,
-        height: 90,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F4FF),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+    final double cardWidth = MediaQuery.of(context).size.width > 600 ? 180 : 140;
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: cardWidth,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent.withOpacity(0.12), Colors.white.withOpacity(0.02)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(child: Image.asset(asset, fit: BoxFit.contain)),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: [accent, accent.withOpacity(0.7)]),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withOpacity(0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Image.asset(
+                      asset,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    shadows: [Shadow(color: Colors.black45, offset: Offset(0, 2), blurRadius: 3)],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

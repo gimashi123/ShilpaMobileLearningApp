@@ -3,31 +3,35 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthApi {
-  // Android emulator → 10.0.2.2, change port if needed
-  // static const String baseUrl = 'http://10.0.2.2:3000';
+  static const String baseUrl = 'http://10.0.2.2:3000';
 
-  static const baseUrl = "http://127.0.0.1:3000"; //// changed
-
-  // ---------- REGISTER ----------
+  // ---------- REGISTER ---------- (unchanged)
   static Future<void> register({
     required String name,
     required String email,
     required String password,
     required String role,
     required String disabilityType,
+    String? grade,
   }) async {
     final url = Uri.parse('$baseUrl/api/auth/register');
+
+    final Map<String, dynamic> body = {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+      'disabilityType': disabilityType,
+    };
+
+    if (grade != null && grade.isNotEmpty) {
+      body['grade'] = grade;
+    }
 
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
-        'role': role,
-        'disabilityType': disabilityType,
-      }),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode != 201) {
@@ -35,8 +39,7 @@ class AuthApi {
     }
   }
 
-  // ---------- LOGIN ----------
-  /// Returns {"token": String, "user": Map}
+  // ---------- LOGIN ----------  ✅ fixed
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -51,6 +54,10 @@ class AuthApi {
 
     final json = jsonDecode(response.body);
 
-    return {'token': json['data']['token'], 'user': json['data']['user']};
-  }
+  return {
+    'token': json['data']['token'],
+    'user': json['data']['user'],
+  };
+}
+
 }

@@ -31,16 +31,14 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_tts: ^3.8.0
-  http: ^1.0.0
-
-  #for cognitive disability
-  shared_preferences: ^2.5.3
-  audioplayers: ^6.0.0
+  http: ^1.0.0 
+  
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   speech_to_text: ^7.3.0
+  firebase_auth: ^6.1.2
 
 dev_dependencies:
   flutter_test:
@@ -84,14 +82,8 @@ flutter:
     - assets/hearing.png
     - assets/login_image.png
     - assets/login_page.png
-
-    # cognitive disability assets
-    - assets/sounds/correct.mp3
-    - assets/sounds/wrong.mp3
-    - assets/images/cognitive/monkey.png
-    - assets/images/cognitive/panda.png
-    - assets/images/cognitive/dog.png
-    - assets/images/cognitive/cat.png
+    
+    
 
   # To add assets to your application, add an assets section, like this:
   # assets:
