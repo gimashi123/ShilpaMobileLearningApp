@@ -82,6 +82,12 @@ class MyApp extends StatelessWidget {
         '/profile': (_) => const ProfileScreen(),
         '/lessons': (_) => const VisualLessonDashboard(),
         
+
+          // cognitive disability games
+        '/iq_game': (_) => const IqGame(),
+        '/activity_draw': (_) => const ActivityDraw(),
+        '/activity_findImage': (_) => const PuzzleApp(),
+        '/activity_countNumbers': (_) => const SinhalaNumberGame(),
       
         
       },

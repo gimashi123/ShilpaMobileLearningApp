@@ -40,6 +40,12 @@ dependencies:
   speech_to_text: ^7.3.0
   firebase_auth: ^6.1.2
 
+ #for cognitive disability
+  shared_preferences: ^2.5.3
+  audioplayers: ^6.0.0
+  tflite_flutter: ^0.12.1
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -83,7 +89,15 @@ flutter:
     - assets/login_image.png
     - assets/login_page.png
     
-    
+    # cognitive disability assets
+    - assets/sounds/correct.mp3
+    - assets/sounds/wrong.mp3
+    - assets/images/cognitive/monkey.png
+    - assets/images/cognitive/panda.png
+    - assets/images/cognitive/dog.png
+    - assets/images/cognitive/cat.png
+    - assets/models/lq_model.tflite
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:
