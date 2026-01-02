@@ -9,6 +9,9 @@ import 'games_content.dart';
 import 'profile_content.dart';
 import 'calibration_screen.dart';
 import '../../services/eye_tracking_service.dart';
+import '../../services/speech_service.dart';
+import '../../services/voice_command_parser.dart';
+import '../../components/voice_indicator.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -43,6 +46,10 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   }
 
   void _handleInputModeChange(InputMode mode) async {
+    // Stop any existing special input services
+    _stopGazeTracking();
+    _stopVoiceControl();
+
     // If switching TO Eye Gaze and not calibrated, go to calibration
     if (mode == InputMode.eyeGaze && !_isCalibrated) {
       final result = await Navigator.push(
@@ -63,9 +70,11 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     } else if (mode == InputMode.eyeGaze && _isCalibrated) {
       setState(() => _inputMode = mode);
       _startGazeTracking();
+    } else if (mode == InputMode.voiceControl) {
+      setState(() => _inputMode = mode);
+      _startVoiceControl();
     } else {
-      // Switching away from eye gaze or to other modes
-      _stopGazeTracking();
+      // Switching to standard or dwell
       setState(() => _inputMode = mode);
     }
   }
@@ -95,9 +104,70 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     }
   }
 
+  // --- Voice Control Logic ---
+  void _startVoiceControl() {
+    SpeechService.instance.setCommandListener((text) {
+      if (mounted) {
+        _processVoiceCommand(text);
+      }
+    });
+    SpeechService.instance.startListening();
+  }
+
+  void _stopVoiceControl() {
+    if (_inputMode == InputMode.voiceControl) {
+      SpeechService.instance.stopListening();
+    }
+  }
+
+  void _processVoiceCommand(String text) {
+    print("Voice Heard: $text");
+    final command = VoiceCommandParser.parse(text);
+
+    setState(() {
+      switch (command) {
+        case VoiceCommand.navigateHome:
+          _selectedTab = 0;
+          break;
+        case VoiceCommand.navigateLearn:
+          _selectedTab = 1;
+          break;
+        case VoiceCommand.navigateGames:
+          _selectedTab = 2;
+          break;
+        case VoiceCommand.navigateProfile:
+          _selectedTab = 3;
+          break;
+        case VoiceCommand.navigateBack:
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            _selectedTab = 0; // Fallback to home
+          }
+          break;
+        case VoiceCommand.unknown:
+          // maybe show a "Didn't catch that" toast
+          break;
+      }
+    });
+
+    // Show feedback snackbar
+    if (command != VoiceCommand.unknown) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("හඳුනාගත් විධානය: $text"),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.teal.withOpacity(0.8),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _stopGazeTracking();
+    _stopVoiceControl();
     super.dispose();
   }
 
@@ -196,6 +266,11 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
                 ),
               ),
             ),
+          // =====================================================
+          // VOICE CONTROL INDICATOR OVERLAY
+          // =====================================================
+          if (_inputMode == InputMode.voiceControl)
+            const Positioned(bottom: 30, right: 30, child: VoiceIndicator()),
         ],
       ),
     );
