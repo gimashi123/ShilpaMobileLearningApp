@@ -28,15 +28,50 @@ class _HearingDashboardScreenState extends State<HearingDashboardScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text("Choose Quiz Type"),
+          title: const Text(
+            "Choose Quiz Type",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D1B69),
+            ),
+          ),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 16,
+            runSpacing: 16,
             children: [
-              _QuizTypeBtn(label: "+", onTap: () => Navigator.pop(ctx, Op.add)),
-              _QuizTypeBtn(label: "-", onTap: () => Navigator.pop(ctx, Op.sub)),
-              _QuizTypeBtn(label: "×", onTap: () => Navigator.pop(ctx, Op.mul)),
-              _QuizTypeBtn(label: "÷", onTap: () => Navigator.pop(ctx, Op.div)),
+              _QuizTypeBtn(
+                label: "+",
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+                ),
+                onTap: () => Navigator.pop(ctx, Op.add),
+              ),
+              _QuizTypeBtn(
+                label: "-",
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+                ),
+                onTap: () => Navigator.pop(ctx, Op.sub),
+              ),
+              _QuizTypeBtn(
+                label: "×",
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                ),
+                onTap: () => Navigator.pop(ctx, Op.mul),
+              ),
+              _QuizTypeBtn(
+                label: "÷",
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF834D9B), Color(0xFFD04ED6)],
+                ),
+                onTap: () => Navigator.pop(ctx, Op.div),
+              ),
             ],
           ),
         );
@@ -54,298 +89,448 @@ class _HearingDashboardScreenState extends State<HearingDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
-      body: Stack(
-        children: [
-          // ✅ Background image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/background.jpeg',
-              fit: BoxFit.cover,
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF667EEA).withOpacity(0.15),
+              const Color(0xFF764BA2).withOpacity(0.12),
+              const Color(0xFFFFF8E1).withOpacity(0.95),
+            ],
           ),
-
-          // ✅ Blur layer (adjust sigma for more/less blur)
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(
-                color: Colors.white.withOpacity(0.12),
-              ),
-            ),
+          image: const DecorationImage(
+            image: AssetImage("assets/pattern-bg.jpeg"),
+            fit: BoxFit.cover,
+            opacity: 0.08,
           ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // =====================================================
+                // TOP NAV BAR - ENHANCED
+                // =====================================================
+                TopNavBar(selectedTab: 0),
+                const SizedBox(height: 24),
 
-          // ✅ Your UI on top
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TopNavBar(selectedTab: 0),
-                  const SizedBox(height: 16),
-
-                  // (Optional) Top bar (kept commented like your code)
-                  // Row(
-                  //   children: [
-                  //     CircleAvatar(
-                  //       radius: 24,
-                  //       backgroundColor: cs.primary.withOpacity(0.1),
-                  //       child: const Icon(Icons.person, size: 28),
-                  //     ),
-                  //     const SizedBox(width: 12),
-                  //     Column(
-                  //       crossAxisAlignment: CrossAxisAlignment.start,
-                  //       children: [
-                  //         Text(
-                  //           "Hi, $userName 👋",
-                  //           style: const TextStyle(
-                  //             fontSize: 18,
-                  //             fontWeight: FontWeight.w700,
-                  //           ),
-                  //         ),
-                  //         const Text(
-                  //           "Ready to learn something new today? hearing",
-                  //           style: TextStyle(fontSize: 12, color: Colors.black54),
-                  //         ),
-                  //       ],
-                  //     ),
-                  //     const Spacer(),
-                  //     IconButton(
-                  //       onPressed: () {},
-                  //       icon: const Icon(Icons.notifications_outlined),
-                  //     ),
-                  //   ],
-                  // ),
-
-                  const SizedBox(height: 16),
-
-                  // TODAY’S SUMMARY CARD
-                  
-
-                  const SizedBox(height: 18),
-
-                  Container(
-  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-  decoration: BoxDecoration(
-    color: Colors.white.withOpacity(0.9), // white background
-    borderRadius: BorderRadius.circular(10),
-  ),
-  child: const Text(
-    "ඔබගේ විෂයන්",
-    style: TextStyle(
-      fontSize: 30,
-      fontWeight: FontWeight.w700,
-      color: Colors.black,
-    ),
-  ),
-),
-const SizedBox(height: 8),
-
-                  // SUBJECT CHIPS
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    // child: Row(
-                    //   children: [
-                    //     _SubjectChip(
-                    //       label: "ගණිතය",
-                    //       icon: Icons.calculate,
-                    //       onTap: () {
-                    //         Navigator.pushNamed(context, '/math_lessons');
-                    //       },
-                    //     ),
-                    //     _SubjectChip(
-                    //       label: "සිංහල",
-                    //       icon: Icons.menu_book,
-                    //       onTap: () {
-                    //         ScaffoldMessenger.of(context).showSnackBar(
-                    //           const SnackBar(
-                    //             content: Text("Sinhala lessons coming soon!"),
-                    //           ),
-                    //         );
-                    //       },
-                    //     ),
-                    //     _SubjectChip(
-                    //       label: "ප්‍රශ්න",
-                    //       icon: Icons.quiz,
-                    //       onTap: () => Navigator.pushNamed(context, '/quiz'),
-                    //     ),
-                    //     _SubjectChip(
-                    //       label: "GAMES",
-                    //       icon: Icons.quiz,
-                    //       onTap: _openQuizPicker,
-                    //     ),
-                    //   ],
-                    // ),
+                // =====================================================
+                // WELCOME SECTION
+                // =====================================================
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF6A11CB).withOpacity(0.9),
+                        const Color(0xFF2575FC).withOpacity(0.9),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.9),
+                              Colors.white.withOpacity(0.7),
+                            ],
+                          ),
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: Color(0xFF6A11CB),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "සාදරයෙන් පිළිගනිමු",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                shadows: [
+                                  Shadow(
+                                    blurRadius: 4,
+                                    color: Colors.black12,
+                                    offset: Offset(1, 1),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 28),
 
-                  // GRID
-                  Expanded(
-                    child: _LessonsGrid(
-                      onOpenQuizPicker: _openQuizPicker,
+                // =====================================================
+                // SUBJECTS TITLE
+                // =====================================================
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFF6A11CB),
+                              const Color(0xFF2575FC),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "ඔබගේ විෂයන්",
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2D1B69),
+                          letterSpacing: -0.5,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 2,
+                              color: Colors.black12,
+                              offset: Offset(1, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 26),
+                  child: Text(
+                    "ඔබගේ ඉගෙනීම ආරම්භ කරන්න",
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.deepPurple.withOpacity(0.7),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // =====================================================
+                // MAIN GRID - ENHANCED
+                // =====================================================
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 30,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: _LessonsGrid(
+                        onTap: (title, route) {
+                          if (route == '/quizhearing') {
+                            _openQuizPicker();
+                          } else if (route == '/quizhear') {
+                            Navigator.pushNamed(context, '/quizhear');
+                          } else {
+                            Navigator.pushNamed(context, route);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// Subject chip
-class _SubjectChip extends StatelessWidget {
+// =====================================================
+// QUIZ TYPE BUTTON - ENHANCED
+// =====================================================
+class _QuizTypeBtn extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final Gradient gradient;
   final VoidCallback onTap;
 
-  const _SubjectChip({
+  const _QuizTypeBtn({
     required this.label,
-    required this.icon,
+    required this.gradient,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.85),
+    return Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.deepPurple.shade100),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: Colors.deepPurple),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 13, color: Colors.deepPurple),
+          splashColor: Colors.white.withOpacity(0.3),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.5),
+                width: 2,
+              ),
             ),
-          ],
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4,
+                      color: Colors.black26,
+                      offset: Offset(1, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-// Quiz type button for dialog
-class _QuizTypeBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuizTypeBtn({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 64,
-      height: 48,
-      child: ElevatedButton(
-        onPressed: onTap,
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-}
-
-// Lessons Grid
+// =====================================================
+// LESSONS GRID - ENHANCED
+// =====================================================
 class _LessonsGrid extends StatelessWidget {
-  final Future<void> Function() onOpenQuizPicker;
+  final void Function(String title, String route) onTap;
 
-  const _LessonsGrid({required this.onOpenQuizPicker});
+  const _LessonsGrid({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GridView.count(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(4),
       crossAxisCount: 4,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 2.5 / 3,
-      
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 2 / 3,
       children: [
-        InkWell(
-          onTap: () {
-            Navigator.pushNamed(context, '/math_lessons');
-          },
-          child: const _GridCard(
-            bg: Color.fromARGB(255, 238, 235, 235),
-            text: "ගණිතය",
+        _gridItem(
+          context,
+          "ගණිතය",
+          '📐',
+          '/math_lessons',
+          const LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Sinhala lessons coming soon!")),
-            );
-          },
-          child: const _GridCard(
-            bg: Color.fromARGB(255, 244, 243, 241),
-            text: "සිංහල",
+        _gridItem(
+          context,
+          "සිංහල",
+          '📖',
+          '/quizhearing',
+          const LinearGradient(
+            colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        InkWell(
-          onTap: () => Navigator.pushNamed(context, '/quizhear'),
-          child: const _GridCard(
-            bg: Color(0xFFFFF3E0),
-            text: "ප්‍රශ්න",
+        _gridItem(
+          context,
+          "ප්‍රශ්න",
+          '❓',
+          '/quizhear',
+          const LinearGradient(
+            colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Games coming soon!")),
-            );
-          },
-          child: const _GridCard(
-            bg: Color.fromARGB(255, 244, 243, 241),
-            text: "GAMES",
+        _gridItem(
+          context,
+          "GAMES",
+          '🎮',
+          '/quizhearing',
+          const LinearGradient(
+            colors: [Color(0xFF834D9B), Color(0xFFD04ED6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
       ],
     );
   }
-}
 
-class _GridCard extends StatelessWidget {
-  final Color bg;
-  final String text;
-
-  const _GridCard({required this.bg, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _gridItem(
+    BuildContext context,
+    String title,
+    String emoji,
+    String route,
+    Gradient gradient,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: bg.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+            spreadRadius: -5,
           ),
         ],
       ),
-      child: Center(
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
+          onTap: () => onTap(title, route),
+          borderRadius: BorderRadius.circular(24),
+          splashColor: Colors.white.withOpacity(0.3),
+          highlightColor: Colors.white.withOpacity(0.2),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.4),
+                width: 2,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(emoji, style: const TextStyle(fontSize: 32)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 4,
+                          color: Colors.black26,
+                          offset: Offset(1, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
