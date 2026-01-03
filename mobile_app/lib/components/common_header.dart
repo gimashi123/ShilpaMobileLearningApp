@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/input_modes.dart';
+import 'responsive_layout.dart';
 
 class CommonHeader extends StatelessWidget {
   final String userName;
@@ -21,90 +22,90 @@ class CommonHeader extends StatelessWidget {
     return Column(
       children: [
         // Top Header: Profile Info with Gradient Background
-        // Container(
-        //   padding: const EdgeInsets.all(16),
-        //   decoration: BoxDecoration(
-        //     gradient: const LinearGradient(
-        //       begin: Alignment.centerLeft,
-        //       end: Alignment.centerRight,
-        //       colors: [
-        //         Color(0xFF6A1B9A),
-        //         Color(0xFF42A5F5),
-        //       ], // Deep Purple to Blue
-        //     ),
-        //     borderRadius: BorderRadius.circular(30),
-        //     border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-        //     boxShadow: [
-        //       BoxShadow(
-        //         color: const Color(0xFF6A1B9A).withOpacity(0.3),
-        //         blurRadius: 15,
-        //         offset: const Offset(0, 8),
-        //       ),
-        //     ],
-        //   ),
-        //   child: Row(
-        //     children: [
-        //       Container(
-        //         width: 64,
-        //         height: 64,
-        //         decoration: BoxDecoration(
-        //           color: Colors.white,
-        //           shape: BoxShape.circle,
-        //           boxShadow: [
-        //             BoxShadow(
-        //               color: Colors.black.withOpacity(0.1),
-        //               blurRadius: 8,
-        //             ),
-        //           ],
-        //         ),
-        //         child: const Icon(
-        //           Icons.person,
-        //           color: Color(0xFF6A1B9A),
-        //           size: 40,
-        //         ),
-        //       ),
-        //       const SizedBox(width: 20),
-        //       Expanded(
-        //         child: Column(
-        //           crossAxisAlignment: CrossAxisAlignment.start,
-        //           children: [
-        //             const Text(
-        //               "සාදරයෙන් පිළිගනිමු", // Welcome in Sinhala
-        //               style: TextStyle(
-        //                 fontSize: 16,
-        //                 color: Colors.white70,
-        //                 fontWeight: FontWeight.w500,
-        //               ),
-        //             ),
-        //             Text(
-        //               userName,
-        //               style: const TextStyle(
-        //                 fontSize: 28,
-        //                 fontWeight: FontWeight.w900,
-        //                 color: Colors.white,
-        //                 letterSpacing: 0.5,
-        //               ),
-        //             ),
-        //           ],
-        //         ),
-        //       ),
-        //       Container(
-        //         decoration: BoxDecoration(
-        //           color: Colors.white.withOpacity(0.1),
-        //           shape: BoxShape.circle,
-        //         ),
-        //         child: IconButton(
-        //           onPressed: () {},
-        //           icon: const Icon(
-        //             Icons.settings_outlined,
-        //             color: Colors.white,
-        //             size: 28,
-        //           ),
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
+        Container(
+          padding: EdgeInsets.all(Responsive.isMobile(context) ? 12 : 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0xFF6A1B9A),
+                Color(0xFF42A5F5),
+              ], // Deep Purple to Blue
+            ),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6A1B9A).withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: Responsive.isMobile(context) ? 50 : 64,
+                height: Responsive.isMobile(context) ? 50 : 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.person,
+                  color: const Color(0xFF6A1B9A),
+                  size: Responsive.isMobile(context) ? 30 : 40,
+                ),
+              ),
+              SizedBox(width: Responsive.isMobile(context) ? 12 : 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "සාදරයෙන් පිළිගනිමු", // Welcome in Sinhala
+                      style: TextStyle(
+                        fontSize: Responsive.isMobile(context) ? 14 : 16,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      userName,
+                      style: TextStyle(
+                        fontSize: Responsive.isMobile(context) ? 20 : 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: () {},
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: Colors.white,
+                    size: Responsive.isMobile(context) ? 24 : 28,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
 
         // Navigation Bar
@@ -223,8 +224,15 @@ class _NavTabState extends State<_NavTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Responsive scaling
+    final bool isMobile = Responsive.isMobile(context);
+    final double paddingH = isMobile ? 4 : 12;
+    final double paddingV = isMobile ? 8 : 12;
+    final double iconSize = isMobile ? 24 : 28;
+    final double fontSize = isMobile ? 11 : 14;
+
     Widget content = Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
       decoration: BoxDecoration(
         color: widget.isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
@@ -240,21 +248,31 @@ class _NavTabState extends State<_NavTab> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             widget.icon,
             color: widget.isSelected ? Colors.white : const Color(0xFF4527A0),
-            size: 26,
+            size: iconSize,
           ),
-          const SizedBox(height: 6),
-          Text(
-            widget.label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: widget.isSelected ? FontWeight.w900 : FontWeight.w600,
-              color: widget.isSelected ? Colors.white : const Color(0xFF4527A0),
+          // Hide label on very small screens if needed, or just scale it
+          if (!isMobile || widget.isSelected) ...[
+            const SizedBox(height: 4),
+            Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: widget.isSelected
+                    ? FontWeight.w900
+                    : FontWeight.w600,
+                color: widget.isSelected
+                    ? Colors.white
+                    : const Color(0xFF4527A0),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

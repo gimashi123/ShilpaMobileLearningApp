@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/input_modes.dart';
 import '../../components/input_aware_button.dart';
+import '../../components/responsive_layout.dart';
 
 /// Question content (Prashna tab)
 /// Displays cards for different subjects to take quizzes
@@ -11,49 +12,47 @@ class QuestionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double scale = (screenWidth / 400).clamp(0.85, 1.5);
+    if (Responsive.isMobile(context)) {
+      return Column(
+        children: [
+          Expanded(child: _buildSinhalaCard(context)),
+          const SizedBox(height: 16),
+          Expanded(child: _buildMathsCard(context)),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
 
-    return Column(
+    return Row(
       children: [
-        // =====================================================
-        // VIBRANT CARDS ROW (Responsive & Scalable)
-        // =====================================================
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // SINHALA QUESTIONS CARD
-              Expanded(
-                child: _QuestionCard(
-                  label: "සිංහල ප්‍රශ්න",
-                  icon: Icons.menu_book_outlined,
-                  color: const Color(0xFF26A69A), // Teal/Green
-                  inputMode: inputMode,
-                  scale: scale,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("සිංහල ප්‍රශ්න ළඟදීම!")),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(width: 16 * scale),
-              // MATHS QUESTIONS CARD
-              Expanded(
-                child: _QuestionCard(
-                  label: "ගණිත ප්‍රශ්න",
-                  icon: Icons.calculate_outlined,
-                  color: const Color(0xFF7E57C2), // Purple
-                  inputMode: inputMode,
-                  scale: scale,
-                  onTap: () => Navigator.pushNamed(context, '/quiz'),
-                ),
-              ),
-            ],
-          ),
-        ),
+        Expanded(child: _buildSinhalaCard(context)),
+        const SizedBox(width: 16),
+        Expanded(child: _buildMathsCard(context)),
       ],
+    );
+  }
+
+  Widget _buildSinhalaCard(BuildContext context) {
+    return _QuestionCard(
+      label: "සිංහල ප්‍රශ්න",
+      icon: Icons.menu_book_outlined,
+      color: const Color(0xFF26A69A), // Teal/Green
+      inputMode: inputMode,
+      onTap: () {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("සිංහල ප්‍රශ්න ළඟදීම!")));
+      },
+    );
+  }
+
+  Widget _buildMathsCard(BuildContext context) {
+    return _QuestionCard(
+      label: "ගණිත ප්‍රශ්න",
+      icon: Icons.calculate_outlined,
+      color: const Color(0xFF7E57C2), // Purple
+      inputMode: inputMode,
+      onTap: () => Navigator.pushNamed(context, '/quiz'),
     );
   }
 }
@@ -67,7 +66,6 @@ class _QuestionCard extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final InputMode inputMode;
-  final double scale;
 
   const _QuestionCard({
     required this.label,
@@ -75,26 +73,30 @@ class _QuestionCard extends StatelessWidget {
     required this.color,
     required this.onTap,
     required this.inputMode,
-    required this.scale,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Determine sizing based on device type if needed, or use standard defaults
+    final bool isMobile = Responsive.isMobile(context);
+    final double titleSize = isMobile ? 24 : 28;
+    final double iconSize = isMobile ? 60 : 70;
+
     return Container(
-      margin: EdgeInsets.only(bottom: 20 * scale),
+      margin: const EdgeInsets.only(bottom: 20),
       child: InputAwareButton(
         onTap: onTap,
         inputMode: inputMode,
-        borderRadius: BorderRadius.circular(40 * scale),
+        borderRadius: BorderRadius.circular(30),
         child: Container(
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(40 * scale),
+            borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
                 color: color.withOpacity(0.35),
-                blurRadius: 20 * scale,
-                offset: Offset(0, 12 * scale),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -102,23 +104,23 @@ class _QuestionCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: EdgeInsets.all(25 * scale),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.25),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 70 * scale, color: Colors.white),
+                child: Icon(icon, size: iconSize, color: Colors.white),
               ),
-              SizedBox(height: 30 * scale),
+              const SizedBox(height: 24),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.0 * scale),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 30 * scale,
+                      fontSize: titleSize,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                       letterSpacing: 1.2,
@@ -126,11 +128,11 @@ class _QuestionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 10 * scale),
+              const SizedBox(height: 10),
               Text(
                 "ප්‍රශ්න පත්‍ර ආරම්භ කරන්න",
                 style: TextStyle(
-                  fontSize: 14 * scale,
+                  fontSize: 14,
                   color: Colors.white.withOpacity(0.8),
                   fontWeight: FontWeight.w600,
                 ),

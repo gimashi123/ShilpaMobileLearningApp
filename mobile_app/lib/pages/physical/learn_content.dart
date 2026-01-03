@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/physical/lesson_detail_screen.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
+import '../../components/responsive_layout.dart';
 
 /// Learn content (Learn tab)
 class LearnContent extends StatefulWidget {
@@ -74,8 +75,10 @@ class _LearnContentState extends State<LearnContent> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.shortestSide >= 600;
+    // Responsive Layout Logic
+    final bool isMobile = Responsive.isMobile(context);
+    final bool isTablet = Responsive.isTablet(context);
+    final int crossAxisCount = isMobile ? 2 : (isTablet ? 3 : 4);
 
     // Filter Logic
     final filteredLessons = _allLessons.where((lesson) {
@@ -84,6 +87,7 @@ class _LearnContentState extends State<LearnContent> {
 
     return Column(
       children: [
+        // ... (Subject Toggle Section remains same) ...
         // ===== SUBJECT TOGGLE SECTION (Redesigned) =====
         Container(
           margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
@@ -224,7 +228,7 @@ class _LearnContentState extends State<LearnContent> {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isTablet ? 4 : 3,
+                    crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                     childAspectRatio: 0.82,

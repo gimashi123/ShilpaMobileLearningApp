@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
 import '../../models/input_modes.dart';
+import '../../components/responsive_layout.dart';
 
 /// Profile content (Profile tab)
 /// Fetches the latest data from backend to ensure accuracy
@@ -140,37 +141,72 @@ class _ProfileContentState extends State<ProfileContent> {
           // Profile Stats Cards
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                _buildStatCard(
-                  icon: Icons.school_rounded,
-                  title: "Lessons Completed",
-                  value: "12",
-                  color: const Color(0xFF7E57C2),
-                ),
-                const SizedBox(height: 12),
-                _buildStatCard(
-                  icon: Icons.games_rounded,
-                  title: "Games Played",
-                  value: "8",
-                  color: const Color(0xFF66BB6A),
-                ),
-                const SizedBox(height: 12),
-                _buildStatCard(
-                  icon: Icons.quiz_rounded,
-                  title: "Quizzes Taken",
-                  value: "5",
-                  color: const Color(0xFFFFB74D),
-                ),
-                const SizedBox(height: 12),
-                _buildStatCard(
-                  icon: Icons.star_rounded,
-                  title: "Total Points",
-                  value: "450",
-                  color: const Color(0xFFFF69B4),
-                ),
-              ],
-            ),
+            child: Responsive.isTablet(context)
+                ? GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 2.5,
+                    children: [
+                      _buildStatCard(
+                        icon: Icons.school_rounded,
+                        title: "Lessons Completed",
+                        value: "12",
+                        color: const Color(0xFF7E57C2),
+                      ),
+                      _buildStatCard(
+                        icon: Icons.games_rounded,
+                        title: "Games Played",
+                        value: "8",
+                        color: const Color(0xFF66BB6A),
+                      ),
+                      _buildStatCard(
+                        icon: Icons.quiz_rounded,
+                        title: "Quizzes Taken",
+                        value: "5",
+                        color: const Color(0xFFFFB74D),
+                      ),
+                      _buildStatCard(
+                        icon: Icons.star_rounded,
+                        title: "Total Points",
+                        value: "450",
+                        color: const Color(0xFFFF69B4),
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      _buildStatCard(
+                        icon: Icons.school_rounded,
+                        title: "Lessons Completed",
+                        value: "12",
+                        color: const Color(0xFF7E57C2),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatCard(
+                        icon: Icons.games_rounded,
+                        title: "Games Played",
+                        value: "8",
+                        color: const Color(0xFF66BB6A),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatCard(
+                        icon: Icons.quiz_rounded,
+                        title: "Quizzes Taken",
+                        value: "5",
+                        color: const Color(0xFFFFB74D),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatCard(
+                        icon: Icons.star_rounded,
+                        title: "Total Points",
+                        value: "450",
+                        color: const Color(0xFFFF69B4),
+                      ),
+                    ],
+                  ),
           ),
           const SizedBox(height: 32),
           // Logout Button

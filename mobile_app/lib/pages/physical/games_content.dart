@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
+import '../../components/responsive_layout.dart';
 
 /// Games content (Games tab)
 class GamesContent extends StatefulWidget {
@@ -33,8 +34,10 @@ class _GamesContentState extends State<GamesContent> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.shortestSide >= 600;
+    // Responsive Layout Logic
+    final bool isMobile = Responsive.isMobile(context);
+    final bool isTablet = Responsive.isTablet(context);
+    final int crossAxisCount = isMobile ? 2 : (isTablet ? 3 : 4);
 
     // Filter games based on selected subject
     final filteredGames = _allGames.where((game) {
@@ -183,7 +186,7 @@ class _GamesContentState extends State<GamesContent> {
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 24, left: 4, right: 4),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isTablet ? 4 : 3,
+                    crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
                     childAspectRatio: 0.82,

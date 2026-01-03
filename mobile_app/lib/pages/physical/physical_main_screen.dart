@@ -214,20 +214,6 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
                     const SizedBox(height: 16),
 
                     // =====================================================
-                    // INPUT MODE SWITCH (Only show on Home tab)
-                    // =====================================================
-                    if (_selectedTab == 0)
-                      Column(
-                        children: [
-                          InputModeSwitch(
-                            selectedMode: _inputMode,
-                            onChanged: _handleInputModeChange,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-
-                    // =====================================================
                     // CONTENT AREA (SWITCHES BASED ON SELECTED TAB)
                     // =====================================================
                     Expanded(child: _buildContent()),
@@ -266,11 +252,24 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
                 ),
               ),
             ),
+
           // =====================================================
           // VOICE CONTROL INDICATOR OVERLAY
           // =====================================================
           if (_inputMode == InputMode.voiceControl)
-            const Positioned(bottom: 30, right: 30, child: VoiceIndicator()),
+            const Positioned(bottom: 100, right: 30, child: VoiceIndicator()),
+
+          // =====================================================
+          // INPUT MODE SWITCH FAB (Floating Action Button style)
+          // =====================================================
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: InputModeSwitch(
+              selectedMode: _inputMode,
+              onChanged: _handleInputModeChange,
+            ),
+          ),
         ],
       ),
     );
