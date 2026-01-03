@@ -3,7 +3,13 @@ enum VoiceCommand {
   navigateLearn,
   navigateGames,
   navigateProfile,
+  navigateQuiz, // New command for Quiz tab
   navigateBack,
+  // Input Mode Commands
+  setModeStandard,
+  setModeDwell,
+  setModeEyeGaze,
+  setModeVoice,
   unknown,
 }
 
@@ -11,7 +17,40 @@ class VoiceCommandParser {
   static VoiceCommand parse(String text) {
     text = text.toLowerCase().trim();
 
-    // Sinhala & English Keywords mapping
+    // --- Input Mode Commands ---
+    if (_containsAny(text, [
+      'standard',
+      'normal',
+      'samanya',
+      'touch',
+      'සාමාන්‍ය',
+    ])) {
+      return VoiceCommand.setModeStandard;
+    }
+    if (_containsAny(text, [
+      'dwell',
+      'auto click',
+      'obagena',
+      'dwell mode',
+      'ඔබගෙන',
+    ])) {
+      return VoiceCommand.setModeDwell;
+    }
+    if (_containsAny(text, ['eye', 'gaze', 'vision', 'as', 'ඇස්'])) {
+      return VoiceCommand.setModeEyeGaze;
+    }
+    // "Voice" keyword might overlap, so check specific "mode" context or just prioritization
+    if (_containsAny(text, [
+      'voice mode',
+      'katahanda',
+      'katha',
+      'input voice',
+      'කටහඬ',
+    ])) {
+      return VoiceCommand.setModeVoice;
+    }
+
+    // --- Navigation Commands ---
     if (_containsAny(text, [
       'home',
       'මුල් පිටුව',
@@ -32,6 +71,16 @@ class VoiceCommandParser {
       'ගේම්ස්',
     ])) {
       return VoiceCommand.navigateGames;
+    }
+    if (_containsAny(text, [
+      'quiz',
+      'prashna',
+      'questions',
+      'ප්‍රශ්න',
+      'විභාග',
+      'exam',
+    ])) {
+      return VoiceCommand.navigateQuiz;
     }
     if (_containsAny(text, ['profile', 'පරිශීලක', 'මම', 'ප්‍රෝෆයිල්', 'මා'])) {
       return VoiceCommand.navigateProfile;

@@ -136,6 +136,9 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
         case VoiceCommand.navigateGames:
           _selectedTab = 2;
           break;
+        case VoiceCommand.navigateQuiz:
+          _selectedTab = 3;
+          break;
         case VoiceCommand.navigateProfile:
           _selectedTab = 4;
           break;
@@ -146,6 +149,21 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
             _selectedTab = 0; // Fallback to home
           }
           break;
+
+        // --- Input Mode Switching ---
+        case VoiceCommand.setModeStandard:
+          _handleInputModeChange(InputMode.standard);
+          break;
+        case VoiceCommand.setModeDwell:
+          _handleInputModeChange(InputMode.dwellTouch);
+          break;
+        case VoiceCommand.setModeEyeGaze:
+          _handleInputModeChange(InputMode.eyeGaze);
+          break;
+        case VoiceCommand.setModeVoice:
+          _handleInputModeChange(InputMode.voiceControl);
+          break;
+
         case VoiceCommand.unknown:
           // maybe show a "Didn't catch that" toast
           break;

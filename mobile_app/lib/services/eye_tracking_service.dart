@@ -59,6 +59,7 @@ class EyeTrackingService {
   Offset _gazeOffset = Offset.zero;
   double _scaleX = 1.0;
   double _scaleY = 1.0;
+  double _calculatedAccuracy = 0.0;
 
   // Smoothing
   final List<Offset> _history = [];
@@ -256,40 +257,48 @@ class EyeTrackingService {
   }
 
   void _processFace(Face face, double imgWidth, double imgHeight) {
-    final leftEye = face.landmarks[FaceLandmarkType.leftEye];
-    final rightEye = face.landmarks[FaceLandmarkType.rightEye];
+    // We switch here to HEAD POSE tracking (Yaw/Pitch) which acts as a 'Virtual Joystick'
+    // Attached to the nose. This is far more intuitive for 'Gaze' control than raw Cartesian movement.
 
-    if (leftEye != null && rightEye != null) {
-      double rawX = (leftEye.position.x + rightEye.position.x) / 2;
-      double rawY = (leftEye.position.y + rightEye.position.y) / 2;
+    // Yaw = Left/Right (Degrees). Pitch = Up/Down (Degrees).
+    final yaw = face.headEulerAngleY ?? 0;
+    final pitch = face.headEulerAngleX ?? 0;
 
-      double normX = rawX / imgWidth;
-      double normY = rawY / imgHeight;
+    final view = PlatformDispatcher.instance.views.first;
+    final size = view.physicalSize / view.devicePixelRatio;
 
-      final view = PlatformDispatcher.instance.views.first;
-      final size = view.physicalSize / view.devicePixelRatio;
+    // Sensitivity: 30 pixels per degree of rotation
+    const sensitivity = 30.0;
+    double centerX = size.width / 2;
+    double centerY = size.height / 2;
 
-      // Mirroring adjustment for front camera
-      double x = (1.0 - normX) * size.width;
-      double y = normY * size.height;
+    // Calculate Target Screen Position
+    // Mirroring: +Yaw turns Left (on screen), so subtract.
+    // Pitch: +Pitch looks Up, so subtract.
+    double targetX = centerX - (yaw * sensitivity);
+    double targetY = centerY - (pitch * sensitivity);
 
-      // Apply Calibration Offset
-      x = (x + _gazeOffset.dx) * _scaleX;
-      y = (y + _gazeOffset.dy) * _scaleY;
+    // Calibration: Add the 'Drift' offset we learned.
+    // Scale: We keep 1.0 for now as rotational mapping is absolute.
+    targetX = targetX + _gazeOffset.dx;
+    targetY = targetY + _gazeOffset.dy;
 
-      // Smoothing
-      _history.add(Offset(x, y));
-      if (_history.length > _historyLimit) _history.removeAt(0);
+    // Clamp to screen
+    targetX = targetX.clamp(0.0, size.width);
+    targetY = targetY.clamp(0.0, size.height);
 
-      double avgX =
-          _history.map((e) => e.dx).reduce((a, b) => a + b) / _history.length;
-      double avgY =
-          _history.map((e) => e.dy).reduce((a, b) => a + b) / _history.length;
+    // Smoothing (Sliding Window)
+    _history.add(Offset(targetX, targetY));
+    if (_history.length > _historyLimit) _history.removeAt(0);
 
-      _gazeController.add(
-        GazeData(x: avgX, y: avgY, confidence: 0.9, timestamp: DateTime.now()),
-      );
-    }
+    double avgX =
+        _history.map((e) => e.dx).reduce((a, b) => a + b) / _history.length;
+    double avgY =
+        _history.map((e) => e.dy).reduce((a, b) => a + b) / _history.length;
+
+    _gazeController.add(
+      GazeData(x: avgX, y: avgY, confidence: 0.9, timestamp: DateTime.now()),
+    );
   }
 
   // --- CALIBRATION INTERFACE ---
@@ -300,9 +309,8 @@ class EyeTrackingService {
   Future<void> clearCalibration() async {
     _calibrationSamples.clear();
     _gazeOffset = Offset.zero;
-    _scaleX = 1.0;
-    _scaleY = 1.0;
     _history.clear();
+    _calculatedAccuracy = 0.0;
   }
 
   void addCalibrationPoint(
@@ -315,24 +323,51 @@ class EyeTrackingService {
   Future<void> finishCalibration() async {
     if (_calibrationSamples.isEmpty) return;
 
-    // Center point (order 2) is used for basic drift correction
+    // 1. Calculate Drift Offset (using Center Point if available)
     if (_calibrationSamples.containsKey(2)) {
       final samples = _calibrationSamples[2]!;
-      double avgGazeX =
+      double avgX =
           samples.map((e) => e.dx).reduce((a, b) => a + b) / samples.length;
-      double avgGazeY =
+      double avgY =
           samples.map((e) => e.dy).reduce((a, b) => a + b) / samples.length;
 
       final view = PlatformDispatcher.instance.views.first;
       final size = view.physicalSize / view.devicePixelRatio;
-      final screenCenter = Offset(size.width / 2, size.height / 2);
-
-      _gazeOffset = Offset(
-        screenCenter.dx - avgGazeX,
-        screenCenter.dy - avgGazeY,
-      );
+      // Offset = ScreenCenter - MeasuredCenter
+      _gazeOffset = Offset((size.width / 2) - avgX, (size.height / 2) - avgY);
     }
-    debugPrint("EyeTracking: Calibration Finished. Offset: $_gazeOffset");
+
+    // 2. Real Accuracy Calculation (Variance/Stability)
+    double totalVariance = 0;
+    int groups = 0;
+
+    _calibrationSamples.forEach((k, samples) {
+      if (samples.length > 1) {
+        // Centroid of this sample group
+        double cx =
+            samples.map((e) => e.dx).reduce((a, b) => a + b) / samples.length;
+        double cy =
+            samples.map((e) => e.dy).reduce((a, b) => a + b) / samples.length;
+
+        // Sum of distances from centroid
+        double sumDist = 0;
+        for (var p in samples) sumDist += (Offset(cx, cy) - p).distance;
+
+        totalVariance += (sumDist / samples.length);
+        groups++;
+      }
+    });
+
+    // Average variance across all calibration points
+    double avgVar = groups > 0 ? totalVariance / groups : 50.0;
+
+    // Map Variance to Percentage (0-100)
+    // 0 variance = 100%. 100px variance = 0%.
+    _calculatedAccuracy = (1.0 - (avgVar / 100.0)).clamp(0.01, 0.99);
+
+    debugPrint(
+      "EyeTracking: Accuracy: ${(_calculatedAccuracy * 100).toStringAsFixed(1)}%",
+    );
   }
 
   Future<void> stopTracking() async {
@@ -342,7 +377,7 @@ class EyeTrackingService {
     }
   }
 
-  Future<double> getCalibrationAccuracy() async => 0.95;
+  Future<double> getCalibrationAccuracy() async => _calculatedAccuracy;
 
   List<CalibrationPoint> createStandardPoints(double width, double height) {
     const margin = 0.15;
