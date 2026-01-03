@@ -14,6 +14,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   final FlutterTts _tts = FlutterTts();
 
   final List<int> _numbers = List.generate(10, (i) => i + 1);
+
   final List<String> _siWords = const [
     "එක",
     "දෙක",
@@ -27,8 +28,10 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     "දහය",
   ];
 
-  // Teaching-style syllable chunks (last item is full word)
-  final Map<int, List<String>> _syllables = const {
+  /// Teaching chunks that Sinhala TTS pronounces more reliably than single letters.
+  /// (This also solves the “some letters are not spelled” issue.)
+  /// Last item is the FULL WORD.
+  final Map<int, List<String>> _teachChunks = const {
     1: ["එ", "ක", "එක"],
     2: ["දෙ", "ක", "දෙක"],
     3: ["තු", "න", "තුන"],
@@ -41,9 +44,27 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     10: ["ද", "හ", "ය", "දහය"],
   };
 
-  int _index = 0;
+  /// What we show as “slots” on screen (aligned boxes).
+  /// For words like "හතර" we show 3 slots and reveal: හ / ත / ර (then full word spoken).
+  /// For 1..3,5..8 we show 2 slots.
+  /// For 9,10 we show 3 slots.
+  final Map<int, int> _slots = const {
+    1: 2,
+    2: 2,
+    3: 2,
+    4: 3,
+    5: 2,
+    6: 2,
+    7: 2,
+    8: 2,
+    9: 3,
+    10: 3,
+  };
 
-  bool _isSpeakingHighlight = false;
+  int _index = 0;
+  int _revealed = 0; // how many chunks are revealed on screen (NOT counting full word)
+
+  bool _highlight = false;
   late final AnimationController _pulse;
 
   int _runToken = 0;
@@ -57,30 +78,41 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
       duration: const Duration(milliseconds: 650),
     );
 
-    _setupTts().then((_) {
-      _startAutoSequence();
-    });
+    _setupTts().then((_) => _startAuto());
   }
 
   Future<void> _setupTts() async {
-    // Wait for TTS to finish each speak() before continuing
     await _tts.awaitSpeakCompletion(true);
 
-    // Try Sinhala Sri Lanka. If device doesn't support, it may ignore.
     try {
       await _tts.setLanguage("si-LK");
     } catch (_) {}
 
-    // Slower for children
-    await _tts.setSpeechRate(0.40);
+    // Clearer output for many devices:
+    await _tts.setSpeechRate(0.38);
     await _tts.setPitch(1.0);
     await _tts.setVolume(1.0);
+
+    // If device has multiple voices, try to pick a Sinhala one
+    try {
+      final voices = await _tts.getVoices;
+      if (voices is List) {
+        for (final v in voices) {
+          if (v is Map && (v["locale"]?.toString() == "si-LK")) {
+            await _tts.setVoice(Map<String, String>.from({
+              "name": v["name"].toString(),
+              "locale": v["locale"].toString(),
+            }));
+            break;
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _runToken++; // cancel any running loops
-    _pulse.stop(); // Stop the animation before disposing
+    _runToken++;
     _pulse.dispose();
     _tts.stop();
     super.dispose();
@@ -91,8 +123,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
 
   void _setHighlight(bool on) {
     if (!mounted) return;
-    setState(() => _isSpeakingHighlight = on);
-
+    setState(() => _highlight = on);
     if (on) {
       if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
     } else {
@@ -101,58 +132,88 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     }
   }
 
-  // Speak in teaching style:
-  // "එ..." (pause) "ක..." (pause) "එක"
-  Future<void> _speakTeachingStyle(int number, {int partGapMs = 800}) async {
-    final parts = _syllables[number];
-    if (parts == null) return;
+  List<String> _currentVisibleChunks() {
+    // We use the chunks except the last one (full word)
+    final chunks = _teachChunks[currentNumber] ?? const [];
+    if (chunks.isEmpty) return const [];
 
-    for (int i = 0; i < parts.length; i++) {
-      if (!mounted) return;
+    // Everything except last item is “step chunks”
+    final stepChunks = chunks.sublist(0, chunks.length - 1);
 
-      // Shine while speaking each chunk
-      _setHighlight(true);
+    final neededSlots = _slots[currentNumber] ?? stepChunks.length;
 
-      await _tts.stop();
-      await _tts.speak(parts[i]);
+    // Ensure we have exactly neededSlots for display
+    if (stepChunks.length == neededSlots) return stepChunks;
 
-      // wait until this chunk finishes
-      // (awaitSpeakCompletion is already enabled)
-      // Still keep a small delay to ensure UI updates smoothly.
-      _setHighlight(false);
-
-      // gap between syllables/chunks
-      await Future.delayed(Duration(milliseconds: partGapMs));
+    // If mismatch, trim or pad (safe)
+    if (stepChunks.length > neededSlots) {
+      return stepChunks.sublist(0, neededSlots);
+    } else {
+      return [
+        ...stepChunks,
+        ...List.filled(neededSlots - stepChunks.length, ""),
+      ];
     }
   }
 
-  Future<void> _startAutoSequence() async {
-    final int myToken = ++_runToken;
+  Future<void> _teachStepByStep(int number) async {
+    final chunks = _teachChunks[number];
+    if (chunks == null || chunks.isEmpty) return;
+
+    final stepChunks = chunks.sublist(0, chunks.length - 1);
+    final fullWord = chunks.last;
+
+    // Reset UI reveal
+    if (!mounted) return;
+    setState(() => _revealed = 0);
+
+    // Speak each chunk and reveal one slot
+    for (int i = 0; i < stepChunks.length; i++) {
+      if (!mounted) return;
+
+      // reveal on UI (do not reveal more than slot count)
+      final maxSlots = _slots[number] ?? stepChunks.length;
+      final revealCount = (i + 1) > maxSlots ? maxSlots : (i + 1);
+      setState(() => _revealed = revealCount);
+
+      _setHighlight(true);
+      await _tts.stop();
+      await _tts.speak(stepChunks[i]);
+      _setHighlight(false);
+
+      // Longer pause so letters don’t get cut
+      await Future.delayed(const Duration(milliseconds: 1000));
+    }
+
+    // Speak full word at the end
+    _setHighlight(true);
+    await _tts.speak(fullWord);
+    _setHighlight(false);
+
+    await Future.delayed(const Duration(milliseconds: 800));
+  }
+
+  Future<void> _startAuto() async {
+    final myToken = ++_runToken;
 
     while (mounted && myToken == _runToken) {
-      // Repeat 5 times for the current number
+      // repeat 5 times per number
       for (int r = 0; r < 5; r++) {
         if (!mounted || myToken != _runToken) return;
-
-        // Speak syllables then full word (child-friendly)
-        await _speakTeachingStyle(currentNumber, partGapMs: 800);
-
-        if (!mounted || myToken != _runToken) return;
-
-        // 2 seconds gap between voice commands (your requirement)
+        await _teachStepByStep(currentNumber);
         await Future.delayed(const Duration(seconds: 2));
       }
 
       if (!mounted || myToken != _runToken) return;
 
-      // 2 seconds break after finishing 5 repetitions (your requirement)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Move to next number
+      // move to next number
       if (_index < _numbers.length - 1) {
-        setState(() => _index++);
+        setState(() {
+          _index++;
+          _revealed = 0;
+        });
       } else {
-        return; // finished 1..10
+        return;
       }
     }
   }
@@ -160,17 +221,23 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   void _restartFromIndex(int newIndex) {
     if (newIndex < 0 || newIndex >= _numbers.length) return;
 
-    _runToken++; // cancel old loop
+    _runToken++;
     _tts.stop();
     _setHighlight(false);
 
-    setState(() => _index = newIndex);
+    setState(() {
+      _index = newIndex;
+      _revealed = 0;
+    });
 
-    _startAutoSequence();
+    _startAuto();
   }
 
   @override
   Widget build(BuildContext context) {
+    final visibleChunks = _currentVisibleChunks();
+    final slotCount = visibleChunks.isEmpty ? 2 : visibleChunks.length;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -210,33 +277,32 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
               ),
             ),
 
-            // Purple main area
+            // Main area
             Expanded(
               child: Container(
                 color: const Color(0xFF6D49A6),
                 child: AnimatedBuilder(
                   animation: _pulse,
                   builder: (_, __) {
-                    final double glow = _isSpeakingHighlight
-                        ? (0.25 + 0.75 * _pulse.value)
-                        : 0;
+                    final glow = _highlight ? (0.25 + 0.75 * _pulse.value) : 0.0;
 
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _CardBox(
-                            text: currentWord,
-                            big: false,
+                          _SlotsCard(
+                            slotCount: slotCount,
+                            revealed: _revealed,
+                            items: visibleChunks,
                             glow: glow,
-                            highlighted: _isSpeakingHighlight,
+                            highlighted: _highlight,
                           ),
                           const SizedBox(height: 80),
                           _CardBox(
                             text: "$currentNumber",
                             big: true,
                             glow: glow,
-                            highlighted: _isSpeakingHighlight,
+                            highlighted: _highlight,
                           ),
                         ],
                       ),
@@ -246,7 +312,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
               ),
             ),
 
-            // Bottom green bar
+            // Bottom bar
             Container(
               height: 70,
               color: const Color(0xFF2E8B34),
@@ -267,6 +333,74 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SlotsCard extends StatelessWidget {
+  final int slotCount;
+  final int revealed;
+  final List<String> items;
+  final bool highlighted;
+  final double glow;
+
+  const _SlotsCard({
+    required this.slotCount,
+    required this.revealed,
+    required this.items,
+    required this.highlighted,
+    required this.glow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = highlighted ? const Color(0xFFFFD54F) : Colors.transparent;
+    final borderWidth = highlighted ? (2.5 + 3.0 * glow) : 2.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9E9E9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: borderWidth),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFFFD54F).withOpacity(0.35 + 0.35 * glow),
+                  blurRadius: 12 + 18 * glow,
+                  spreadRadius: 1 + 3 * glow,
+                ),
+              ]
+            : [],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(slotCount, (i) {
+          final bool show = i < revealed;
+          final String v = (i < items.length) ? items[i] : "";
+          return Container(
+            width: 56,
+            height: 56,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.black12, width: 2),
+            ),
+            child: Text(
+              show ? v : "_",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -301,14 +435,12 @@ class _CardBox extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFFE9E9E9),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: borderWidth),
         boxShadow: highlighted
             ? [
                 BoxShadow(
-                  color: const Color(
-                    0xFFFFD54F,
-                  ).withOpacity(0.35 + 0.35 * glow),
+                  color: const Color(0xFFFFD54F).withOpacity(0.35 + 0.35 * glow),
                   blurRadius: 12 + 18 * glow,
                   spreadRadius: 1 + 3 * glow,
                 ),
