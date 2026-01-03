@@ -12,6 +12,7 @@ import '../../services/eye_tracking_service.dart';
 import '../../services/speech_service.dart';
 import '../../services/voice_command_parser.dart';
 import '../../components/voice_indicator.dart';
+import '../quiz.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -136,7 +137,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           _selectedTab = 2;
           break;
         case VoiceCommand.navigateProfile:
-          _selectedTab = 3;
+          _selectedTab = 4;
           break;
         case VoiceCommand.navigateBack:
           if (Navigator.canPop(context)) {
@@ -179,20 +180,19 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFFE3F2FD),
-                  Color.fromARGB(255, 55, 35, 58),
-                  Color(0xFFFFF8E1),
+                  Color(0xFFF3E5F5), // Light Lavender
+                  Colors.white,
                 ],
               ),
             ),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: 24,
+                  vertical: 20,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,6 +286,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
       case 2:
         return GamesContent(inputMode: _inputMode);
       case 3:
+        return const QuizPage(); // Use the existing QuizPage
+      case 4:
         return ProfileContent(
           userName: userName,
           disabilityType: disabilityType,

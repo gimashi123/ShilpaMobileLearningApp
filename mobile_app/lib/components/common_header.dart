@@ -20,59 +20,101 @@ class CommonHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Top Row: Profile Avatar, User Name, Settings Icon
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withOpacity(0.1),
-              child: const Icon(Icons.person, size: 28),
+        // Top Header: Profile Info with Gradient Background
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Color(0xFF6A1B9A),
+                Color(0xFF42A5F5),
+              ], // Deep Purple to Blue
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Hi, $userName 👋",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Text(
-                    "Ready to learn something new today?",
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ],
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6A1B9A).withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
-            ),
-            IconButton(
-              onPressed: () {
-                // Navigate to settings or show settings menu
-              },
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xFF6A1B9A),
+                  size: 40,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "සාදරයෙන් පිළිගනිමු", // Welcome in Sinhala
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         // Navigation Bar
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
+            color: const Color(0xFFD1C4E9).withOpacity(0.4), // Soft lavender
             borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -86,7 +128,7 @@ class CommonHeader extends StatelessWidget {
               ),
               _NavTab(
                 icon: Icons.school_rounded,
-                label: "Learn",
+                label: "පාඩම්",
                 isSelected: selectedTab == 1,
                 inputMode: inputMode,
                 onTap: () => onTabChanged(1),
@@ -99,11 +141,18 @@ class CommonHeader extends StatelessWidget {
                 onTap: () => onTabChanged(2),
               ),
               _NavTab(
-                icon: Icons.person_rounded,
-                label: "Profile",
+                icon: Icons.quiz_rounded,
+                label: "ප්‍රශ්න",
                 isSelected: selectedTab == 3,
                 inputMode: inputMode,
                 onTap: () => onTabChanged(3),
+              ),
+              _NavTab(
+                icon: Icons.person_rounded,
+                label: "Profile",
+                isSelected: selectedTab == 4,
+                inputMode: inputMode,
+                onTap: () => onTabChanged(4),
               ),
             ],
           ),
@@ -176,30 +225,35 @@ class _NavTabState extends State<_NavTab> {
   @override
   Widget build(BuildContext context) {
     Widget content = Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        gradient: widget.isSelected
-            ? const LinearGradient(
-                colors: [Color(0xFF7E57C2), Color(0xFFAB47BC)],
-              )
-            : null,
+        color: widget.isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: widget.isSelected
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6A1B9A).withOpacity(0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             widget.icon,
-            color: widget.isSelected ? Colors.white : Colors.black54,
-            size: 24,
+            color: widget.isSelected ? Colors.white : const Color(0xFF4527A0),
+            size: 26,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             widget.label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: widget.isSelected ? Colors.white : Colors.black54,
+              fontSize: 14,
+              fontWeight: widget.isSelected ? FontWeight.w900 : FontWeight.w600,
+              color: widget.isSelected ? Colors.white : const Color(0xFF4527A0),
             ),
           ),
         ],

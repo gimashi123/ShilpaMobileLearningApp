@@ -137,13 +137,26 @@ class _InputAwareButtonState extends State<InputAwareButton>
     }
   }
 
+  bool _isPressed = false;
+
   @override
   Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _isPressed ? 0.96 : 1.0,
+      duration: const Duration(milliseconds: 100),
+      child: _buildInteractionWrapper(),
+    );
+  }
+
+  Widget _buildInteractionWrapper() {
     // If not dwell or gaze mode, behave like a standard InkWell
     if (widget.inputMode != InputMode.dwellTouch &&
         widget.inputMode != InputMode.eyeGaze) {
       return InkWell(
         onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
         borderRadius: widget.borderRadius,
         child: widget.child,
       );
@@ -172,10 +185,19 @@ class _InputAwareButtonState extends State<InputAwareButton>
 
     // Dwell interaction
     return Listener(
-      onPointerDown: (event) => _handleDwellStart(event.localPosition),
+      onPointerDown: (event) {
+        setState(() => _isPressed = true);
+        _handleDwellStart(event.localPosition);
+      },
       onPointerMove: (event) => _handleDwellUpdate(event.localPosition),
-      onPointerUp: (_) => _resetDwell(),
-      onPointerCancel: (_) => _resetDwell(),
+      onPointerUp: (_) {
+        setState(() => _isPressed = false);
+        _resetDwell();
+      },
+      onPointerCancel: (_) {
+        setState(() => _isPressed = false);
+        _resetDwell();
+      },
       behavior: HitTestBehavior.opaque,
       child: Stack(
         clipBehavior: Clip.antiAlias,
