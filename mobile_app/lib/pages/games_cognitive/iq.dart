@@ -17,6 +17,7 @@ import 'package:http/http.dart' as http;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'dart:typed_data';
 import 'package:mobile_app/session/session.dart';
+import 'package:mobile_app/services/cognitive.dart'; 
 
 void main() {
   runApp(const IqGame());
@@ -437,13 +438,9 @@ class Menu extends StatelessWidget {
                             title: '📊 ලකුණු බලමු',
                             color: Colors.pink,
                             height: btnH,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ScoreHistoryScreen(),
-                              ),
-                            ),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/activity_iqScore');
+                            },
                           ),
                           const SizedBox(height: 16),
 
@@ -511,7 +508,7 @@ class SequentialGameFlow extends StatefulWidget {
 
 class _SequentialGameFlowState extends State<SequentialGameFlow> {
   // Backend base URL (PC IP + port). Do NOT use localhost on a phone.
-  final String apiBaseUrl = 'http://127.0.0.1:3000';
+  // final String apiBaseUrl = 'http://127.0.0.1:3000';
   late final String studentId;
 
   int currentGameIndex = 0;
@@ -832,29 +829,25 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
     super.dispose();
   }
 
-  Future<void> _saveResultToBackend(
-    Map<String, dynamic> payload,
-    Map<String, dynamic> result,
-  ) async {
-    // Expect result keys: probs (List<double>), predLabel (String), predScore (double)
-    final probsRaw = result['probs'];
-    final probs = (probsRaw is List)
-        ? probsRaw.map((e) => (e as num).toDouble()).toList()
-        : <double>[];
-    final predLabel = (result['predLabel'] ?? 'unknown').toString();
-    final predScore = (result['predScore'] is num)
-        ? (result['predScore'] as num).toDouble()
-        : 0.0;
 
-    await saveLdResultToBackend(
-      baseUrl: apiBaseUrl,
-      studentId: studentId,
-      features: payload, // ✅ pass your model payload map here
-      probs: List<double>.from(result['probs']),
-      predLabel: result['predLabel'] as String,
-      predScore: (result['predScore'] as num).toDouble(),
-    );
-  }
+Future<void> _saveResultToBackend(
+  Map<String, dynamic> payload,
+  Map<String, dynamic> result,
+) async {
+  await saveLdResultToBackend(
+    // baseUrl: apiBaseUrl,
+    studentId: studentId,
+    features: payload,  // ✅ Pass your model payload map here
+    shapeGameScore: shapeGameScore,  // Fixed: Removed quotes, used correct syntax
+    colorGameScore: colorGameScore,
+    bubbleGameScore: popGameScore,  // Note: Using popGameScore as the value (assuming it's the variable name in iq.dart)
+    totalScore: totalScore,
+    probs: List<double>.from(result['probs']),
+    predLabel: result['predLabel'] as String,
+    predScore: (result['predScore'] as num).toDouble(),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -2236,31 +2229,31 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
   }
 }
 
-Future<void> saveLdResultToBackend({
-  required String baseUrl,
-  required String studentId,
-  required Map<String, dynamic> features,
-  required List<double> probs,
-  required String predLabel,
-  required double predScore,
-}) async {
-  final uri = Uri.parse('$baseUrl/api/cognitive/ld-predictions');
+// Future<void> saveLdResultToBackend({
+//   required String baseUrl,
+//   required String studentId,
+//   required Map<String, dynamic> features,
+//   required List<double> probs,
+//   required String predLabel,
+//   required double predScore,
+// }) async {
+//   final uri = Uri.parse('$baseUrl/api/cognitive/ld-predictions');
 
-  final body = <String, dynamic>{
-    'studentId': studentId,
-    'probs': probs,
-    'predLabel': predLabel,
-    'predScore': predScore,
-    ...features,
-  };
+//   final body = <String, dynamic>{
+//     'studentId': studentId,
+//     'probs': probs,
+//     'predLabel': predLabel,
+//     'predScore': predScore,
+//     ...features,
+//   };
 
-  final res = await http.post(
-    uri,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(body),
-  );
+//   final res = await http.post(
+//     uri,
+//     headers: {'Content-Type': 'application/json'},
+//     body: jsonEncode(body),
+//   );
 
-  if (res.statusCode < 200 || res.statusCode >= 300) {
-    throw Exception('Save failed ${res.statusCode}: ${res.body}');
-  }
-}
+//   if (res.statusCode < 200 || res.statusCode >= 300) {
+//     throw Exception('Save failed ${res.statusCode}: ${res.body}');
+//   }
+// }

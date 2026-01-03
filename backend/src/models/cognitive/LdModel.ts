@@ -44,6 +44,12 @@ export interface LdPredictionDoc extends Document {
   bubbleValidRate: number;
   bubbleMissRate: number;
 
+  shapeGameScore: number;
+  colorGameScore: number;
+  bubbleGameScore: number;
+
+  totalGameScore: number;
+
   createdAt: Date;
 }
 
@@ -100,8 +106,17 @@ const LdPredictionSchema = new Schema<LdPredictionDoc>(
 
     bubbleValidRate: { type: Number, required: true },
     bubbleMissRate: { type: Number, required: true },
+
+    shapeGameScore: { type: Number, required: true },
+    colorGameScore: { type: Number, required: true },
+    bubbleGameScore: { type: Number, required: true },
+
+    totalGameScore: { type: Number, required: true },
   },
   { timestamps: true }
 );
 
 export const LdPrediction = model<LdPredictionDoc>("LdPrediction", LdPredictionSchema);
+
+
+

@@ -10,6 +10,7 @@ import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_countNumbers.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_iqScore.dart';
 import 'package:mobile_app/pages/games_cognitive/iq.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
@@ -22,6 +23,8 @@ import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
+import 'package:mobile_app/session/session.dart';   
+
 
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
@@ -88,7 +91,10 @@ class MyApp extends StatelessWidget {
         '/activity_draw': (_) => const ActivityDraw(),
         '/activity_findImage': (_) => const PuzzleApp(),
         '/activity_countNumbers': (_) => const SinhalaNumberGame(),
-      
+'/activity_iqScore': (_) {
+    final studentId = Session.userId ?? '';
+    return ProgressHistoryScreen(studentId: studentId);
+  },      
         
       },
       onGenerateRoute: (settings) {
