@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import '../dashboard/cognative_dashboard_screen.dart';
 
 class SinhalaNumberGame extends StatefulWidget {
   const SinhalaNumberGame({super.key});
@@ -79,6 +80,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   @override
   void dispose() {
     _runToken++; // cancel any running loops
+    _pulse.stop(); // Stop the animation before disposing
     _pulse.dispose();
     _tts.stop();
     super.dispose();
@@ -175,10 +177,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
         child: Column(
           children: [
             const SizedBox(height: 6),
-            const Text(
-              "maths related activities",
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
+          
 
             // Green header
             Container(
@@ -188,7 +187,10 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.maybePop(context),
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+                    ),
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
                   const SizedBox(width: 4),

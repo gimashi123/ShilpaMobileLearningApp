@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+// Add this import assuming the dashboard screen is in the same lib directory
+import '../dashboard/cognative_dashboard_screen.dart';
 
 /* =========================
    APP ROOT
@@ -97,7 +99,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+          ),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           tooltip: "Back",
         ),
@@ -133,16 +138,27 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       child: CustomPaint(painter: PiecePainter(pieces)),
                     ),
                     if (completed)
-                      const Center(
-                        child: Text(
-                          "🎉 සාර්ථකයි!",
-                          style: TextStyle(
-                            fontSize: 28,
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          decoration: BoxDecoration(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(blurRadius: 8, color: Colors.black),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                blurRadius: 12,
+                                offset: Offset(0, 6),
+                                color: Colors.black26,
+                              ),
                             ],
+                          ),
+                          child: const Text(
+                            "🎉 නියමයි! 🎉 ",
+                            style: TextStyle(
+                              fontSize: 28,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),

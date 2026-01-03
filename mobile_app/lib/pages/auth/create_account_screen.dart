@@ -18,7 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
-  final TextEditingController _gradeCtrl = TextEditingController(); // 👈 NEW
+  final TextEditingController _gradeCtrl = TextEditingController(); // grade input
 
   // Role (default = student)
   String _selectedRole = 'student';
@@ -28,6 +28,11 @@ class _RegisterPageState extends State<RegisterPage> {
   static const String _welcomeText =
       'ශිෂ්‍ය ගිණුමක් නිර්මාණය කරන්න. '
       'ඔබගේ නම, ඊමේල් ලිපිනය, සංකේත පදය, ශ්‍රේණිය සහ භූමිකාව තෝරන්න.';
+
+  // helper: cognitive student => hide grade + force grade=5
+  bool get _isCognitiveStudent {
+    return widget.disabilityType == 'cognitive' && _selectedRole == 'student';
+  }
 
   @override
   void initState() {
@@ -121,27 +126,38 @@ class _RegisterPageState extends State<RegisterPage> {
       final email = _emailCtrl.text.trim();
       final password = _passwordCtrl.text.trim();
       final role = _selectedRole;
-      final gradeText = _gradeCtrl.text.trim();
 
-      // extra safety: backend also checks, but we guard here
+      //  grade logic:
+      // - student + cognitive => force grade "5"
+      // - student + others => validate user input (3..5)
+      // - non-student => null
       String? gradeToSend;
+
       if (role == 'student') {
-        if (gradeText.isEmpty) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("ශ්‍රේණිය අවශ්‍යයි")));
-          await _speak('කරුණාකර ඔබගේ ශ්‍රේණිය ඇතුල් කරන්න.');
-          return;
+        if (_isCognitiveStudent) {
+          gradeToSend = '5';
+        } else {
+          final gradeText = _gradeCtrl.text.trim();
+
+          if (gradeText.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("ශ්‍රේණිය අවශ්‍යයි")),
+            );
+            await _speak('කරුණාකර ඔබගේ ශ්‍රේණිය ඇතුල් කරන්න.');
+            return;
+          }
+
+          final g = int.tryParse(gradeText);
+          if (g == null || g < 3 || g > 5) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය")),
+            );
+            await _speak('ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය.');
+            return;
+          }
+
+          gradeToSend = gradeText; // backend will convert to number
         }
-        final g = int.tryParse(gradeText);
-        if (g == null || g < 3 || g > 5) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය")),
-          );
-          await _speak('ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය.');
-          return;
-        }
-        gradeToSend = gradeText; // backend will convert to number
       }
 
       try {
@@ -151,7 +167,7 @@ class _RegisterPageState extends State<RegisterPage> {
           password: password,
           role: role,
           disabilityType: widget.disabilityType,
-          grade: gradeToSend, // 👈 NEW
+          grade: gradeToSend,
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -163,9 +179,9 @@ class _RegisterPageState extends State<RegisterPage> {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/newlogin');
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Register failed: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Register failed: $e")),
+        );
         await _speak('ලියාපදිංචිය අසාර්ථක විය. නැවත උත්සහ කරන්න.');
       }
     } else {
@@ -421,27 +437,28 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Grade (only validated for student)
-                  TextFormField(
-                    controller: _gradeCtrl,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.black87),
-                    decoration: _inputStyle(
-                      "ඇතුල් කරන්න: ශ්‍රේණිය (3 / 4 / 5)",
-                      Icons.class_,
+                  // Grade: hidden only for cognitive student
+                  if (!_isCognitiveStudent)
+                    TextFormField(
+                      controller: _gradeCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: _inputStyle(
+                        "ඇතුල් කරන්න: ශ්‍රේණිය (3 / 4 / 5)",
+                        Icons.class_,
+                      ),
+                      validator: (v) {
+                        if (_selectedRole != 'student') return null;
+                        if (v == null || v.isEmpty) {
+                          return "ශ්‍රේණිය අවශ්‍යයි";
+                        }
+                        final g = int.tryParse(v);
+                        if (g == null || g < 3 || g > 5) {
+                          return "ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය";
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (v) {
-                      if (_selectedRole != 'student') return null;
-                      if (v == null || v.isEmpty) {
-                        return "ශ්‍රේණිය අවශ්‍යයි";
-                      }
-                      final g = int.tryParse(v);
-                      if (g == null || g < 3 || g > 5) {
-                        return "ශ්‍රේණිය 3, 4, හෝ 5 විය යුතුය";
-                      }
-                      return null;
-                    },
-                  ),
 
                   const SizedBox(height: 14),
 

@@ -8,6 +8,7 @@ import authRouter from './routes/auth.routes';
 import logger from './config/logger.conf';
 import lessonRoutes from './routes/lesson.routes';
 import brailleRoutes from './routes/braill';
+import cogvitive from './routes/cognitive/routes';
 
 
 
@@ -84,3 +85,5 @@ app.use("/api/quizzes", require("./routes/quiz").default);
 
 app.use("/api/braille", brailleRoutes);
 
+// Cognitive routes
+app.use("/api/cognitive", cogvitive);

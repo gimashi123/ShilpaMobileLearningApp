@@ -61,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
       } else if (disabilityType == 'physical') {
         targetRoute = '/home_physical';
       } else if (disabilityType == 'cognitive') {
-        targetRoute = '/home_cognitive';
+        targetRoute = '/iq_game';
       }
 
       if (!mounted) return;

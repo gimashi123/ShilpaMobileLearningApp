@@ -71,7 +71,7 @@ class MyApp extends StatelessWidget {
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
         '/home_physical': (_) => const PhysicalDashboardScreen(),
-        '/home_cognitive': (_) => const CognativeDashboardScreen(),
+        '/home_cognitive': (_) => const CognitiveDashboardScreen(),
 
         '/math_lessons': (_) => const StudentLessonsPage(),
         '/quiz': (_) => const QuizPage(),
