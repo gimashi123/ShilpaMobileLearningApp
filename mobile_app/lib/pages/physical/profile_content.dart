@@ -77,27 +77,20 @@ class _ProfileContentState extends State<ProfileContent> {
             widget.userName,
             style: const TextStyle(
               fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF4527A0), // Deep Purple for legibility
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             "Student",
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.9),
-              fontWeight: FontWeight.w500,
+              color: Colors.black54, // Muted black for role
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           // Disability Type Badge (FETCHED FROM BACKEND)
           _isLoading
               ? const SizedBox(
@@ -105,35 +98,39 @@ class _ProfileContentState extends State<ProfileContent> {
                   width: 30,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: Color(0xFF4527A0),
                   ),
                 )
               : Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 6,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: const Color(
+                      0xFFD1C4E9,
+                    ).withOpacity(0.4), // Soft Lavender
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white30),
+                    border: Border.all(
+                      color: const Color(0xFF9575CD).withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.accessibility_new_rounded,
-                        color: Colors.white,
-                        size: 16,
+                        color: Color(0xFF4527A0),
+                        size: 18,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text(
                         _getDisabilityLabel(displayType),
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                          color: Color(0xFF4527A0),
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ],

@@ -165,6 +165,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
     if (widget.inputMode == InputMode.eyeGaze) {
       return Stack(
         clipBehavior: Clip.antiAlias,
+        fit: StackFit.passthrough,
         children: [
           widget.child,
           if (_touchPosition != null)
@@ -201,6 +202,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
       behavior: HitTestBehavior.opaque,
       child: Stack(
         clipBehavior: Clip.antiAlias,
+        fit: StackFit.passthrough,
         children: [
           widget.child,
           if (_touchPosition != null)

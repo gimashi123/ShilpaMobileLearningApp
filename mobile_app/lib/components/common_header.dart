@@ -21,91 +21,90 @@ class CommonHeader extends StatelessWidget {
     return Column(
       children: [
         // Top Header: Profile Info with Gradient Background
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Color(0xFF6A1B9A),
-                Color(0xFF42A5F5),
-              ], // Deep Purple to Blue
-            ),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6A1B9A).withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF6A1B9A),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "සාදරයෙන් පිළිගනිමු", // Welcome in Sinhala
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
+        // Container(
+        //   padding: const EdgeInsets.all(16),
+        //   decoration: BoxDecoration(
+        //     gradient: const LinearGradient(
+        //       begin: Alignment.centerLeft,
+        //       end: Alignment.centerRight,
+        //       colors: [
+        //         Color(0xFF6A1B9A),
+        //         Color(0xFF42A5F5),
+        //       ], // Deep Purple to Blue
+        //     ),
+        //     borderRadius: BorderRadius.circular(30),
+        //     border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+        //     boxShadow: [
+        //       BoxShadow(
+        //         color: const Color(0xFF6A1B9A).withOpacity(0.3),
+        //         blurRadius: 15,
+        //         offset: const Offset(0, 8),
+        //       ),
+        //     ],
+        //   ),
+        //   child: Row(
+        //     children: [
+        //       Container(
+        //         width: 64,
+        //         height: 64,
+        //         decoration: BoxDecoration(
+        //           color: Colors.white,
+        //           shape: BoxShape.circle,
+        //           boxShadow: [
+        //             BoxShadow(
+        //               color: Colors.black.withOpacity(0.1),
+        //               blurRadius: 8,
+        //             ),
+        //           ],
+        //         ),
+        //         child: const Icon(
+        //           Icons.person,
+        //           color: Color(0xFF6A1B9A),
+        //           size: 40,
+        //         ),
+        //       ),
+        //       const SizedBox(width: 20),
+        //       Expanded(
+        //         child: Column(
+        //           crossAxisAlignment: CrossAxisAlignment.start,
+        //           children: [
+        //             const Text(
+        //               "සාදරයෙන් පිළිගනිමු", // Welcome in Sinhala
+        //               style: TextStyle(
+        //                 fontSize: 16,
+        //                 color: Colors.white70,
+        //                 fontWeight: FontWeight.w500,
+        //               ),
+        //             ),
+        //             Text(
+        //               userName,
+        //               style: const TextStyle(
+        //                 fontSize: 28,
+        //                 fontWeight: FontWeight.w900,
+        //                 color: Colors.white,
+        //                 letterSpacing: 0.5,
+        //               ),
+        //             ),
+        //           ],
+        //         ),
+        //       ),
+        //       Container(
+        //         decoration: BoxDecoration(
+        //           color: Colors.white.withOpacity(0.1),
+        //           shape: BoxShape.circle,
+        //         ),
+        //         child: IconButton(
+        //           onPressed: () {},
+        //           icon: const Icon(
+        //             Icons.settings_outlined,
+        //             color: Colors.white,
+        //             size: 28,
+        //           ),
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
         const SizedBox(height: 20),
 
         // Navigation Bar

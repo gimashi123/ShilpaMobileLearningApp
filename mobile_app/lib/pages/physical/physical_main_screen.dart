@@ -6,13 +6,13 @@ import '../../components/common_header.dart';
 import 'dashboard_content.dart';
 import 'learn_content.dart';
 import 'games_content.dart';
+import 'question_content.dart';
 import 'profile_content.dart';
 import 'calibration_screen.dart';
 import '../../services/eye_tracking_service.dart';
 import '../../services/speech_service.dart';
 import '../../services/voice_command_parser.dart';
 import '../../components/voice_indicator.dart';
-import '../quiz.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -286,7 +286,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
       case 2:
         return GamesContent(inputMode: _inputMode);
       case 3:
-        return const QuizPage(); // Use the existing QuizPage
+        return QuestionContent(inputMode: _inputMode);
       case 4:
         return ProfileContent(
           userName: userName,
