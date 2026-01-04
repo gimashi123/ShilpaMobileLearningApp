@@ -80,6 +80,9 @@ app.listen({
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api', lessonRoutes);
 
+app.use("/api/quizzes", require("./routes/quiz").default);
+
+
 app.use("/api/braille", brailleRoutes);
 
 app.use("/api", sttRoutes);

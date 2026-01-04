@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import 'package:mobile_app/component/top_nav_bar.dart';
 import 'package:mobile_app/pages/video_player_page.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/services/lessons_api.dart';
 import 'package:mobile_app/session/session.dart';
-import 'package:mobile_app/widgets/top_nav_bar.dart';
 
 class StudentLessonsPage extends StatefulWidget {
   const StudentLessonsPage({super.key});
@@ -184,26 +184,16 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: TopNavBar(
-                selectedTab: 1,
-                onTapTab: (int index) {
-                  // Your TopNavBar already navigates internally using _navigate().
-                  // This callback is required only because constructor requires it.
-                },
-                highContrast: false,
-                fontSize: 18,
-                title: "පාඩම්",
-              ),
-            ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            children: [
+              // ✅ TOP NAV BAR (Lessons tab selected)
+              TopNavBar(selectedTab: 1),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Align(
+              // ✅ Page title row (replacement for AppBar)
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "ඔබට ඉගෙන ගැනීමට හැකි පාඩම්",
@@ -213,50 +203,58 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 10),
 
-            Expanded(
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : errorText != null
-                  ? Center(child: Text(errorText!))
-                  : lessons.isEmpty
-                  ? const Center(child: Text('No lessons available'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      itemCount: lessons.length,
-                      itemBuilder: (ctx, i) {
-                        final lesson = lessons[i];
+              // ✅ Content
+              Expanded(
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : errorText != null
+                        ? Center(child: Text(errorText!))
+                        : lessons.isEmpty
+                            ? const Center(child: Text('No lessons available'))
+                            : ListView.builder(
+                                itemCount: lessons.length,
+                                itemBuilder: (ctx, i) {
+                                  final lesson = lessons[i];
+                                  return ListTile(
+                                    title: Text(lesson['title'] ?? 'No title'),
+                                    subtitle: Text(
+                                      "${lesson['subject'] ?? ''} | Grade ${lesson['grade']}",
+                                    ),
+                                    onTap: () {
+                                      final raw =
+                                          lesson['videoUrl'] as String? ?? '';
 
-                        return _LessonCard(
-                          lesson: lesson,
-                          isTab: isTab,
-                          // 🔊 Auto speak on focus
-                          onFocusSpeak: () {
-                            if (_ttsBusy) return;
-                            _speak(_descForTts(lesson));
-                          },
-                          // ✅ single tap = speak description
-                          onTapSpeak: () {
-                            _speak(_descForTts(lesson));
-                          },
-                          // 🔁 double tap = replay description
-                          onDoubleTapSpeak: () {
-                            _speak(_descForTts(lesson));
-                          },
-                          // 👉 swipe right = play
-                          onSwipeRightPlay: () {
-                            _stopSpeak();
-                            _openLessonVideo(lesson);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
+                                      print('RAW videoUrl from API: $raw');
+
+                                      if (raw.isEmpty) {
+                                        print('No videoUrl in lesson');
+                                        return;
+                                      }
+
+                                      const apiBase = AuthApi.baseUrl;
+                                      final fullUrl = '$apiBase$raw';
+
+                                      print('FULL video URL: $fullUrl');
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => VideoPlayerPage(
+                                            videoUrl: fullUrl,
+                                            title:
+                                                lesson['title'] ?? 'Lesson video',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+              ),
+            ],
+          ),
         ),
       ),
     );
