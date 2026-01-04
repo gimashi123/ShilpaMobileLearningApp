@@ -1,96 +1,222 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:mobile_app/pages/profile/edit_profile.dart';
 
-class ProfileScreen extends StatelessWidget {
+import 'package:mobile_app/services/auth_api.dart';
+import 'package:mobile_app/session/session.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  // ✅ Profile tab index
-  // 0 Home, 1 පාඩම්, 2 Games, 3 ප්‍රශ්න, 4 Profile
-  final int selectedTab = 4;
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool loading = true;
+  String? errorText;
+
+  Map<String, dynamic>? me;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMe();
+  }
+
+  Future<void> _loadMe() async {
+    try {
+      final token = Session.token;
+      if (token == null || token.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          errorText = "Not logged in (Session.token is null/empty)";
+        });
+        return;
+      }
+
+      final url = Uri.parse("${AuthApi.baseUrl}/api/me");
+
+      final res = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (res.statusCode != 200) {
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          errorText = "Failed to load profile: ${res.statusCode}\n${res.body}";
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(res.body);
+
+      // ✅ Safe extraction (works for:
+      // { success:true, data:{...} } OR just { ... }
+      Map<String, dynamic> data;
+      if (decoded is Map<String, dynamic>) {
+        final d = decoded["data"];
+        if (d is Map<String, dynamic>) {
+          data = d;
+        } else {
+          data = decoded;
+        }
+      } else {
+        throw Exception("Invalid response format");
+      }
+
+      if (!mounted) return;
+      setState(() {
+        me = data;
+        loading = false;
+        errorText = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        errorText = e.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (errorText != null) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(errorText!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        loading = true;
+                        errorText = null;
+                      });
+                      _loadMe();
+                    },
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final name = (me?["name"] ?? "Student").toString();
+    final email = (me?["email"] ?? "").toString();
+
+    final disabilityType = (me?["disabilityType"] ?? "").toString();
+
+    final dynamic studentRaw = me?["student"];
+    final Map<String, dynamic>? studentObj =
+        (studentRaw is Map<String, dynamic>) ? studentRaw : null;
+
+    final grade = (studentObj?["grade"] ?? "").toString();
+    final age = (studentObj?["age"] ?? "").toString();
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // ================= TOP TITLE =================
               const Text(
                 "Profile",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 24),
 
-              // ================= PROFILE AVATAR =================
               Container(
                 width: 110,
                 height: 110,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF7AF2D6),
-                      Color(0xFFB6FF8F),
-                    ],
+                    colors: [Color(0xFF7AF2D6), Color(0xFFB6FF8F)],
                   ),
                   border: Border.all(color: Colors.black, width: 3),
                 ),
-                child: const Icon(
-                  Icons.person,
-                  size: 60,
-                  color: Colors.black,
-                ),
+                child: const Icon(Icons.person, size: 60, color: Colors.black),
               ),
 
               const SizedBox(height: 16),
 
-              // ================= USER NAME =================
-              const Text(
-                "Student Name",
-                style: TextStyle(
+              Text(
+                name,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-
               const SizedBox(height: 6),
-
-              const Text(
-                "student@email.com",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+              Text(
+                email,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
+
+              if (disabilityType.isNotEmpty ||
+                  grade.isNotEmpty ||
+                  age.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    [
+                      if (disabilityType.isNotEmpty) "Type: $disabilityType",
+                      if (grade.isNotEmpty) "Grade: $grade",
+                      if (age.isNotEmpty) "Age: $age",
+                    ].join("  •  "),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                ),
 
               const SizedBox(height: 30),
 
-              // ================= OPTIONS =================
               _ProfileItem(
                 icon: Icons.edit,
                 text: "Edit Profile",
-                onTap: () {},
+                onTap: () async {
+                  final changed = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  );
+                },
               ),
               _ProfileItem(
                 icon: Icons.lock,
-                text: "Change Password",
+                text: "Your Progress",
                 onTap: () {},
               ),
-              _ProfileItem(
-                icon: Icons.settings,
-                text: "Settings",
-                onTap: () {},
-              ),
+              // _ProfileItem(
+              //   icon: Icons.settings,
+              //   text: "Settings",
+              //   onTap: () {},
+              // ),
               _ProfileItem(
                 icon: Icons.logout,
                 text: "Logout",
                 onTap: () {
-                  Navigator.pushReplacementNamed(context, '/login');
+                  Navigator.pushReplacementNamed(context, '/newlogin');
                 },
               ),
             ],
@@ -101,7 +227,6 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// ================= PROFILE ITEM =================
 class _ProfileItem extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -138,10 +263,7 @@ class _ProfileItem extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               text,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ],
         ),

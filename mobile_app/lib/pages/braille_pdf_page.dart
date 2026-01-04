@@ -17,8 +17,9 @@ class BraillePdfPage extends StatelessWidget {
                 try {
                   await BraillePdfService.generateAndOpenPdf(
                     type: "math",
-                    title: "Math Quiz 10",
+                    title: "ගණිතය ප්‍රශ්න",
                     items: List.generate(10, (i) => {"q": "${i + 1}+1=?"}),
+                    perPage: 5,
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(

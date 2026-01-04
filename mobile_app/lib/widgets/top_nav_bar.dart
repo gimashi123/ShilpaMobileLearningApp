@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 class TopNavBar extends StatelessWidget {
   final int selectedTab; // 0 Home, 1 පාඩම්, 2 Games, 3 ප්‍රශ්න, 4 Profile
 
-  const TopNavBar({super.key, required this.selectedTab});
+  const TopNavBar({
+    super.key,
+    required this.selectedTab,
+    required void Function(int index) onTapTab,
+    required bool highContrast,
+    required double fontSize,
+    required String title,
+  });
 
   void _navigate(BuildContext context, int index) {
     if (index == selectedTab) return;
@@ -16,7 +23,7 @@ class TopNavBar extends StatelessWidget {
         Navigator.pushReplacementNamed(context, '/lessons');
         break;
       case 2:
-        Navigator.pushReplacementNamed(context, '/games');
+        Navigator.pushReplacementNamed(context, '/visual_game_dashboard');
         break;
       case 3:
         Navigator.pushReplacementNamed(context, '/quizdashboard');

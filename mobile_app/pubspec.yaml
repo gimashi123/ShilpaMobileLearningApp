@@ -34,21 +34,27 @@ dependencies:
   http: ^1.0.0 
   video_player: ^2.8.0
   path_provider: ^2.0.15
-  open_file: ^3.2.1
+
+  permission_handler: ^12.0.0
+  audioplayers: ^6.0.0
+  
  
+  pdf: ^3.11.0
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   speech_to_text: ^7.3.0
   firebase_auth: ^6.1.2
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
 
-  flutter_launcher_icons: ^0.10.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter_icons:
   android: true
@@ -87,6 +93,18 @@ flutter:
     - assets/hearing.png
     - assets/login_image.png
     - assets/login_page.png
+    - assets/pattern-bg.jpeg
+    - assets/sounds/instruments/bell.mp3
+    - assets/sounds/instruments/drum.mp3
+    - assets/sounds/instruments/flute.mp3
+    - assets/sounds/feedback/correct.mp3
+    - assets/sounds/feedback/wrong.mp3
+    - assets/sounds/pairs/p1.mp3
+    - assets/sounds/pairs/p2.mp3
+    - assets/sounds/pairs/p3.mp3
+    - assets/sounds/pairs/p4.mp3
+    - assets/sounds/pairs/p5.mp3
+    - assets/sounds/clap.mp3
     
     
 

@@ -2,40 +2,44 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 class BraillePdfService {
-  // ✅ change this IP if your PC IP changes
+  // 🔁 change if your PC IP changes
   static const String baseUrl = "http://192.168.1.126:3000";
 
-  // Keep same function name you already call from QuizPage
   static Future<void> generateAndOpenPdf({
     required String type, // "math" or "sinhala"
     required String title,
     required List<Map<String, String>> items,
+    int perPage = 5, // ✅ EXACTLY 5 PER PAGE
   }) async {
     final uri = Uri.parse("$baseUrl/api/braille/pdf");
 
     final res = await http.post(
       uri,
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"type": type, "title": title, "items": items}),
+      body: jsonEncode({
+        "type": type,
+        "title": title,
+        "items": items,
+        "perPage": perPage,
+      }),
     );
 
     if (res.statusCode != 200) {
       throw Exception("Server error: ${res.statusCode} ${res.body}");
     }
 
-    // ✅ Android-safe folder (never null)
     final dir = await getApplicationDocumentsDirectory();
-    final filePath =
+    final path =
         "${dir.path}/braille_${type}_${DateTime.now().millisecondsSinceEpoch}.pdf";
 
-    final file = File(filePath);
+    final file = File(path);
     await file.writeAsBytes(res.bodyBytes, flush: true);
 
-    final result = await OpenFile.open(file.path);
+    final result = await OpenFilex.open(file.path);
     if (result.type != ResultType.done) {
       throw Exception("Open failed: ${result.message}");
     }

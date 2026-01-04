@@ -6,6 +6,9 @@ import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
+import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
+import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
+import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
@@ -14,7 +17,7 @@ import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
-
+import 'package:mobile_app/pages/games/more_or_less_game.dart';
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
 
@@ -66,6 +69,11 @@ class MyApp extends StatelessWidget {
         '/quizdashboard': (_) => const VisualQuizDashboard(),
         '/profile': (_) => const ProfileScreen(),
         '/lessons': (_) => const VisualLessonDashboard(),
+        '/visual_game_dashboard': (_) => const VisualGameDashboard(),
+        '/visual_math_gamecard': (_) => const AvailableGamesPage(),
+
+        '/math_quick_game': (context) => const NumberMatchLevelsSound(),
+        '/visual_more_or_less_game': (context) => const MoreNumberSwipeGame(),
       },
     );
   }
@@ -86,18 +94,59 @@ class HomePage extends StatelessWidget {
           ),
         ),
         child: LayoutBuilder(
-          builder: (context, c) {
-            final isWide = c.maxWidth >= 700;
-            final content = _DetailsPanel();
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            final screenHeight = constraints.maxHeight;
 
-            if (isWide) {
+            // Check if it's a phone (width < 600) or tablet
+            final isPhone = screenWidth < 600;
+            // Check if it's a small phone (height < 700)
+            final isSmallPhone = screenHeight < 700;
+
+            if (isPhone) {
+              // Phone layout - vertical
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: screenHeight),
+                  child: Column(
+                    children: [
+                      // Top image section
+                      Container(
+                        height: isSmallPhone
+                            ? screenHeight * 0.35
+                            : screenHeight * 0.4,
+                        width: double.infinity,
+                        decoration: const BoxDecoration(),
+                        child: Image.asset(
+                          'assets/mobile_logo.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+
+                      // Content section
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isSmallPhone ? 20.0 : 24.0,
+                          vertical: isSmallPhone ? 16.0 : 24.0,
+                        ),
+                        child: _PhoneContentPanel(
+                          isSmallPhone: isSmallPhone,
+                          screenWidth: screenWidth,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            } else {
+              // Tablet layout - horizontal
               return Row(
                 children: [
+                  // Left image section
                   Expanded(
                     flex: 3,
                     child: Container(
                       height: double.infinity,
-                      clipBehavior: Clip.antiAlias,
                       decoration: const BoxDecoration(),
                       child: Image.asset(
                         'assets/homepage.png',
@@ -105,20 +154,19 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Expanded(flex: 2, child: content),
-                ],
-              );
-            } else {
-              return Column(
-                children: [
-                  AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: Image.asset(
-                      'assets/mobile_logo.png',
-                      fit: BoxFit.cover,
+
+                  // Right content section
+                  Expanded(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: Container(
+                        padding: EdgeInsets.all(
+                          screenWidth > 900 ? 32.0 : 24.0,
+                        ),
+                        child: _TabletContentPanel(screenWidth: screenWidth),
+                      ),
                     ),
                   ),
-                  Expanded(child: content),
                 ],
               );
             }
@@ -129,65 +177,226 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _DetailsPanel extends StatelessWidget {
+class _PhoneContentPanel extends StatelessWidget {
+  final bool isSmallPhone;
+  final double screenWidth;
+
+  const _PhoneContentPanel({
+    required this.isSmallPhone,
+    required this.screenWidth,
+  });
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    // Calculate responsive values for phones
+    final double avatarSize = isSmallPhone ? 70.0 : 88.0;
+    final double titleFontSize = isSmallPhone ? 28.0 : 32.0;
+    final double subtitleFontSize = isSmallPhone ? 14.0 : 16.0;
+    final double buttonFontSize = isSmallPhone ? 16.0 : 20.0;
+    final double buttonHeight = isSmallPhone ? 48.0 : 56.0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: avatarSize / 2,
+          backgroundColor: cs.surfaceContainerHighest,
+          backgroundImage: const AssetImage('assets/mobile_logo.png'),
+        ),
+        SizedBox(height: isSmallPhone ? 12.0 : 16.0),
+
+        Text(
+          'Shilpa',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: titleFontSize,
+          ),
+        ),
+
+        SizedBox(height: isSmallPhone ? 4.0 : 6.0),
+
+        Text(
+          'ශිෂ්‍යයන් සඳහා සවිබල ගැන්වු ලෝකය',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontSize: subtitleFontSize),
+        ),
+
+        SizedBox(height: isSmallPhone ? 20.0 : 24.0),
+
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            label: Text(
+              'ආරම්භ කරමු',
+              style: TextStyle(
+                fontSize: buttonFontSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              minimumSize: Size.fromHeight(buttonHeight),
+              shape: const StadiumBorder(),
+              foregroundColor: Colors.white,
+              backgroundColor: const Color.fromARGB(255, 195, 90, 213),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallPhone ? 16.0 : 24.0,
+                vertical: 16.0,
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChooseDisabilityPage()),
+              );
+            },
+            icon: Icon(Icons.play_arrow, size: buttonFontSize * 1.2),
+          ),
+        ),
+
+        SizedBox(height: isSmallPhone ? 16.0 : 20.0),
+
+        // Optional: Add more content for phones if needed
+        if (!isSmallPhone) ...[
+          const Divider(height: 30),
+          Text(
+            '',
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TabletContentPanel extends StatelessWidget {
+  final double screenWidth;
+
+  const _TabletContentPanel({required this.screenWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    // Calculate responsive values for tablets
+    final bool isLargeTablet = screenWidth > 900;
+    final double avatarSize = isLargeTablet ? 120.0 : 100.0;
+    final double titleFontSize = isLargeTablet ? 40.0 : 36.0;
+    final double buttonFontSize = isLargeTablet ? 22.0 : 20.0;
+    final double buttonHeight = isLargeTablet ? 65.0 : 60.0;
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: cs.surfaceContainerHighest,
-                backgroundImage: const AssetImage('assets/mobile_logo.png'),
+        constraints: BoxConstraints(maxWidth: isLargeTablet ? 500.0 : 400.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: avatarSize / 2,
+              backgroundColor: cs.surfaceContainerHighest,
+              backgroundImage: const AssetImage('assets/mobile_logo.png'),
+            ),
+
+            SizedBox(height: isLargeTablet ? 24.0 : 20.0),
+
+            Text(
+              'Shilpa',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: titleFontSize,
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Shilpa',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            ),
+
+            SizedBox(height: isLargeTablet ? 12.0 : 8.0),
+
+            Text(
+              'ශිෂ්‍යයන් සඳහා සවිබල ගැන්වු ලෝකය',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontSize: isLargeTablet ? 18.0 : 16.0,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'ශිෂ්‍යයන් සඳහා සවිබල ගැන්වු ලෝකය',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  label: const Text(
-                    'ආරම්භ කරමු',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+
+            SizedBox(height: isLargeTablet ? 32.0 : 28.0),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                label: Text(
+                  'ආරම්භ කරමු',
+                  style: TextStyle(
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.bold,
                   ),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: const StadiumBorder(),
-                    foregroundColor: Colors.white,
-                    backgroundColor: Color.fromARGB(255, 195, 90, 213),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ChooseDisabilityPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.play_arrow),
                 ),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size.fromHeight(buttonHeight),
+                  shape: const StadiumBorder(),
+                  foregroundColor: Colors.white,
+                  backgroundColor: const Color.fromARGB(255, 195, 90, 213),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 32.0,
+                    vertical: 20.0,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ChooseDisabilityPage(),
+                    ),
+                  );
+                },
+                icon: Icon(Icons.play_arrow, size: buttonFontSize * 1.2),
               ),
-              const SizedBox(height: 12),
-            ],
-          ),
+            ),
+
+            SizedBox(height: isLargeTablet ? 32.0 : 28.0),
+
+            // Additional info for tablets
+            const Divider(),
+            SizedBox(height: 20.0),
+
+            Text(
+              'Supported Features:',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+
+            SizedBox(height: 16.0),
+
+            Wrap(
+              spacing: 12.0,
+              runSpacing: 12.0,
+              alignment: WrapAlignment.center,
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.visibility, size: 16),
+                  label: const Text('Visual Support'),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.hearing, size: 16),
+                  label: const Text('Hearing Support'),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.accessible, size: 16),
+                  label: const Text('Accessibility'),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.school, size: 16),
+                  label: const Text('Learning Tools'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// Add the missing ChooseDisabilityPage class for navigation to work

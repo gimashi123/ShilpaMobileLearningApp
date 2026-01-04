@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/widgets/top_nav_bar.dart';
 import 'package:mobile_app/services/braille_pdf_service.dart';
 
@@ -53,8 +54,7 @@ extension OpTypeExt on OpType {
   }
 }
 
-class _QuizPageState extends State<QuizPage>
-    with SingleTickerProviderStateMixin {
+class _QuizPageState extends State<QuizPage> {
   final Random _rand = Random();
 
   OpType? _selectedOp;
@@ -65,15 +65,69 @@ class _QuizPageState extends State<QuizPage>
   List<int> _options = [];
   int _score = 0;
   int _questionNumber = 0;
-
   final int _totalQuestions = 10;
 
   bool _answered = false;
   int? _chosenOption;
 
+  // ✅ TTS only
+  final FlutterTts _tts = FlutterTts();
+
+  // swipe control
+  Offset? _swipeStart;
+  static const double _minSwipe = 45;
+
+  // block swipes while speaking
+  bool _ttsBusy = false;
+
   @override
   void initState() {
     super.initState();
+    _setupTts();
+  }
+
+  Future<void> _setupTts() async {
+    try {
+      await _tts.setLanguage("si-LK");
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      await _tts.setVolume(1.0);
+      await _tts.awaitSpeakCompletion(true);
+
+      _tts.setStartHandler(() {
+        if (!mounted) return;
+        setState(() => _ttsBusy = true);
+      });
+      _tts.setCompletionHandler(() {
+        if (!mounted) return;
+        setState(() => _ttsBusy = false);
+      });
+      _tts.setErrorHandler((msg) {
+        if (!mounted) return;
+        setState(() => _ttsBusy = false);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _speak(String text) async {
+    try {
+      await _tts.stop();
+    } catch (_) {}
+    try {
+      await _tts.speak(text);
+    } catch (_) {}
+  }
+
+  Future<void> _stopSpeak() async {
+    try {
+      await _tts.stop();
+    } catch (_) {}
+  }
+
+  Future<void> _repeatVoiceIfPossible() async {
+    if (_selectedOp == null) return;
+    if (_options.length != 4) return;
+    await _speakQuestionAndGuide();
   }
 
   void _selectOperation(OpType op) {
@@ -81,17 +135,24 @@ class _QuizPageState extends State<QuizPage>
       _selectedOp = op;
       _score = 0;
       _questionNumber = 0;
-      _nextQuestion();
+      _answered = false;
+      _chosenOption = null;
     });
+
+    _nextQuestion();
   }
 
   void _nextQuestion() {
+    if (_selectedOp == null) return;
+
     setState(() {
       _questionNumber++;
       _answered = false;
       _chosenOption = null;
       _generateQuestion();
     });
+
+    _speakQuestionAndGuide();
   }
 
   void _generateQuestion() {
@@ -103,8 +164,8 @@ class _QuizPageState extends State<QuizPage>
         break;
 
       case OpType.sub:
-        int x = _rand.nextInt(50) + 1;
-        int y = _rand.nextInt(50) + 1;
+        final x = _rand.nextInt(50) + 1;
+        final y = _rand.nextInt(50) + 1;
         _a = max(x, y);
         _b = min(x, y);
         _correctAnswer = _a - _b;
@@ -118,8 +179,8 @@ class _QuizPageState extends State<QuizPage>
 
       case OpType.div:
         _b = _rand.nextInt(11) + 1;
-        int result = _rand.nextInt(12) + 1;
-        _a = _b * result; // divisible
+        final result = _rand.nextInt(12) + 1;
+        _a = _b * result;
         _correctAnswer = result;
         break;
 
@@ -131,16 +192,84 @@ class _QuizPageState extends State<QuizPage>
 
     final Set<int> opts = {_correctAnswer};
     while (opts.length < 4) {
-      int delta = (_rand.nextInt(10) + 1) * (_rand.nextBool() ? 1 : -1);
-      int candidate = _correctAnswer + delta;
-      if (candidate != _correctAnswer && candidate >= 0) {
-        opts.add(candidate);
-      }
+      final delta = (_rand.nextInt(10) + 1) * (_rand.nextBool() ? 1 : -1);
+      final candidate = _correctAnswer + delta;
+      if (candidate >= 0) opts.add(candidate);
     }
     _options = opts.toList()..shuffle(_rand);
   }
 
-  void _chooseOption(int val) {
+  Future<void> _speakQuestionAndGuide() async {
+    if (!mounted) return;
+    if (_selectedOp == null) return;
+    if (_options.length != 4) return;
+
+    final q = "$_a ${_selectedOp!.symbol} $_b = ?";
+    final aOpt = _options[0];
+    final bOpt = _options[1];
+    final cOpt = _options[2];
+    final dOpt = _options[3];
+
+    final msg =
+        """
+$q.
+A $aOpt.
+B $bOpt.
+C $cOpt.
+D $dOpt.
+පිළිතුර A නම් වමට ස්වයිප් කරන්න.
+පිළිතුර B නම් දකුණට ස්වයිප් කරන්න.
+පිළිතුර C නම් උඩට ස්වයිප් කරන්න.
+පිළිතුර D නම් පහලට ස්වයිප් කරන්න.
+නැවත ප්‍රශ්නය අහන්න දෙපාරක් click කරන්න.
+""";
+
+    await _stopSpeak();
+    await _speak(msg);
+  }
+
+  void _onSwipeEnd(Offset end) {
+    if (_selectedOp == null) return;
+    if (_answered) return;
+    if (_options.length != 4) return;
+    if (_ttsBusy) return;
+
+    final start = _swipeStart;
+    if (start == null) return;
+
+    final dx = end.dx - start.dx;
+    final dy = end.dy - start.dy;
+
+    if (dx.abs() < _minSwipe && dy.abs() < _minSwipe) return;
+
+    final bool horizontal = dx.abs() >= dy.abs();
+
+    int idx;
+    String letter;
+
+    if (horizontal) {
+      if (dx < 0) {
+        idx = 0; // A
+        letter = "A";
+      } else {
+        idx = 1; // B
+        letter = "B";
+      }
+    } else {
+      if (dy < 0) {
+        idx = 2; // C
+        letter = "C";
+      } else {
+        idx = 3; // D
+        letter = "D";
+      }
+    }
+
+    final chosenValue = _options[idx];
+    _chooseOption(chosenValue, chosenLetter: letter);
+  }
+
+  Future<void> _chooseOption(int val, {required String chosenLetter}) async {
     if (_answered) return;
 
     setState(() {
@@ -149,17 +278,29 @@ class _QuizPageState extends State<QuizPage>
       if (val == _correctAnswer) _score++;
     });
 
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (!mounted) return;
-      if (_questionNumber >= _totalQuestions) {
-        _showResult();
-      } else {
-        _nextQuestion();
-      }
-    });
+    if (val == _correctAnswer) {
+      await _speak("ඔබේ පිළිතුර $chosenLetter. නිවැරදි.");
+    } else {
+      await _speak(
+        "ඔබේ පිළිතුර $chosenLetter. වැරදි. නිවැරදි පිළිතුර $_correctAnswer.",
+      );
+    }
+
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+
+    if (_questionNumber >= _totalQuestions) {
+      _showResult();
+    } else {
+      _nextQuestion();
+    }
   }
 
-  void _showResult() {
+  void _showResult() async {
+    await _speak("ප්‍රශ්න ඉවරයි. ඔබගේ ලකුණු $_totalQuestions න් $_scoreයි.");
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -169,9 +310,7 @@ class _QuizPageState extends State<QuizPage>
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              setState(() {
-                _selectedOp = null;
-              });
+              setState(() => _selectedOp = null);
             },
             child: const Text('OK'),
           ),
@@ -182,7 +321,6 @@ class _QuizPageState extends State<QuizPage>
 
   List<Map<String, String>> _buildPdfQuestions(OpType op) {
     final List<Map<String, String>> items = [];
-
     for (int i = 0; i < 10; i++) {
       int a = 0, b = 0;
 
@@ -190,8 +328,8 @@ class _QuizPageState extends State<QuizPage>
         a = _rand.nextInt(50) + 1;
         b = _rand.nextInt(50) + 1;
       } else if (op == OpType.sub) {
-        int x = _rand.nextInt(50) + 1;
-        int y = _rand.nextInt(50) + 1;
+        final x = _rand.nextInt(50) + 1;
+        final y = _rand.nextInt(50) + 1;
         a = max(x, y);
         b = min(x, y);
       } else if (op == OpType.mul) {
@@ -199,13 +337,12 @@ class _QuizPageState extends State<QuizPage>
         b = _rand.nextInt(12) + 1;
       } else if (op == OpType.div) {
         b = _rand.nextInt(11) + 1;
-        int result = _rand.nextInt(12) + 1;
+        final result = _rand.nextInt(12) + 1;
         a = b * result;
       }
 
       items.add({"q": "$a ${op.symbol} $b = ?"});
     }
-
     return items;
   }
 
@@ -230,7 +367,6 @@ class _QuizPageState extends State<QuizPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("PDF error: $e")));
-      debugPrint("PDF error: $e");
     }
   }
 
@@ -281,11 +417,89 @@ class _QuizPageState extends State<QuizPage>
     );
   }
 
+  Widget _buildTopHeaderBar() {
+    final Color bg = _selectedOp?.color ?? Theme.of(context).primaryColor;
+    final double progress = (_totalQuestions == 0)
+        ? 0
+        : (_questionNumber / _totalQuestions).clamp(0.0, 1.0);
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  size: 32,
+                  color: Colors.white,
+                ),
+                onPressed: () async {
+                  await _stopSpeak();
+                  if (!mounted) return;
+                  Navigator.pushReplacementNamed(context, '/home_visual');
+                },
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'ගණිතය ප්‍රශ්න',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (_selectedOp != null)
+                IconButton(
+                  icon: const Icon(Icons.restart_alt, color: Colors.white),
+                  tooltip: 'Restart',
+                  onPressed: () async {
+                    await _stopSpeak();
+                    if (!mounted) return;
+
+                    // ✅ FIX: no nested setState
+                    setState(() {
+                      _score = 0;
+                      _questionNumber = 0;
+                      _answered = false;
+                      _chosenOption = null;
+                    });
+
+                    _nextQuestion();
+                  },
+                ),
+            ],
+          ),
+        ),
+        if (_selectedOp != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.black12,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                minHeight: 6,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildQuestionCard() {
     final theme = Theme.of(context);
 
     return Card(
-      key: ValueKey('q$_questionNumber'),
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -319,7 +533,19 @@ class _QuizPageState extends State<QuizPage>
               '$_a  ${_selectedOp!.symbol}  $_b  = ?',
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _answered
+                    ? "Answered"
+                    : (_ttsBusy
+                          ? "Speaking..."
+                          : "Swipe: A← B→ C↑ D↓  |  Double tap = Repeat voice"),
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 8),
             ..._options.asMap().entries.map((entry) {
               final int idx = entry.key;
               final int opt = entry.value;
@@ -348,7 +574,7 @@ class _QuizPageState extends State<QuizPage>
                 border = Colors.transparent;
               }
 
-              String letter = String.fromCharCode(65 + idx);
+              final letter = String.fromCharCode(65 + idx);
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 6),
@@ -369,188 +595,42 @@ class _QuizPageState extends State<QuizPage>
                       ),
                     ],
                   ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _chooseOption(opt),
-                      borderRadius: BorderRadius.circular(10),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: _selectedOp!.color.withOpacity(
-                                0.12,
-                              ),
-                              radius: 16,
-                              child: Text(
-                                letter,
-                                style: TextStyle(
-                                  color: _selectedOp!.color,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: _selectedOp!.color.withOpacity(0.12),
+                          radius: 16,
+                          child: Text(
+                            letter,
+                            style: TextStyle(
+                              color: _selectedOp!.color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            const SizedBox(width: 10),
-                            Text(
-                              opt.toString(),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const Spacer(),
-                            if (_answered && correct)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                              )
-                            else if (_answered && chosen && !correct)
-                              const Icon(Icons.cancel, color: Colors.red),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Text(
+                          opt.toString(),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const Spacer(),
+                        if (_answered && correct)
+                          const Icon(Icons.check_circle, color: Colors.green)
+                        else if (_answered && chosen && !correct)
+                          const Icon(Icons.cancel, color: Colors.red),
+                      ],
                     ),
                   ),
                 ),
               );
             }).toList(),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopHeaderBar() {
-    final Color bg = _selectedOp?.color ?? Theme.of(context).primaryColor;
-    final double progress = (_totalQuestions == 0)
-        ? 0
-        : (_questionNumber / _totalQuestions).clamp(0.0, 1.0);
-
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  size: 32,
-                  color: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/home_visual');
-                },
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'ගණිතය ප්‍රශ්න',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (_selectedOp != null)
-                IconButton(
-                  icon: const Icon(Icons.restart_alt, color: Colors.white),
-                  tooltip: 'Restart',
-                  onPressed: () {
-                    setState(() {
-                      _score = 0;
-                      _questionNumber = 0;
-                      _nextQuestion();
-                    });
-                  },
-                ),
-            ],
-          ),
-        ),
-        if (_selectedOp != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.black12,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 6,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              _selectedOp?.color.withOpacity(0.06) ??
-                  Colors.blueGrey.withOpacity(0.03),
-              Colors.white,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: TopNavBar(selectedTab: 3),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    const Spacer(),
-                    ElevatedButton.icon(
-                      onPressed: _downloadPdf,
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text("PDF"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _buildTopHeaderBar(),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: _selectedOp == null
-                    ? _buildOperationSelection()
-                    : _buildQuizBody(),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -592,41 +672,158 @@ class _QuizPageState extends State<QuizPage>
           child: Row(
             children: [
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor:
-                      _selectedOp?.color ?? Theme.of(context).primaryColor,
-                  elevation: 2,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 12,
-                  ),
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _selectedOp = null;
-                  });
+                onPressed: () async {
+                  await _stopSpeak();
+                  setState(() => _selectedOp = null);
                 },
                 icon: const Icon(Icons.arrow_back, size: 18),
                 label: const Text('Back'),
               ),
               const Spacer(),
-              if (!_answered)
+              if (_selectedOp != null && !_answered)
                 TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _answered = true;
-                      _chosenOption = null;
-                    });
-                  },
-                  child: const Text('Show Answer'),
+                  onPressed: _speakQuestionAndGuide,
+                  child: const Text('Repeat Voice'),
                 ),
             ],
           ),
         ),
         const SizedBox(height: 12),
       ],
+    );
+  }
+
+  @override
+  void dispose() {
+    // ✅ FIX: don't call async function in dispose
+    try {
+      _tts.stop();
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SwipeWrapper(
+      onSwipe: (start, end) {
+        _swipeStart = start;
+        _onSwipeEnd(end);
+      },
+      onDoubleTap: _repeatVoiceIfPossible,
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _selectedOp?.color.withOpacity(0.06) ??
+                    Colors.blueGrey.withOpacity(0.03),
+                Colors.white,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+
+                  // ✅ FIX: pass ALL required args for YOUR TopNavBar
+                  child: TopNavBar(
+                    selectedTab: 3,
+                    onTapTab: (int index) {
+                      // Your navbar currently navigates internally in _navigate,
+                      // but it still requires this param to compile.
+                    },
+                    highContrast: false,
+                    fontSize: 18,
+                    title: "ගණිතය ප්‍රශ්න",
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: _downloadPdf,
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text("PDF"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: _buildTopHeaderBar(),
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: _selectedOp == null
+                      ? _buildOperationSelection()
+                      : _buildQuizBody(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwipeWrapper extends StatefulWidget {
+  final Widget child;
+  final void Function(Offset start, Offset end) onSwipe;
+  final VoidCallback onDoubleTap;
+
+  const _SwipeWrapper({
+    required this.child,
+    required this.onSwipe,
+    required this.onDoubleTap,
+  });
+
+  @override
+  State<_SwipeWrapper> createState() => _SwipeWrapperState();
+}
+
+class _SwipeWrapperState extends State<_SwipeWrapper> {
+  Offset? _start;
+  Offset? _last;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: widget.onDoubleTap,
+      onPanStart: (d) {
+        _start = d.globalPosition;
+        _last = d.globalPosition;
+      },
+      onPanUpdate: (d) {
+        _last = d.globalPosition;
+      },
+      onPanEnd: (_) {
+        final s = _start;
+        final e = _last;
+        _start = null;
+        _last = null;
+        if (s != null && e != null) widget.onSwipe(s, e);
+      },
+      child: widget.child,
     );
   }
 }

@@ -10,28 +10,24 @@ class VisualQuizDashboard extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // 🔹 TOP NAV BAR (Home selected = 0)
+            // ✅ TOP NAV BAR (selected = 3)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: TopNavBar(selectedTab: 3),
+              child: TopNavBar(
+                selectedTab: 3,
+                onTapTab: (int index) {
+                  // Your TopNavBar already navigates internally using _navigate().
+                  // This callback is required only because constructor requires it.
+                },
+                highContrast: false,
+                fontSize: 18,
+                title: "ප්‍රශ්න",
+              ),
             ),
 
             const SizedBox(height: 16),
 
-            // 🔹 PAGE TITLE
-            // const Padding(
-            //   padding: EdgeInsets.symmetric(horizontal: 16),
-            //   child: Align(
-            //     alignment: Alignment.centerLeft,
-            //     child: Text(
-            //       "Choose a Section",
-            //       style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-            //     ),
-            //   ),
-            // ),
-            const SizedBox(height: 16),
-
-            // 🔹 TWO CARDS
+            // ✅ TWO CARDS
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -52,7 +48,9 @@ class VisualQuizDashboard extends StatelessWidget {
                       title: "සිංහල ප්‍රශ්න",
                       icon: Icons.book,
                       onTap: () {
-                        Navigator.pushNamed(context, 'coming soon!');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Coming soon!")),
+                        );
                       },
                     ),
                   ],
@@ -101,6 +99,7 @@ class _CardItem extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
+              textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
           ],

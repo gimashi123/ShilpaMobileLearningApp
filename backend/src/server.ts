@@ -8,7 +8,8 @@ import authRouter from './routes/auth.routes';
 import logger from './config/logger.conf';
 import lessonRoutes from './routes/lesson.routes';
 import brailleRoutes from './routes/braill';
-
+import sttRoutes from "./routes/stt.routes";
+import meRoutes from './routes/user.routes';
 
 
 
@@ -81,3 +82,6 @@ app.use('/api', lessonRoutes);
 
 app.use("/api/braille", brailleRoutes);
 
+app.use("/api", sttRoutes);
+
+app.use("/api", meRoutes);

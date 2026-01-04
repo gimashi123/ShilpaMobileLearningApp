@@ -1,10 +1,9 @@
 import generateBraillePdf from "@/brailpdf";
 import { Router, Request, Response } from "express";
 
-
 const router = Router();
 
-// Replace with your OFFICIAL Sinhala braille mapping later
+// Sinhala mapping (placeholder)
 const SINHALA_BRAILLE: Record<string, number[] | null> = {
   "අ": [1],
   "ක": [1, 3],
@@ -12,15 +11,8 @@ const SINHALA_BRAILLE: Record<string, number[] | null> = {
   " ": null,
 };
 
-// Replace with your chosen math braille mapping later
+// (Used only as fallback now; numbers handled by logic)
 const MATH_BRAILLE: Record<string, number[] | null> = {
-  "1": [1],
-  "2": [1, 2],
-  "3": [1, 4],
-  "+": [3, 4, 6],
-  "-": [3, 6],
-  "=": [2, 3, 5, 6],
-  "?": [2, 6],
   " ": null,
 };
 
