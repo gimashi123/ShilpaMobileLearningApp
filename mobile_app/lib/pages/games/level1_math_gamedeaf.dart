@@ -1035,7 +1035,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
           ),
           const SizedBox(height: 8),
           Text(
-            "පිළිතුර: $expected",
+            "පිළිතුර: ?",
             style: TextStyle(
               fontSize: 18,
               color: Colors.deepPurple.withOpacity(0.7),
@@ -1563,7 +1563,7 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "පිළිතුර: ${widget.expectedAnswer}",
+                        "පිළිතුර: ?",
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
