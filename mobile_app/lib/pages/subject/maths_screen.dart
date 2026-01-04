@@ -159,7 +159,7 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
     final raw = (lesson['videoUrl'] as String?) ?? '';
     if (raw.isEmpty) return;
 
-    const apiBase = AuthApi.baseUrl;
+    final apiBase = AuthApi.baseUrl;
     final fullUrl = '$apiBase$raw';
 
     Navigator.push(
@@ -210,48 +210,46 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
                 child: loading
                     ? const Center(child: CircularProgressIndicator())
                     : errorText != null
-                        ? Center(child: Text(errorText!))
-                        : lessons.isEmpty
-                            ? const Center(child: Text('No lessons available'))
-                            : ListView.builder(
-                                itemCount: lessons.length,
-                                itemBuilder: (ctx, i) {
-                                  final lesson = lessons[i];
-                                  return ListTile(
-                                    title: Text(lesson['title'] ?? 'No title'),
-                                    subtitle: Text(
-                                      "${lesson['subject'] ?? ''} | Grade ${lesson['grade']}",
-                                    ),
-                                    onTap: () {
-                                      final raw =
-                                          lesson['videoUrl'] as String? ?? '';
+                    ? Center(child: Text(errorText!))
+                    : lessons.isEmpty
+                    ? const Center(child: Text('No lessons available'))
+                    : ListView.builder(
+                        itemCount: lessons.length,
+                        itemBuilder: (ctx, i) {
+                          final lesson = lessons[i];
+                          return ListTile(
+                            title: Text(lesson['title'] ?? 'No title'),
+                            subtitle: Text(
+                              "${lesson['subject'] ?? ''} | Grade ${lesson['grade']}",
+                            ),
+                            onTap: () {
+                              final raw = lesson['videoUrl'] as String? ?? '';
 
-                                      print('RAW videoUrl from API: $raw');
+                              print('RAW videoUrl from API: $raw');
 
-                                      if (raw.isEmpty) {
-                                        print('No videoUrl in lesson');
-                                        return;
-                                      }
+                              if (raw.isEmpty) {
+                                print('No videoUrl in lesson');
+                                return;
+                              }
 
-                                      const apiBase = AuthApi.baseUrl;
-                                      final fullUrl = '$apiBase$raw';
+                              final apiBase = AuthApi.baseUrl;
+                              final fullUrl = '$apiBase$raw';
 
-                                      print('FULL video URL: $fullUrl');
+                              print('FULL video URL: $fullUrl');
 
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => VideoPlayerPage(
-                                            videoUrl: fullUrl,
-                                            title:
-                                                lesson['title'] ?? 'Lesson video',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => VideoPlayerPage(
+                                    videoUrl: fullUrl,
+                                    title: lesson['title'] ?? 'Lesson video',
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
               ),
             ],
           ),

@@ -1,12 +1,18 @@
-// lib/services/auth_api.dart
+import 'dart:io'; // For Platform check
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // For kIsWeb check
 
 class AuthApi {
-  // static const String baseUrl = 'http://10.0.2.2:3000'; 
-   static const String baseUrl = 'http://192.168.1.176:3000';
+  // Use 10.0.2.2 for Android Emulator to access host machine
+  // Use localhost for iOS Simulator, Web, and Desktop
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:3000';
+    if (Platform.isAndroid) return 'http://192.168.1.180:3000';
+    return 'http://localhost:3000';
+  }
 
-  // ---------- REGISTER ---------- (unchanged)
+  // ---------- REGISTER ----------
   static Future<void> register({
     required String name,
     required String email,
@@ -29,18 +35,29 @@ class AuthApi {
       body['grade'] = grade;
     }
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    print("AUTH: Sending register request to $url with body $body");
 
-    if (response.statusCode != 201) {
-      throw Exception("Registration failed: ${response.body}");
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode != 201) {
+        print(
+          "AUTH: Register failed [${response.statusCode}] ${response.body}",
+        );
+        throw Exception("Registration failed: ${response.body}");
+      }
+    } catch (e) {
+      // Allow connection errors to bubble up, but log them
+      print("AUTH: Network/Server error: $e");
+      rethrow;
     }
   }
 
-  // ---------- LOGIN ----------  ✅ fixed
+  // ---------- LOGIN ----------
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -63,5 +80,27 @@ class AuthApi {
 
     final data = json['data'] as Map<String, dynamic>;
     return {'token': data['token'], 'user': data['user']};
+  }
+
+  // ---------- FETCH PROFILE ----------
+  static Future<Map<String, dynamic>> fetchProfile(String token) async {
+    final url = Uri.parse('$baseUrl/api/auth/me');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final json = jsonDecode(response.body);
+
+    if (response.statusCode != 200 || json['success'] == false) {
+      final msg = json['message'] ?? 'Failed to fetch profile';
+      throw Exception(msg);
+    }
+
+    return json['data'] as Map<String, dynamic>;
   }
 }

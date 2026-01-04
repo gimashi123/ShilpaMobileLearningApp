@@ -9,7 +9,6 @@ import 'package:mobile_app/pages/auth/login_screen.dart';
 import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
-import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
 import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
@@ -27,6 +26,8 @@ import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
 import 'package:mobile_app/pages/games/more_or_less_game.dart';
+import 'package:mobile_app/pages/physical/physical_main_screen.dart';
+
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
 
@@ -52,11 +53,14 @@ Future<void> main() async {
   runApp(const MyApp());
 
   // Initialize Speech-to-Text in background (do NOT block UI)
-  SpeechService.instance.init().then((_) {
-    print("LOG: SpeechService init completed");
-  }).catchError((e) {
-    print("ERROR: SpeechService init failed: $e");
-  });
+  SpeechService.instance
+      .init()
+      .then((_) {
+        print("LOG: SpeechService init completed");
+      })
+      .catchError((e) {
+        print("ERROR: SpeechService init failed: $e");
+      });
 }
 
 class MyApp extends StatelessWidget {
@@ -80,7 +84,7 @@ class MyApp extends StatelessWidget {
         // disability-type navigation
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
-        '/home_physical': (_) => const PhysicalDashboardScreen(),
+        '/home_physical': (_) => const PhysicalMainScreen(),
         '/home_cognitive': (_) => const CognativeDashboardScreen(),
 
         '/math_lessons': (_) => const StudentLessonsPage(),

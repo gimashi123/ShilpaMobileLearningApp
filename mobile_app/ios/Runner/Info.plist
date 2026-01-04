@@ -48,5 +48,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to track your eye gaze for hands-free navigation.</string>
 </dict>
 </plist>

@@ -56,9 +56,8 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const RegisterPage(
-                disabilityType: DisabilityType.visual,
-              ),
+              builder: (_) =>
+                  const RegisterPage(disabilityType: DisabilityType.visual),
             ),
           );
         },
@@ -71,9 +70,8 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const RegisterPage(
-                disabilityType: DisabilityType.hearing,
-              ),
+              builder: (_) =>
+                  const RegisterPage(disabilityType: DisabilityType.hearing),
             ),
           );
         },
@@ -86,9 +84,8 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const RegisterPage(
-                disabilityType: DisabilityType.physical,
-              ),
+              builder: (_) =>
+                  const RegisterPage(disabilityType: DisabilityType.physical),
             ),
           );
         },
@@ -101,9 +98,8 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const RegisterPage(
-                disabilityType: DisabilityType.cognitive,
-              ),
+              builder: (_) =>
+                  const RegisterPage(disabilityType: DisabilityType.cognitive),
             ),
           );
         },
@@ -127,7 +123,10 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 28,
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(28),
                   child: BackdropFilter(
@@ -138,7 +137,9 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.06),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.3),
@@ -160,7 +161,10 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF9A6CFF), Color(0xFF6C3BFF)],
+                                    colors: [
+                                      Color(0xFF9A6CFF),
+                                      Color(0xFF6C3BFF),
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
@@ -172,7 +176,11 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
                                     ),
                                   ],
                                 ),
-                                child: const Icon(Icons.accessibility_new, color: Colors.white, size: 34),
+                                child: const Icon(
+                                  Icons.accessibility_new,
+                                  color: Colors.white,
+                                  size: 34,
+                                ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -186,14 +194,21 @@ class _ChooseDisabilityPageState extends State<ChooseDisabilityPage> {
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         shadows: [
-                                          Shadow(color: Colors.black38, offset: Offset(0, 2), blurRadius: 4)
+                                          Shadow(
+                                            color: Colors.black38,
+                                            offset: Offset(0, 2),
+                                            blurRadius: 4,
+                                          ),
                                         ],
                                       ),
                                     ),
                                     SizedBox(height: 6),
                                     Text(
                                       "ඔබට සුදුසු කණ්ඩායම තෝරන්න — පහසුවෙන් කරගන්න.",
-                                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -261,7 +276,9 @@ class _DisabilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double cardWidth = MediaQuery.of(context).size.width > 600 ? 180 : 140;
+    final double cardWidth = MediaQuery.of(context).size.width > 600
+        ? 180
+        : 140;
 
     return Semantics(
       button: true,
@@ -276,7 +293,10 @@ class _DisabilityCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [accent.withOpacity(0.12), Colors.white.withOpacity(0.02)],
+                colors: [
+                  accent.withOpacity(0.12),
+                  Colors.white.withOpacity(0.02),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -298,7 +318,9 @@ class _DisabilityCard extends StatelessWidget {
                   height: 68,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: [accent, accent.withOpacity(0.7)]),
+                    gradient: LinearGradient(
+                      colors: [accent, accent.withOpacity(0.7)],
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: accent.withOpacity(0.25),
@@ -309,10 +331,7 @@ class _DisabilityCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(10),
-                    child: Image.asset(
-                      asset,
-                      fit: BoxFit.contain,
-                    ),
+                    child: Image.asset(asset, fit: BoxFit.contain),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -323,7 +342,13 @@ class _DisabilityCard extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    shadows: [Shadow(color: Colors.black45, offset: Offset(0, 2), blurRadius: 3)],
+                    shadows: [
+                      Shadow(
+                        color: Colors.black45,
+                        offset: Offset(0, 2),
+                        blurRadius: 3,
+                      ),
+                    ],
                   ),
                 ),
               ],

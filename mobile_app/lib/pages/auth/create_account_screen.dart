@@ -145,12 +145,21 @@ class _RegisterPageState extends State<RegisterPage> {
       }
 
       try {
+        // If disabilityType is empty (e.g. direct nav), default to 'visual' or handle error
+        final disabilityToUse = widget.disabilityType.isEmpty
+            ? 'visual'
+            : widget.disabilityType;
+
+        print(
+          "DEBUG: Registering with $email, role=$role, disability=$disabilityToUse type=${widget.disabilityType}",
+        );
+
         await AuthApi.register(
           name: name,
           email: email,
           password: password,
           role: role,
-          disabilityType: widget.disabilityType,
+          disabilityType: disabilityToUse,
           grade: gradeToSend, // 👈 NEW
         );
 
@@ -163,6 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/newlogin');
       } catch (e) {
+        print("DEBUG: Registration error: $e");
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Register failed: $e")));
