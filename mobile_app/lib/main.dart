@@ -11,6 +11,7 @@ import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/physical_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
+import 'package:mobile_app/pages/games/hearing_game_dashboard.dart';
 import 'package:mobile_app/pages/games/level1_math_gamedeaf.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
@@ -91,6 +92,7 @@ class MyApp extends StatelessWidget {
         '/general_quiz': (_) => const QuizHubPage(),
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
+        '/hearing_games_dashboard': (_) => const HearingGameDashboard(),
 
         // ✅ FIXED: pass real cameras list (NOT [])
         '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),

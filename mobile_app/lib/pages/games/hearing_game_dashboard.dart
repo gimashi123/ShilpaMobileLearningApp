@@ -1,9 +1,10 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/component/top_nav_bar.dart';
 
-class QuizPageSimple extends StatelessWidget {
-  const QuizPageSimple({super.key});
+class HearingGameDashboard extends StatelessWidget {
+  const HearingGameDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,62 +65,62 @@ class QuizPageSimple extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ✅ NAV BAR (Quiz selected)
-                  TopNavBar(selectedTab: 3),
+                  TopNavBar(selectedTab: 2),
                   const SizedBox(height: 24),
 
                   // ✅ ENHANCED PAGE TITLE
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF6A11CB),
-                                const Color(0xFF2575FC),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          "ප්‍රශ්න",
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF2D1B69),
-                            letterSpacing: -0.5,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 2,
-                                color: Colors.black12,
-                                offset: Offset(1, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 8),
+                  //   child: Row(
+                  //     children: [
+                  //       Container(
+                  //         width: 6,
+                  //         height: 40,
+                  //         decoration: BoxDecoration(
+                  //           gradient: LinearGradient(
+                  //             colors: [
+                  //               const Color(0xFF6A11CB),
+                  //               const Color(0xFF2575FC),
+                  //             ],
+                  //             begin: Alignment.topCenter,
+                  //             end: Alignment.bottomCenter,
+                  //           ),
+                  //           borderRadius: BorderRadius.circular(3),
+                  //         ),
+                  //       ),
+                  //       const SizedBox(width: 12),
+                  //       const Text(
+                  //         "ප්‍රශ්න",
+                  //         style: TextStyle(
+                  //           fontSize: 34,
+                  //           fontWeight: FontWeight.w800,
+                  //           color: Color(0xFF2D1B69),
+                  //           letterSpacing: -0.5,
+                  //           shadows: [
+                  //             Shadow(
+                  //               blurRadius: 2,
+                  //               color: Colors.black12,
+                  //               offset: Offset(1, 1),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
 
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 26),
-                    child: Text(
-                      "විවිධ විෂයන්ගේ ප්‍රශ්න උත්තර දී ඔබේ දැනුම පරීක්ෂා කරන්න",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.deepPurple.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  // const SizedBox(height: 4),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(left: 26),
+                  //   child: Text(
+                  //     "විවිධ විෂයන්ගේ ප්‍රශ්න උත්තර දී ඔබේ දැනුම පරීක්ෂා කරන්න",
+                  //     style: TextStyle(
+                  //       fontSize: 15,
+                  //       color: Colors.deepPurple.withOpacity(0.7),
+                  //       fontWeight: FontWeight.w500,
+                  //     ),
+                  //   ),
+                  // ),
 
                   const SizedBox(height: 32),
 
@@ -147,7 +148,7 @@ class QuizPageSimple extends StatelessWidget {
                           childAspectRatio: 3/2,
                           children: [
                             _QuizCard(
-                              title: "ගණිත ප්‍රශ්න",
+                              title: "ගණිත Games",
                               icon: Icons.calculate,
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
@@ -155,11 +156,11 @@ class QuizPageSimple extends StatelessWidget {
                                 end: Alignment.bottomRight,
                               ),
                               onTap: () {
-                                Navigator.pushNamed(context, '/general_quiz');
+                                Navigator.pushNamed(context, '/hearing_g');
                               },
                             ),
                             _QuizCard(
-                              title: "සිංහල ප්‍රශ්න",
+                              title: "සිංහල Games",
                               icon: Icons.menu_book,
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF11998E), Color(0xFF38EF7D)],

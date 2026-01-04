@@ -17,11 +17,11 @@ class HearingDashboardScreen extends StatefulWidget {
 class _HearingDashboardScreenState extends State<HearingDashboardScreen> {
   String userName = "";
 
-  @override
-  void initState() {
-    super.initState();
-    userName = Session.userName ?? "Student";
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   userName = Session.userName ?? "Student";
+  // }
 
   Future<void> _openQuizPicker() async {
     final Op? selected = await showDialog<Op>(
@@ -122,96 +122,96 @@ class _HearingDashboardScreenState extends State<HearingDashboardScreen> {
                 // =====================================================
                 // WELCOME SECTION
                 // =====================================================
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF6A11CB).withOpacity(0.9),
-                        const Color(0xFF2575FC).withOpacity(0.9),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.purple.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 20),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withOpacity(0.9),
-                              Colors.white.withOpacity(0.7),
-                            ],
-                          ),
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Color(0xFF6A11CB),
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "සාදරයෙන් පිළිගනිමු",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            Text(
-                              userName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 4,
-                                    color: Colors.black12,
-                                    offset: Offset(1, 1),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(
+                //     horizontal: 20,
+                //     vertical: 12,
+                //   ),
+                //   decoration: BoxDecoration(
+                //     gradient: LinearGradient(
+                //       colors: [
+                //         const Color(0xFF6A11CB).withOpacity(0.9),
+                //         const Color(0xFF2575FC).withOpacity(0.9),
+                //       ],
+                //       begin: Alignment.topLeft,
+                //       end: Alignment.bottomRight,
+                //     ),
+                //     borderRadius: BorderRadius.circular(24),
+                //     boxShadow: [
+                //       BoxShadow(
+                //         color: Colors.purple.withOpacity(0.3),
+                //         blurRadius: 20,
+                //         offset: const Offset(0, 10),
+                //       ),
+                //       BoxShadow(
+                //         color: Colors.blue.withOpacity(0.2),
+                //         blurRadius: 30,
+                //         offset: const Offset(0, 20),
+                //       ),
+                //     ],
+                //   ),
+                //   child: Row(
+                //     children: [
+                //       Container(
+                //         width: 50,
+                //         height: 50,
+                //         decoration: BoxDecoration(
+                //           shape: BoxShape.circle,
+                //           gradient: LinearGradient(
+                //             colors: [
+                //               Colors.white.withOpacity(0.9),
+                //               Colors.white.withOpacity(0.7),
+                //             ],
+                //           ),
+                //           border: Border.all(color: Colors.white, width: 3),
+                //           boxShadow: [
+                //             BoxShadow(
+                //               color: Colors.black.withOpacity(0.1),
+                //               blurRadius: 10,
+                //               offset: const Offset(0, 5),
+                //             ),
+                //           ],
+                //         ),
+                //         child: const Icon(
+                //           Icons.person,
+                //           color: Color(0xFF6A11CB),
+                //           size: 28,
+                //         ),
+                //       ),
+                //       const SizedBox(width: 16),
+                //       Expanded(
+                //         child: Column(
+                //           crossAxisAlignment: CrossAxisAlignment.start,
+                //           children: [
+                //             const Text(
+                //               "සාදරයෙන් පිළිගනිමු",
+                //               style: TextStyle(
+                //                 color: Colors.white,
+                //                 fontSize: 14,
+                //                 fontWeight: FontWeight.w400,
+                //               ),
+                //             ),
+                //             Text(
+                //               userName,
+                //               style: const TextStyle(
+                //                 color: Colors.white,
+                //                 fontSize: 24,
+                //                 fontWeight: FontWeight.w800,
+                //                 shadows: [
+                //                   Shadow(
+                //                     blurRadius: 4,
+                //                     color: Colors.black12,
+                //                     offset: Offset(1, 1),
+                //                   ),
+                //                 ],
+                //               ),
+                //             ),
+                //           ],
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
 
                 const SizedBox(height: 28),
 
@@ -437,7 +437,7 @@ class _LessonsGrid extends StatelessWidget {
           context,
           "GAMES",
           '🎮',
-          '/quizhearing',
+          '/hearing_games_dashboard',
           const LinearGradient(
             colors: [Color(0xFF834D9B), Color(0xFFD04ED6)],
             begin: Alignment.topLeft,

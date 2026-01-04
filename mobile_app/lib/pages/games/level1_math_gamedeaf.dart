@@ -179,25 +179,49 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Title
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                    Column(
+                    children: [
+                      Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/home_hearing',
+                        (route) => false,
+                        ),
+                        icon: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Color.fromARGB(255, 18, 18, 18),
+                          size: 35,
+                        ),
+                        ),
+                      ),
+                      ),
+                      Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
                         colors: [const Color(0xFF6A11CB), const Color(0xFF2575FC)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
                         BoxShadow(
-                          color: Colors.purple.withOpacity(0.3),
+                          color: Colors.purple.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
+                        ],
+                      ),
+                      child: Column(
+                        children: [
                         const Icon(
                           Icons.games_rounded,
                           size: 60,
@@ -207,16 +231,16 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                         const Text(
                           "ගණිත අභියෝගය",
                           style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 4,
-                                color: Colors.black26,
-                                offset: Offset(1, 1),
-                              ),
-                            ],
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                            blurRadius: 4,
+                            color: Colors.black26,
+                            offset: Offset(1, 1),
+                            ),
+                          ],
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -224,14 +248,16 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                         Text(
                           "මට්ටම 1",
                           style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.9),
                           ),
                         ),
-                      ],
+                        ],
+                      ),
+                      ),
+                    ],
                     ),
-                  ),
                   const SizedBox(height: 32),
 
                   // Instructions
@@ -576,74 +602,93 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.deepPurple.withOpacity(0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                    color: Colors.deepPurple.withValues(alpha: 0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                    ),
+                  ],
                   ),
                   child: Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          color: Colors.white,
-                          size: 28,
+                  children: [
+                    IconButton(
+                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/home_hearing',
+                      (route) => false,
+                    ),
+                    icon: Container(
+                      decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Color(0xFF2D1B69),
+                      size: 24,
+                      ),
+                    ),
+                    ),
+                    Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                      colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.school_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                      Text(
+                        "මට්ටම 1",
+                        style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.deepPurple.withValues(alpha: 0.7),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "මට්ටම 1",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.deepPurple.withOpacity(0.7),
-                              ),
-                            ),
-                            Text(
-                              "ප්‍රශ්න ${_index + 1} / ${_questions.length}",
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF2D1B69),
-                              ),
-                            ),
-                          ],
+                      Text(
+                        "ප්‍රශ්න ${_index + 1} / ${_questions.length}",
+                        style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF2D1B69),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          "${(_index / _questions.length * 100).toInt()}%",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1976D2),
-                          ),
-                        ),
+                      ],
+                    ),
+                    ),
+                    Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      "${(_index / _questions.length * 100).toInt()}%",
+                      style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1976D2),
                       ),
-                    ],
+                    ),
+                    ),
+                  ],
                   ),
                 ),
                 const SizedBox(height: 24),
