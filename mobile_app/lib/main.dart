@@ -15,6 +15,11 @@ import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
 import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
 import 'package:mobile_app/pages/games/hearing_game_dashboard.dart';
 import 'package:mobile_app/pages/games/level1_math_gamedeaf.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_countNumbers.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_iqScore.dart';
+import 'package:mobile_app/pages/games_cognitive/iq.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
@@ -25,6 +30,8 @@ import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
+import 'package:mobile_app/session/session.dart';
+
 import 'package:mobile_app/pages/games/more_or_less_game.dart';
 import 'package:mobile_app/pages/physical/physical_main_screen.dart';
 
@@ -85,7 +92,7 @@ class MyApp extends StatelessWidget {
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
         '/home_physical': (_) => const PhysicalMainScreen(),
-        '/home_cognitive': (_) => const CognativeDashboardScreen(),
+        '/home_cognitive': (_) => const CognitiveDashboardScreen(),
 
         '/math_lessons': (_) => const StudentLessonsPage(),
 
@@ -100,6 +107,17 @@ class MyApp extends StatelessWidget {
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
         '/lessons': (_) => const VisualLessonDashboard(),
+
+        // cognitive disability games
+        '/iq_game': (_) => const IqGame(),
+        '/activity_draw': (_) => const ActivityDraw(),
+        '/activity_findImage': (_) => const PuzzleApp(),
+        '/activity_countNumbers': (_) => const SinhalaNumberGame(),
+        '/activity_iqScore': (_) {
+          final studentId = Session.userId ?? '';
+          return ProgressHistoryScreen(studentId: studentId);
+        },
+
         '/visual_game_dashboard': (_) => const VisualGameDashboard(),
         '/visual_math_gamecard': (_) => const AvailableGamesPage(),
 

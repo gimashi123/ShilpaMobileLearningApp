@@ -14,6 +14,7 @@ import sttRoutes from "./routes/stt.routes";
 import meRoutes from './routes/user.routes';
 import modelRoutes from './routes/model.routes';
 import { spawn } from 'child_process';
+import cogvitive from './routes/cognitive/routes';
 
 
 
@@ -155,3 +156,5 @@ app.use("/api/braille", brailleRoutes);
 app.use("/api", sttRoutes);
 
 app.use("/api", meRoutes);
+// Cognitive routes
+app.use("/api/cognitive", cogvitive);
