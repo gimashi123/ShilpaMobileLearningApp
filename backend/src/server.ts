@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import crypto from 'crypto';
+import fs from 'fs';
+import multer from 'multer';
 import connectDB from './config/db.conf';
 import authRouter from './routes/auth.routes';
 import logger from './config/logger.conf';
@@ -10,6 +12,9 @@ import lessonRoutes from './routes/lesson.routes';
 import brailleRoutes from './routes/braill';
 import sttRoutes from "./routes/stt.routes";
 import meRoutes from './routes/user.routes';
+import modelRoutes from './routes/model.routes';
+import { spawn } from 'child_process';
+
 
 
 
@@ -36,6 +41,9 @@ if (!process.env.JWT_SECRET) {
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -60,6 +68,7 @@ app.get('/', (req: Request, res: Response) => {
 
 // Mount API routes
 app.use('/api/auth', authRouter);
+app.use('/api/models', modelRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -74,6 +83,64 @@ app.listen({
 }, () => {
   logger.info(`Server is running on port ${port}`);
 });
+
+//model all paths below
+// ================================
+// Sign language number prediction
+// ================================
+app.post(
+  "/api/sign/predict_video",
+  upload.single("video"),
+  (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "video file required" });
+    }
+
+    const videoPath = req.file.path;
+
+    // Call Python script
+   const pyScript = path.join(__dirname, "predict_video.py"); // ✅ because server.ts is in src
+
+const py = spawn("python", [pyScript, videoPath]);
+
+
+    let output = "";
+    let errorOutput = "";
+
+    py.stdout.on("data", (data: { toString: () => string; }) => {
+      output += data.toString();
+    });
+
+    py.stderr.on("data", (data: { toString: () => string; }) => {
+      errorOutput += data.toString();
+    });
+
+    py.on("close", (code: number) => {
+      // delete temp video
+      try {
+        fs.unlinkSync(videoPath);
+      } catch (_) {}
+
+      if (code !== 0) {
+        return res.status(500).json({
+          error: "Python model failed",
+          details: errorOutput,
+        });
+      }
+
+      try {
+        const result = JSON.parse(output);
+        return res.json(result);
+      } catch (e) {
+        return res.status(500).json({
+          error: "Invalid model response",
+          raw: output,
+          details: errorOutput,
+        });
+      }
+    });
+  }
+);
 
 
 // Mount lesson routes

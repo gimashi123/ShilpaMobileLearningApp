@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+
+// Your pages
 import 'package:mobile_app/lesson_dashboard/hearing_lesson.dart';
+import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_screen.dart';
 import 'package:mobile_app/pages/auth/login_screen.dart';
 import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
@@ -10,8 +14,9 @@ import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
 import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
 import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
 import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
+import 'package:mobile_app/pages/games/hearing_game_dashboard.dart';
+import 'package:mobile_app/pages/games/level1_math_gamedeaf.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
-import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
 import 'package:mobile_app/pages/quiz/hearing_quiz_screen.dart';
@@ -25,24 +30,33 @@ import 'package:mobile_app/pages/games/more_or_less_game.dart';
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
 
+// ✅ Global cameras list
+late final List<CameraDescription> cameras;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   print("LOG: main() started");
 
-  // Start Flutter UI first
+  // ✅ Load cameras BEFORE runApp (IMPORTANT)
+  try {
+    cameras = await availableCameras();
+    print("LOG: cameras loaded: ${cameras.length}");
+  } catch (e) {
+    // If camera fails, keep empty list to avoid crash
+    print("ERROR: availableCameras failed: $e");
+    cameras = <CameraDescription>[];
+  }
+
+  // Start Flutter UI
   runApp(const MyApp());
 
   // Initialize Speech-to-Text in background (do NOT block UI)
-  // If this is heavy, it won't freeze the splash screen now.
-  SpeechService.instance
-      .init()
-      .then((_) {
-        print("LOG: SpeechService init completed");
-      })
-      .catchError((e, st) {
-        print("ERROR: SpeechService init failed: $e");
-      });
+  SpeechService.instance.init().then((_) {
+    print("LOG: SpeechService init completed");
+  }).catchError((e) {
+    print("ERROR: SpeechService init failed: $e");
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -56,8 +70,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
       initialRoute: '/',
       routes: {
-
-        //common navigation
+        // common navigation
         '/': (_) => const HomePage(),
         '/dashboard': (_) => const DashboardScreen(),
         '/register': (_) => const RegisterPage(disabilityType: ''),
@@ -65,19 +78,22 @@ class MyApp extends StatelessWidget {
         '/newlogin': (_) => const LoginPage(),
 
         // disability-type navigation
-
-        // -- visual navigation
         '/home_visual': (_) => const VisualDashboardScreen(),
         '/home_hearing': (_) => const HearingDashboardScreen(),
         '/home_physical': (_) => const PhysicalDashboardScreen(),
         '/home_cognitive': (_) => const CognativeDashboardScreen(),
 
         '/math_lessons': (_) => const StudentLessonsPage(),
+
+        // visual navigation
+        '/quizdashboard': (_) => const VisualQuizDashboard(),
+        '/lessons': (_) => const VisualLessonDashboard(),
         '/quiz': (_) => const QuizPage(),
+
+        // hearing navigation
         '/quizhear': (_) => const QuizPageSimple(),
         '/general_quiz': (_) => const QuizHubPage(),
         '/hearing_lessons': (_) => const HearingLesson(),
-        '/quizdashboard': (_) => const VisualQuizDashboard(),
         '/profile': (_) => const ProfileScreen(),
         '/lessons': (_) => const VisualLessonDashboard(),
         '/visual_game_dashboard': (_) => const VisualGameDashboard(),
@@ -85,29 +101,33 @@ class MyApp extends StatelessWidget {
 
         '/math_quick_game': (context) => const NumberMatchLevelsSound(),
         '/visual_more_or_less_game': (context) => const MoreNumberSwipeGame(),
+        '/hearing_games_dashboard': (_) => const HearingGameDashboard(),
+
+        // ✅ FIXED: pass real cameras list (NOT [])
+        '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),
       },
       onGenerateRoute: (settings) {
-  if (settings.name == '/quizhearing') {
-    final op = settings.arguments as Op;
-    return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
-  }
-  if (settings.name == '/result') {
-    final args = settings.arguments as ResultArgs;
-    return MaterialPageRoute(
-      builder: (_) => ResultPage(
-        op: args.op,
-        correctCount: args.correctCount,
-        score: args.score,
-      ),
-    );
-  }
-  return null;
-},
-
-
+        if (settings.name == '/quizhearing') {
+          final op = settings.arguments as Op;
+          return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
+        }
+        if (settings.name == '/result') {
+          final args = settings.arguments as ResultArgs;
+          return MaterialPageRoute(
+            builder: (_) => ResultPage(
+              op: args.op,
+              correctCount: args.correctCount,
+              score: args.score,
+            ),
+          );
+        }
+        return null;
+      },
     );
   }
 }
+
+// ---------------- HOME PAGE (your existing code) ----------------
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
