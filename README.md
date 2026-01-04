@@ -1,4 +1,3 @@
-﻿# ShilpaMobileLearningApp
 
 
 # Shilpa – Inclusive Mobile Learning Application
@@ -116,18 +115,112 @@ git clone https://github.com/gimashi123/ShilpaMobileLearningApp.git
 
 ## Project Setup Guidance
 
-- This project contains separate modules for the backend and the mobile frontend.
-Each module includes its own README file with detailed setup and execution instructions.
 
--Backend Setup
-Navigate to the backend folder.
-The README.md inside this folder provides complete guidance for installing dependencies, configuring environment variables, and running the backend server.
+# Shilpa Mobile Learning App - Backend
 
--Frontend (Mobile App) Setup
-Navigate to the mobile_app folder.
-The README.md inside this folder explains how to install Flutter dependencies and run the mobile application on an emulator or physical device.
+This is the backend service for the Shilpa Mobile Learning App built with Node.js, Express, TypeScript, and MongoDB.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+- Node.js (v14 or higher)
+- npm (Node Package Manager)
+- MongoDB (local installation) or MongoDB Atlas account
+
+## Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/gimashi123/ShilpaMobileLearningApp.git
+   cd ShilpaMobileLearningApp/backend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Configuration**
+   - Copy the example environment file:
+     ```bash
+     cp .env.example .env
+     ```
+   - Update the `.env` file with your configuration:
+     - `PORT`: Application port (default: 3000)
+     - `MONGODB_URI`: Your MongoDB connection string
+
+4. **Development Mode**
+   ```bash
+   npm run dev
+   ```
+   This will start the server with hot-reload enabled.
+
+5. **Production Build**
+   ```bash
+   npm run build   # Compile TypeScript to JavaScript
+   npm start       # Start the production server
+   ```
+
+## Project Structure
+
+```
+backend/
+├── src/
+│   ├── config/     # Configuration files
+│   ├── controllers/# Route controllers
+│   ├── models/     # Database models
+│   ├── routes/     # API routes
+│   ├── middlewares/# Custom middleware
+│   ├── utils/      # Utility functions
+│   ├── types/      # TypeScript type definitions
+│   └── server.ts   # Application entry point
+├── .env.example    # Example environment variables
+├── .gitignore      # Git ignore rules
+├── package.json    # Project dependencies and scripts
+├── tsconfig.json   # TypeScript configuration
+└── README.md       # Project documentation
+```
+
+## Available Scripts
+
+- `npm run dev`: Start development server with hot-reload
+- `npm run build`: Build the TypeScript code
+- `npm start`: Start the production server
+
+## API Documentation
+
+Documentation for the API endpoints will be added here as they are developed.
+
+## Contributing
+
+1. Create a new branch for your feature
+2. Make your changes
+3. Submit a pull request
+
+## License
+
+This project is licensed under the ISC License.
+
+
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
 Please follow the instructions in the respective README files to correctly set up and run each part of the system.
+
 
 
 
