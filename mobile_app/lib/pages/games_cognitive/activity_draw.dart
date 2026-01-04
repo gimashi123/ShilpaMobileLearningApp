@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as Math;
+import '../dashboard/cognative_dashboard_screen.dart';
+
 
 class ActivityDraw extends StatefulWidget {
   const ActivityDraw({Key? key}) : super(key: key);
@@ -39,6 +41,20 @@ class _ActivityDrawState extends State<ActivityDraw> {
     super.dispose();
   }
 
+  // ✅ Sinhala title changes by current activity
+  String _getSinhalaTitle(PathType type) {
+    switch (type) {
+      case PathType.straight:
+        return "කෙලින් ඉරි අදිමු";
+      case PathType.wave:
+        return "තරංග ඉරි අදිමු";
+      case PathType.curve:
+        return "වක්‍ර ඉරි අදිමු";
+      case PathType.zigzag:
+        return "සිග්සැග් ඉරි අදිමු";
+    }
+  }
+
   void _nextTrace() {
     if (_currentTraceIndex < tracePaths.length - 1) {
       _pageController.nextPage(
@@ -64,25 +80,19 @@ class _ActivityDrawState extends State<ActivityDraw> {
   void _onLevelCompleted(int index) {
     setState(() {
       _showNotification = true;
-      _notificationTitle = 'පුදුමයි! ඔයා ඒක කළා!';
+      _notificationTitle = 'පුදුමයි!\nඔයා ඒක කළා!';
       _notificationEmoji = '🌟';
       _notificationColor = Colors.green.shade400;
     });
 
-    // Hide notification and move to next level after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
-      setState(() {
-        _showNotification = false;
-      });
+      setState(() => _showNotification = false);
 
-      // Auto-go to next level (if not last level)
       if (index < tracePaths.length - 1) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
-          if (_currentTraceIndex == index) {
-            _nextTrace();
-          }
+          if (_currentTraceIndex == index) _nextTrace();
         });
       }
     });
@@ -91,27 +101,34 @@ class _ActivityDrawState extends State<ActivityDraw> {
   void _onLevelFailed(int index) {
     setState(() {
       _showNotification = true;
-      _notificationTitle = 'හොඳ උත්සාහයක්! අපි නැවත පුහුණු වෙමු!';
+      _notificationTitle = 'හොඳ උත්සාහයක්!\nඅපි නැවත පුහුණු වෙමු!';
       _notificationEmoji = '💪';
       _notificationColor = Colors.orange.shade400;
     });
 
-    // Hide notification after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      setState(() {
-        _showNotification = false;
-      });
+      setState(() => _showNotification = false);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentTitle = _getSinhalaTitle(tracePaths[_currentTraceIndex].type);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '✨ කෙලින් ඉරි අදිමු ✨',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+        // ✅ Back arrow to dashboard
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+          ),
+        ),
+        title: Text(
+          "✨ $currentTitle ✨",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: true,
         elevation: 0,
@@ -132,9 +149,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) {
-                    setState(() {
-                      _currentTraceIndex = index;
-                    });
+                    setState(() => _currentTraceIndex = index);
                   },
                   itemCount: tracePaths.length,
                   itemBuilder: (context, index) {
@@ -192,7 +207,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
             ],
           ),
 
-          // Large notification card overlay
+          // ✅ Big notification card overlay
           if (_showNotification)
             Center(
               child: TweenAnimationBuilder<double>(
@@ -277,9 +292,9 @@ class TracePath {
   double pathLength;
 
   TracePath({required this.name, required this.type})
-    : dots = [],
-      samples = [],
-      pathLength = 0.0;
+      : dots = [],
+        samples = [],
+        pathLength = 0.0;
 }
 
 // ---------------- TRACING CANVAS ----------------
@@ -320,7 +335,7 @@ class _TracingCanvasState extends State<TracingCanvas> {
   }
 
   void _updateDotTracing(Offset point) {
-    const dotRadiusThreshold = 25.0; // slightly larger than visual radius
+    const dotRadiusThreshold = 25.0;
     for (final dot in widget.tracePath.dots) {
       if (!dot.isTraced &&
           (dot.position - point).distance <= dotRadiusThreshold) {
@@ -330,7 +345,7 @@ class _TracingCanvasState extends State<TracingCanvas> {
   }
 
   void _updateSampleCoverage(Offset point) {
-    const sampleCoverRadius = 12.0; // small hidden dot radius
+    const sampleCoverRadius = 12.0;
     for (final sample in widget.tracePath.samples) {
       if (!sample.isCovered &&
           (sample.position - point).distance <= sampleCoverRadius) {
@@ -356,26 +371,20 @@ class _TracingCanvasState extends State<TracingCanvas> {
 
   bool _isTraceComplete() {
     final samples = widget.tracePath.samples;
-    if (samples.isEmpty || widget.tracePath.pathLength <= 0) {
-      return false;
-    }
+    if (samples.isEmpty || widget.tracePath.pathLength <= 0) return false;
 
-    // 1) Coverage of ideal path
     final coveredCount = samples.where((s) => s.isCovered).length;
     final coverage = coveredCount / samples.length;
+    const coverageThreshold = 0.8;
 
-    const coverageThreshold = 0.8; // 80% of samples must be covered
-
-    // 2) Off-path ratio
     final allPoints = <Offset>[];
     for (final stroke in strokes) {
       allPoints.addAll(stroke);
     }
     allPoints.addAll(currentStroke);
-
     if (allPoints.isEmpty) return false;
 
-    const offPathLimit = 25.0; // px from nearest sample
+    const offPathLimit = 25.0;
     int offPathCount = 0;
 
     for (final p in allPoints) {
@@ -384,31 +393,27 @@ class _TracingCanvasState extends State<TracingCanvas> {
         final d = (p - s.position).distance;
         if (d < minDist) minDist = d;
       }
-      if (minDist > offPathLimit) {
-        offPathCount++;
-      }
+      if (minDist > offPathLimit) offPathCount++;
     }
 
     final offPathRatio = offPathCount / allPoints.length;
-    const maxOffPathRatio = 0.25; // at most 25% points far away
+    const maxOffPathRatio = 0.25;
 
-    // 3) Stroke length vs path length
     final strokeLength = _totalStrokeLength();
-    const minStrokeFraction = 0.6; // must draw at least 60% of path
-    const maxStrokeFraction = 1.1; // must NOT exceed 110% of path
+    const minStrokeFraction = 0.6;
+    const maxStrokeFraction = 1.1;
 
     final longEnough =
         strokeLength >= widget.tracePath.pathLength * minStrokeFraction;
     final notTooLong =
         strokeLength <= widget.tracePath.pathLength * maxStrokeFraction;
 
-    final enoughCoverage = coverage >= coverageThreshold;
-    final fewOffPath = offPathRatio <= maxOffPathRatio;
-
-    return enoughCoverage && fewOffPath && longEnough && notTooLong;
+    return coverage >= coverageThreshold &&
+        offPathRatio <= maxOffPathRatio &&
+        longEnough &&
+        notTooLong;
   }
 
-  // ✅ NEW: require the last visible dot to be traced
   bool _isEndDotTraced() {
     final dots = widget.tracePath.dots;
     if (dots.isEmpty) return false;
@@ -416,25 +421,23 @@ class _TracingCanvasState extends State<TracingCanvas> {
   }
 
   void _handlePoint(Offset point) {
-    _updateDotTracing(point); // for visual feedback
-    _updateSampleCoverage(point); // for accuracy
+    _updateDotTracing(point);
+    _updateSampleCoverage(point);
   }
 
   void _evaluateAttempt() {
     if (_alreadyCompleted) return;
 
-    // ✅ FIX: only success if trace is complete AND last dot is traced
     final ok = _isTraceComplete() && _isEndDotTraced();
 
     if (ok) {
       _alreadyCompleted = true;
       widget.onCompleted?.call();
     } else {
-      // Treat as real attempt only if stroke is not tiny
       final strokeLength = _totalStrokeLength();
       if (strokeLength >= widget.tracePath.pathLength * 0.3) {
         widget.onFailed?.call();
-        clearCanvas(); // reset level (dots + trace lines)
+        clearCanvas();
       }
     }
   }
@@ -468,12 +471,10 @@ class _TracingCanvasState extends State<TracingCanvas> {
       ),
       child: Stack(
         children: [
-          // Bottom: guide line + visible dots + arrows
           CustomPaint(
             painter: GuideLinePainter(tracePath: widget.tracePath),
             child: Container(),
           ),
-          // Top: user drawing
           GestureDetector(
             onPanStart: (details) {
               final p = details.localPosition;
@@ -496,7 +497,7 @@ class _TracingCanvasState extends State<TracingCanvas> {
                   currentStroke.clear();
                 }
               });
-              _evaluateAttempt(); // check pass/fail after stroke ends
+              _evaluateAttempt();
             },
             child: CustomPaint(
               painter: UserDrawingPainter(
@@ -512,7 +513,7 @@ class _TracingCanvasState extends State<TracingCanvas> {
   }
 }
 
-// ---------------- GUIDE LINE PAINTER (arrows between dots) ----------------
+// ---------------- GUIDE LINE PAINTER ----------------
 
 class GuideLinePainter extends CustomPainter {
   final TracePath tracePath;
@@ -529,16 +530,9 @@ class GuideLinePainter extends CustomPainter {
 
     final path = _generatePath(size);
 
-    // 1) Dashed path
     _drawDashedPath(canvas, path, dashedLinePaint);
-
-    // 2) Prepare dots, samples, path length (if not already)
     _ensurePathData(path);
-
-    // 3) Draw visible guide dots
     _drawDots(canvas);
-
-    // 4) Draw arrows between dots
     _drawArrowsBetweenDots(canvas);
   }
 
@@ -590,9 +584,7 @@ class GuideLinePainter extends CustomPainter {
   void _ensurePathData(Path path) {
     if (tracePath.pathLength > 0 &&
         tracePath.samples.isNotEmpty &&
-        tracePath.dots.isNotEmpty) {
-      return;
-    }
+        tracePath.dots.isNotEmpty) return;
 
     tracePath.pathLength = 0.0;
     tracePath.dots.clear();
@@ -614,13 +606,12 @@ class GuideLinePainter extends CustomPainter {
         break;
     }
 
-    const double sampleSpacing = 8.0; // dense hidden samples
+    const double sampleSpacing = 8.0;
 
     final metrics = path.computeMetrics();
     for (var metric in metrics) {
       tracePath.pathLength += metric.length;
 
-      // visible dots – evenly spaced along the metric
       final pathLength = metric.length;
       final spacing = pathLength / (dotCount - 1);
 
@@ -632,7 +623,6 @@ class GuideLinePainter extends CustomPainter {
         }
       }
 
-      // hidden samples – dense
       for (double d = 0; d <= metric.length; d += sampleSpacing) {
         final pos = metric.getTangentForOffset(d);
         if (pos != null) {
@@ -669,7 +659,6 @@ class GuideLinePainter extends CustomPainter {
         if (start != null && end != null) {
           canvas.drawLine(start, end, paint);
         }
-
         distance += dashWidth + dashSpace;
       }
     }
@@ -694,8 +683,7 @@ class GuideLinePainter extends CustomPainter {
 
       final tip = to;
 
-      final back =
-          tip -
+      final back = tip -
           Offset(Math.cos(angle) * arrowLength, Math.sin(angle) * arrowLength);
 
       final ortho = Offset(-Math.sin(angle), Math.cos(angle));
