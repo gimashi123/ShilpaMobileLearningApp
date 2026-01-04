@@ -52,7 +52,7 @@ class QuestionContent extends StatelessWidget {
       icon: Icons.calculate_outlined,
       color: const Color(0xFF7E57C2), // Purple
       inputMode: inputMode,
-      onTap: () => Navigator.pushNamed(context, '/quiz'),
+      onTap: () => Navigator.pushNamed(context, ''),
     );
   }
 }

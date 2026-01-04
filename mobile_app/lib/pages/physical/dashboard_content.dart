@@ -54,7 +54,7 @@ class DashboardContent extends StatelessWidget {
                   icon: Icons.help_outline_rounded,
                   color: const Color(0xFFFF5252), // Red/Coral
                   inputMode: inputMode,
-                  onTap: () => Navigator.pushNamed(context, '/quiz'),
+                  onTap: () => Navigator.pushNamed(context, ''),
                 ),
               ),
               const SizedBox(width: 12),

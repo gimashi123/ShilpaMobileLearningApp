@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/session/session.dart';
 import 'package:mobile_app/pages/models/cognitive.dart';
-import 'package:mobile_app/session/session.dart';
 
-
-  String baseUrl = 'http://127.0.0.1:3000';
+String baseUrl = 'http://192.168.1.180:3000';
 
 Future<void> saveLdResultToBackend({
   required String studentId,
@@ -16,7 +14,8 @@ Future<void> saveLdResultToBackend({
   required int shapeGameScore,
   required int colorGameScore,
   required int bubbleGameScore,
-  required int totalScore,  // Note: This is still the parameter name; we'll map it correctly in the body
+  required int
+  totalScore, // Note: This is still the parameter name; we'll map it correctly in the body
 }) async {
   final uri = Uri.parse('$baseUrl/api/cognitive/ld-predictions');
 
@@ -29,7 +28,8 @@ Future<void> saveLdResultToBackend({
     'shapeGameScore': shapeGameScore,
     'colorGameScore': colorGameScore,
     'bubbleGameScore': bubbleGameScore,
-    'totalGameScore': totalScore,  // Fixed: Renamed from 'totalScore' to match backend
+    'totalGameScore':
+        totalScore, // Fixed: Renamed from 'totalScore' to match backend
     // Removed 'colorPostHintCorrect' since it's not in the backend schema
   };
 
@@ -44,17 +44,16 @@ Future<void> saveLdResultToBackend({
   }
 }
 
-
 class LdHistoryApi {
-  static Future<List<LdAttempt>> fetchHistoryByStudentId(String studentId) async {
+  static Future<List<LdAttempt>> fetchHistoryByStudentId(
+    String studentId,
+  ) async {
     final token = Session.token;
     final url = Uri.parse('$baseUrl/api/cognitive/ld-history/$studentId');
 
     final res = await http.get(
       url,
-      headers: {
-        if (token != null) "Authorization": "Bearer $token",
-      },
+      headers: {if (token != null) "Authorization": "Bearer $token"},
     );
 
     if (res.statusCode != 200) {
@@ -63,6 +62,8 @@ class LdHistoryApi {
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final list = (data['attempts'] as List<dynamic>? ?? []);
-    return list.map((e) => LdAttempt.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => LdAttempt.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }
