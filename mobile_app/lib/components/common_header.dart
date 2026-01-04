@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'input_aware_button.dart';
 import '../models/input_modes.dart';
 import 'responsive_layout.dart';
 
@@ -162,7 +162,7 @@ class CommonHeader extends StatelessWidget {
   }
 }
 
-class _NavTab extends StatefulWidget {
+class _NavTab extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
@@ -178,51 +178,6 @@ class _NavTab extends StatefulWidget {
   });
 
   @override
-  State<_NavTab> createState() => _NavTabState();
-}
-
-class _NavTabState extends State<_NavTab> {
-  Timer? _dwellTimer;
-  Offset? _touchPosition;
-
-  @override
-  void dispose() {
-    _dwellTimer?.cancel();
-    super.dispose();
-  }
-
-  void _handleDwellStart(Offset localPosition) {
-    setState(() {
-      _touchPosition = localPosition;
-    });
-
-    _dwellTimer?.cancel();
-    _dwellTimer = Timer(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        widget.onTap();
-        _resetDwell();
-      }
-    });
-  }
-
-  void _handleDwellUpdate(Offset localPosition) {
-    if (_touchPosition != null) {
-      setState(() {
-        _touchPosition = localPosition;
-      });
-    }
-  }
-
-  void _resetDwell() {
-    _dwellTimer?.cancel();
-    if (mounted) {
-      setState(() {
-        _touchPosition = null;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     // Responsive scaling
     final bool isMobile = Responsive.isMobile(context);
@@ -234,9 +189,9 @@ class _NavTabState extends State<_NavTab> {
     Widget content = Container(
       padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
       decoration: BoxDecoration(
-        color: widget.isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
+        color: isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: widget.isSelected
+        boxShadow: isSelected
             ? [
                 BoxShadow(
                   color: const Color(0xFF6A1B9A).withOpacity(0.4),
@@ -251,25 +206,21 @@ class _NavTabState extends State<_NavTab> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            widget.icon,
-            color: widget.isSelected ? Colors.white : const Color(0xFF4527A0),
+            icon,
+            color: isSelected ? Colors.white : const Color(0xFF4527A0),
             size: iconSize,
           ),
           // Hide label on very small screens if needed, or just scale it
-          if (!isMobile || widget.isSelected) ...[
+          if (!isMobile || isSelected) ...[
             const SizedBox(height: 4),
             Text(
-              widget.label,
+              label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: fontSize,
-                fontWeight: widget.isSelected
-                    ? FontWeight.w900
-                    : FontWeight.w600,
-                color: widget.isSelected
-                    ? Colors.white
-                    : const Color(0xFF4527A0),
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                color: isSelected ? Colors.white : const Color(0xFF4527A0),
               ),
             ),
           ],
@@ -277,23 +228,11 @@ class _NavTabState extends State<_NavTab> {
       ),
     );
 
-    // If not dwell mode, behave like a standard GestureDetector
-    if (widget.inputMode != InputMode.dwellTouch) {
-      return Expanded(
-        child: GestureDetector(onTap: widget.onTap, child: content),
-      );
-    }
-
-    // Dwell interaction - same as InputAwareButton but without visual feedback
     return Expanded(
-      child: Listener(
-        onPointerDown: (event) => _handleDwellStart(event.localPosition),
-        onPointerMove: (event) => _handleDwellUpdate(event.localPosition),
-        onPointerUp: (_) => _resetDwell(),
-        onPointerCancel: (_) => _resetDwell(),
-        behavior: HitTestBehavior.opaque,
+      child: InputAwareButton(
+        onTap: onTap,
+        inputMode: inputMode,
         child: content,
-        // No Stack with CustomPaint - this is the only difference from InputAwareButton
       ),
     );
   }

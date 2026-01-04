@@ -14,11 +14,11 @@ class QuestionContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (Responsive.isMobile(context)) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(child: _buildSinhalaCard(context)),
           const SizedBox(height: 16),
           Expanded(child: _buildMathsCard(context)),
-          const SizedBox(height: 16),
         ],
       );
     }
@@ -26,7 +26,7 @@ class QuestionContent extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: _buildSinhalaCard(context)),
-        const SizedBox(width: 16),
+        const SizedBox(width: 20),
         Expanded(child: _buildMathsCard(context)),
       ],
     );
@@ -82,63 +82,60 @@ class _QuestionCard extends StatelessWidget {
     final double titleSize = isMobile ? 24 : 28;
     final double iconSize = isMobile ? 60 : 70;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: InputAwareButton(
-        onTap: onTap,
-        inputMode: inputMode,
-        borderRadius: BorderRadius.circular(30),
-        child: Container(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.35),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+    return InputAwareButton(
+      onTap: onTap,
+      inputMode: inputMode,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.35),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.25),
+                shape: BoxShape.circle,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: iconSize, color: Colors.white),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: titleSize,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: 1.2,
-                    ),
+              child: Icon(icon, size: iconSize, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                "ප්‍රශ්න පත්‍ර ආරම්භ කරන්න",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.8),
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "ප්‍රශ්න පත්‍ර ආරම්භ කරන්න",
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
