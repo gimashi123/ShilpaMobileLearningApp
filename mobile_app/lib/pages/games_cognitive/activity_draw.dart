@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as Math;
-import '../dashboard/cognative_dashboard_screen.dart';
+import '../dashboard/cognitive_dashboard_screen.dart';
 
 
 class ActivityDraw extends StatefulWidget {

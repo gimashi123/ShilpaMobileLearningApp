@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import '../dashboard/cognative_dashboard_screen.dart';
+import '../dashboard/cognitive_dashboard_screen.dart';
 
 class SinhalaNumberGame extends StatefulWidget {
   const SinhalaNumberGame({super.key});

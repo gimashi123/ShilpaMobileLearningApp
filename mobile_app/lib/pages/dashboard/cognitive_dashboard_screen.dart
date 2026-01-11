@@ -736,6 +736,41 @@ class _LessonsGrid extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
+         _gridItem(
+          context,
+          "රූපය අඳුරගමු",
+          '🔢',
+          '/activity_matchSound',
+          303,
+          LinearGradient(
+            colors: [const Color(0xFF834D9B), const Color(0xFFD04ED6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ), _gridItem(
+          context,
+          "රටාව හොයමු",
+          '✏️',
+          '/activity_matchPattern',
+          302,
+          LinearGradient(
+            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+         _gridItem(
+          context,
+          "වර්ගය තෝරමු",
+          '✏️',
+          '/activity_matchCategory',
+          302,
+          LinearGradient(
+            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
       ],
     );
   }

@@ -2,7 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 // Add this import assuming the dashboard screen is in the same lib directory
-import '../dashboard/cognative_dashboard_screen.dart';
+import '../dashboard/cognitive_dashboard_screen.dart';
 
 /* =========================
    APP ROOT

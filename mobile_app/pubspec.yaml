@@ -64,6 +64,8 @@ dependencies:
   # video_player: ^2.8.2
   # open_file: ^3.5.0
   # path_provider: ^2.1.3
+  confetti: ^0.7.0
+
 
 
 dev_dependencies:
@@ -127,12 +129,18 @@ flutter:
     - assets/sinhala.jpg
     
     # cognitive disability assets
-    - assets/sounds/correct.mp3
-    - assets/sounds/wrong.mp3
+    - assets/sounds/cognitive/correct.mp3
+    - assets/sounds/cognitive/wrong.mp3
+    - assets/sounds/cognitive/car.mp3
+    - assets/sounds/cognitive/bell.mp3
+    - assets/sounds/cognitive/dog.mp3
+    - assets/sounds/cognitive/cat.mp3
     - assets/images/cognitive/monkey.png
     - assets/images/cognitive/panda.png
     - assets/images/cognitive/dog.png
     - assets/images/cognitive/cat.png
+    - assets/images/cognitive/car.png
+    - assets/images/cognitive/bell.png
     - assets/models/lq_model.tflite
 
 

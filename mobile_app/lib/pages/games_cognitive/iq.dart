@@ -58,12 +58,12 @@ class Sfx {
 
   static Future<void> correct(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/correct.mp3');
+    await _playAsset('sounds/cognitive/correct.mp3');
   }
 
   static Future<void> wrong(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/wrong.mp3');
+    await _playAsset('sounds/cognitive/wrong.mp3');
   }
 }
 
