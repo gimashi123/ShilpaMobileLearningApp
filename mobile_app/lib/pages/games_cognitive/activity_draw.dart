@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'dart:math' as Math;
 import '../dashboard/cognitive_dashboard_screen.dart';
 
@@ -18,6 +19,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
   String _notificationTitle = '';
   String _notificationEmoji = '';
   Color _notificationColor = Colors.green;
+  late final ConfettiController _confettiController;
 
   final List<TracePath> tracePaths = [
     TracePath(name: 'Straight Line', type: PathType.straight),
@@ -30,6 +32,8 @@ class _ActivityDrawState extends State<ActivityDraw> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _confettiController =
+        ConfettiController(duration: const Duration(milliseconds: 900));
     for (int i = 0; i < tracePaths.length; i++) {
       _canvasKeys[i] = GlobalKey<_TracingCanvasState>();
     }
@@ -37,6 +41,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
 
   @override
   void dispose() {
+    _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -84,6 +89,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
       _notificationEmoji = '🌟';
       _notificationColor = Colors.green.shade400;
     });
+    _confettiController.play();
 
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
@@ -255,6 +261,23 @@ class _ActivityDrawState extends State<ActivityDraw> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+            ),
+          if (_showNotification)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    numberOfParticles: 18,
+                    emissionFrequency: 0.12,
+                    maxBlastForce: 18,
+                    minBlastForce: 10,
+                    gravity: 0.3,
                   ),
                 ),
               ),
@@ -673,15 +696,59 @@ class GuideLinePainter extends CustomPainter {
 
     const double arrowLength = 18.0;
     const double arrowWidth = 10.0;
+    const double dotRadius = 20.0;
+    const double dotPadding = 6.0;
 
     for (int i = 0; i < tracePath.dots.length - 1; i++) {
       final from = tracePath.dots[i].position;
       final to = tracePath.dots[i + 1].position;
 
-      final dir = to - from;
-      final angle = Math.atan2(dir.dy, dir.dx);
+      final midpoint = Offset(
+        (from.dx + to.dx) / 2,
+        (from.dy + to.dy) / 2,
+      );
 
-      final tip = to;
+      int? bestIndex;
+      Offset? samplePos;
+      if (tracePath.samples.length >= 2) {
+        int localBestIndex = 0;
+        double bestDist = double.infinity;
+        for (int s = 0; s < tracePath.samples.length; s++) {
+          final d = (tracePath.samples[s].position - midpoint).distance;
+          if (d < bestDist) {
+            bestDist = d;
+            localBestIndex = s;
+          }
+        }
+        bestIndex = localBestIndex;
+        samplePos = tracePath.samples[localBestIndex].position;
+      }
+
+      Offset dir = to - from;
+      if (bestIndex != null) {
+        final prevIndex = bestIndex == 0 ? 0 : bestIndex - 1;
+        final nextIndex = bestIndex == tracePath.samples.length - 1
+            ? tracePath.samples.length - 1
+            : bestIndex + 1;
+        final prev = tracePath.samples[prevIndex].position;
+        final next = tracePath.samples[nextIndex].position;
+        if (next != prev) {
+          dir = next - prev;
+        }
+      }
+
+      final dirLen = dir.distance;
+      if (dirLen == 0) continue;
+      final dirNorm = dir / dirLen;
+      final angle = Math.atan2(dirNorm.dy, dirNorm.dx);
+
+      Offset tip = samplePos ?? midpoint;
+      if ((tip - from).distance < dotRadius + dotPadding) {
+        tip = from + dirNorm * (dotRadius + dotPadding);
+      }
+      if ((tip - to).distance < dotRadius + dotPadding) {
+        tip = to - dirNorm * (dotRadius + dotPadding);
+      }
 
       final back = tip -
           Offset(Math.cos(angle) * arrowLength, Math.sin(angle) * arrowLength);

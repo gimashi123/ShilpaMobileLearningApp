@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 // Add this import assuming the dashboard screen is in the same lib directory
 import '../dashboard/cognitive_dashboard_screen.dart';
 
@@ -45,11 +46,21 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   /* ---- PIECES ---- */
   List<_Piece> pieces = [];
+  late final ConfettiController _confettiController;
+  bool _rewardPlayed = false;
 
   @override
   void initState() {
     super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(milliseconds: 900));
     _reshuffle();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   void _reshuffle() {
@@ -73,7 +84,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         _reshuffle();
       }
       pieces.clear();
+      _rewardPlayed = false;
     });
+    _confettiController.stop();
   }
 
   void _onTap(Offset pos) {
@@ -82,6 +95,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         setState(() {
           pieces[i].removed = true;
         });
+        if (completed) {
+          _playRewardAnimation();
+        }
         break;
       }
     }
@@ -126,12 +142,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             _buildPieces(size);
           }
 
-          return Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
+        return Column(
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
                     Image.asset(currentImage, fit: BoxFit.cover),
                     GestureDetector(
                       onTapDown: (d) => _onTap(d.localPosition),
@@ -162,6 +178,18 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                           ),
                         ),
                       ),
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: ConfettiWidget(
+                        confettiController: _confettiController,
+                        blastDirectionality: BlastDirectionality.explosive,
+                        numberOfParticles: 16,
+                        emissionFrequency: 0.12,
+                        maxBlastForce: 18,
+                        minBlastForce: 10,
+                        gravity: 0.3,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -173,6 +201,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   children: [
                     _btn("අලුත්", () {
                       setState(() => pieces.clear());
+                      _rewardPlayed = false;
+                      _confettiController.stop();
                     }),
                     _btn("ඉදිරියට", _nextImage),
                   ],
@@ -195,6 +225,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ),
       child: Text(text),
     );
+  }
+
+  Future<void> _playRewardAnimation() async {
+    if (_rewardPlayed) return;
+    _rewardPlayed = true;
+    _confettiController.play();
   }
 }
 

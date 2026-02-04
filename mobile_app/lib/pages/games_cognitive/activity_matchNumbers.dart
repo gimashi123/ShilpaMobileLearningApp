@@ -1,97 +1,70 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import '../dashboard/cognitive_dashboard_screen.dart';
 
 
-class SoundPictureMatchApp extends StatelessWidget {
-  const SoundPictureMatchApp({super.key});
+class NumberMatchingGameApp extends StatelessWidget {
+  const NumberMatchingGameApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'ශබ්දය – රූපය ගැලපීම',
+      title: 'අංකය ගැලපීම',
       theme: ThemeData(useMaterial3: true),
-      home: const SoundPictureMatchGame(),
+      home: const NumberMatchingGamePage(),
     );
   }
 }
 
-// =====================
-// GAME MODELS
-// =====================
-class SoundItem {
-  final String id;
-  final String soundAsset; // e.g. sounds/cognitive/dog.mp3 (under assets/)
-  final String imageAsset; // e.g. assets/images/cognitive/dog.png
+class NumberItem {
+  final int value;
+  final String word;
 
-  const SoundItem({
-    required this.id,
-    required this.soundAsset,
-    required this.imageAsset,
-  });
+  const NumberItem({required this.value, required this.word});
 }
 
-// =====================
-// GAME SCREEN
-// =====================
-class SoundPictureMatchGame extends StatefulWidget {
-  const SoundPictureMatchGame({super.key});
+class NumberMatchingGamePage extends StatefulWidget {
+  const NumberMatchingGamePage({super.key});
 
   @override
-  State<SoundPictureMatchGame> createState() => _SoundPictureMatchGameState();
+  State<NumberMatchingGamePage> createState() => _NumberMatchingGamePageState();
 }
 
-class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
+class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
-  final AudioPlayer _player = AudioPlayer();
 
-  // ✅ Make sure these paths match your pubspec.yaml assets
-  final List<SoundItem> _items = const [
-    SoundItem(
-      id: "dog",
-      soundAsset: "sounds/cognitive/dog.mp3",
-      imageAsset: "assets/images/cognitive/dog.png",
-    ),
-    SoundItem(
-      id: "bell",
-      soundAsset: "sounds/cognitive/bell.mp3",
-      imageAsset: "assets/images/cognitive/bell.png",
-    ),
-    SoundItem(
-      id: "cat",
-      soundAsset: "sounds/cognitive/cat.mp3",
-      imageAsset: "assets/images/cognitive/cat.png",
-    ),
-    SoundItem(
-      id: "car",
-      soundAsset: "sounds/cognitive/car.mp3",
-      imageAsset: "assets/images/cognitive/car.png",
-    ),
+  final List<NumberItem> _items = const [
+    NumberItem(value: 1, word: "එක"),
+    NumberItem(value: 2, word: "දෙක"),
+    NumberItem(value: 3, word: "තුන"),
+    NumberItem(value: 4, word: "හතර"),
+    NumberItem(value: 5, word: "පහ"),
+    NumberItem(value: 6, word: "හය"),
+    NumberItem(value: 7, word: "හත"),
+    NumberItem(value: 8, word: "අට"),
+    NumberItem(value: 9, word: "නවය"),
   ];
 
-  late SoundItem _current;
-  late List<SoundItem> _choices;
+  late NumberItem _current;
+  late List<NumberItem> _choices;
 
-  String _feedback = "🔊 ශබ්දය ඇසීමට තට්ටු කරන්න";
+  String _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
+  Color _feedbackColor = Colors.black87;
   bool _locked = false;
+  int _hintBlinkIndex = -1;
+  Timer? _hintTimer;
+  Timer? _blinkTimer;
+
   late final ConfettiController _confettiController;
   late final AnimationController _starController;
   late final Animation<double> _starScale;
+
   bool _showStar = false;
-
-  // Timers
-  Timer? _autoPlayTimer; // 3s autoplay if user doesn't press Play Sound
-  Timer? _hintTimer; // 4s hint after sound is played
-  Timer? _blinkTimer; // blink correct option background
-  bool _soundPlayedThisRound = false;
-
-  // Hint blink
-  int _hintBlinkIndex = -1;
+  int _rewardIndex = -1;
 
   @override
   void initState() {
@@ -110,80 +83,25 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 
   @override
   void dispose() {
-    _cancelAllTimers();
-    _player.dispose();
+    _cancelHintTimers();
     _confettiController.dispose();
     _starController.dispose();
     super.dispose();
   }
 
-  void _cancelAllTimers() {
-    _autoPlayTimer?.cancel();
+  void _cancelHintTimers() {
     _hintTimer?.cancel();
     _blinkTimer?.cancel();
-    _autoPlayTimer = null;
     _hintTimer = null;
     _blinkTimer = null;
     _hintBlinkIndex = -1;
   }
 
-  void _stopHintBlink() {
-    _blinkTimer?.cancel();
-    _blinkTimer = null;
-    if (mounted) {
-      setState(() => _hintBlinkIndex = -1);
-    } else {
-      _hintBlinkIndex = -1;
-    }
-  }
-
-  void _startNewRound() {
-    _cancelAllTimers();
-
-    _current = _items[_rng.nextInt(_items.length)];
-    final pool = _items.where((e) => e.id != _current.id).toList()..shuffle(_rng);
-    _choices = [_current, ...pool.take(3)]..shuffle(_rng);
-
-    _soundPlayedThisRound = false;
-
-    setState(() {
-      _feedback = "🔊 ශබ්දය ඇසීමට තට්ටු කරන්න";
-      _locked = false;
-      _showStar = false;
-    });
-
-    // ✅ Auto-play sound after 3 seconds if user doesn't press play
-    _autoPlayTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      if (_locked) return;
-      if (_soundPlayedThisRound) return;
-      _playSound(startedByAuto: true);
-    });
-  }
-
-  Future<void> _playSound({bool startedByAuto = false}) async {
-    _soundPlayedThisRound = true;
-
-    // Stop autoplay timer once sound is played (manual or auto)
-    _autoPlayTimer?.cancel();
-    _autoPlayTimer = null;
-
-    // Stop any previous hint blink
-    _stopHintBlink();
-
-    await _player.stop();
-    await _player.play(AssetSource(_current.soundAsset));
-
-    if (!mounted) return;
-    setState(() {
-      _feedback = "දැන් නිවැරදි රූපය තට්ටු කරන්න";
-    });
-
-    // ✅ Start hint timer (4 seconds after sound played)
-    _hintTimer?.cancel();
+  void _startHintTimer() {
+    _cancelHintTimers();
     _hintTimer = Timer(const Duration(seconds: 4), () {
       if (!mounted) return;
-      if (_locked) return; // user already tapped something
+      if (_locked) return;
       _startBlinkHint();
     });
   }
@@ -191,8 +109,8 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   void _startBlinkHint() {
     _blinkTimer?.cancel();
 
-    // find correct index
-    final correctIndex = _choices.indexWhere((it) => it.id == _current.id);
+    final correctIndex =
+        _choices.indexWhere((it) => it.value == _current.value);
     if (correctIndex == -1) return;
 
     _hintBlinkIndex = correctIndex;
@@ -212,7 +130,6 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       });
 
       toggles++;
-      // 6 toggles = 3 blinks
       if (toggles >= 6) {
         t.cancel();
         setState(() => _hintBlinkIndex = -1);
@@ -220,11 +137,26 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     });
   }
 
-  Future<void> _goDashboard() async {
-    _cancelAllTimers();
-    await _player.stop();
-    if (!mounted) return;
+  void _startNewRound() {
+    _cancelHintTimers();
+    _current = _items[_rng.nextInt(_items.length)];
+    final pool = _items.where((e) => e.value != _current.value).toList()
+      ..shuffle(_rng);
+    _choices = [_current, ...pool.take(3)]..shuffle(_rng);
 
+    setState(() {
+      _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
+      _feedbackColor = Colors.black87;
+      _locked = false;
+      _showStar = false;
+      _rewardIndex = -1;
+    });
+
+    _startHintTimer();
+  }
+
+  Future<void> _goDashboard() async {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const CognitiveDashboardScreen()),
@@ -242,38 +174,38 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     setState(() => _showStar = false);
   }
 
-  void _onPick(SoundItem picked) async {
+  Future<void> _onPick(NumberItem picked, int index) async {
     if (_locked) return;
-
-    // stop hint timer + blink immediately when user taps
-    _hintTimer?.cancel();
-    _hintTimer = null;
-    _stopHintBlink();
-
+    _cancelHintTimers();
     setState(() => _locked = true);
 
-    final correct = picked.id == _current.id;
+    final correct = picked.value == _current.value;
 
     if (correct) {
-      setState(() => _feedback = "හරි! හොඳ වැඩයි.");
+      setState(() {
+        _feedback = "හරි! හොඳ වැඩයි.";
+        _feedbackColor = Colors.green;
+        _rewardIndex = index;
+      });
+
       await _playRewardAnimation();
       if (!mounted) return;
       _startNewRound();
     } else {
-      setState(() => _feedback = "❌ නැවත උත්සාහ කරන්න");
-      await Future.delayed(const Duration(milliseconds: 700));
-      if (!mounted) return;
-      setState(() => _locked = false);
+      setState(() {
+        _feedback = "වැරදියි. නැවත උත්සාහ කරන්න.";
+        _feedbackColor = Colors.red;
+      });
 
-      // If sound was already played, restart hint timer for another 4 seconds
-      if (_soundPlayedThisRound) {
-        _hintTimer?.cancel();
-        _hintTimer = Timer(const Duration(seconds: 4), () {
-          if (!mounted) return;
-          if (_locked) return;
-          _startBlinkHint();
-        });
-      }
+      await Future.delayed(const Duration(milliseconds: 650));
+      if (!mounted) return;
+      setState(() {
+        _locked = false;
+        _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
+        _feedbackColor = Colors.black87;
+      });
+
+      _startHintTimer();
     }
   }
 
@@ -291,8 +223,8 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 
     final horizontalPadding = (isWide ? 24.0 : 14.0) * scale;
     final verticalPadding = (isWide ? 20.0 : 14.0) * scale;
-    final buttonHeight = (isNarrow ? 50.0 : 58.0) * scale;
-    final titleFontSize = (isNarrow ? 17.0 : 20.0) * scale;
+    final titleFontSize = (isNarrow ? 18.0 : 22.0) * scale;
+    final numberFontSize = (isNarrow ? 52.0 : 66.0) * scale;
     final feedbackFontSize = (isNarrow ? 15.0 : 18.0) * scale;
     final gridSpacing = (isWide ? 16.0 : (isNarrow ? 8.0 : 12.0)) * scale;
     final cardPadding = (isNarrow ? 9.0 : 12.0) * scale;
@@ -303,11 +235,11 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
         : width >= 720
             ? 3
             : 2;
-    final childAspectRatio = isPortrait ? 1.0 : 1.15;
+    final childAspectRatio = isPortrait ? 1.15 : 1.25;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ශබ්දය – රූපය ගැලපීම"),
+        title: const Text("අංකය ගැලපීම"),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -324,23 +256,26 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
               ),
               child: Column(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed:
-                        _locked ? null : () => _playSound(startedByAuto: false),
-                    icon: const Icon(Icons.volume_up, size: 28),
-                    label: Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                      child: Text(
-                        "ශබ්දය ප්‍රසංගය කරන්න",
-                        style: TextStyle(
-                          fontSize: titleFontSize,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 14 * scale),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14 * scale),
+                      color: Colors.black.withOpacity(0.05),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, buttonHeight),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "${_current.value}",
+                          style: TextStyle(
+                            fontSize: numberFontSize,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(height: 10 * scale),
@@ -357,6 +292,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                       style: TextStyle(
                         fontSize: feedbackFontSize,
                         fontWeight: FontWeight.w600,
+                        color: _feedbackColor,
                       ),
                     ),
                   ),
@@ -372,15 +308,17 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                       ),
                       itemBuilder: (context, index) {
                         final item = _choices[index];
-                        final blinkGreen = index == _hintBlinkIndex;
+                        final rewardGlow = index == _rewardIndex;
+                        final hintGlow = index == _hintBlinkIndex;
 
-                        return _PictureCard(
-                          imageAsset: item.imageAsset,
-                          onTap: () => _onPick(item),
+                        return _WordCard(
+                          word: item.word,
+                          onTap: () => _onPick(item, index),
                           disabled: _locked,
-                          blinkGreen: blinkGreen,
+                          highlightGreen: rewardGlow || hintGlow,
                           padding: cardPadding,
                           radius: cardRadius,
+                          titleFontSize: titleFontSize,
                         );
                       },
                     ),
@@ -392,20 +330,15 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                         child: OutlinedButton.icon(
                           onPressed: _goDashboard,
                           icon: const Icon(Icons.dashboard),
-                          label: const Text("Home"),
+                      label: const Text("මුල් පිටුව"),
                         ),
                       ),
                       SizedBox(width: 10 * scale),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () async {
-                            _cancelAllTimers();
-                            await _player.stop();
-                            if (!mounted) return;
-                            _startNewRound();
-                          },
+                          onPressed: _startNewRound,
                           icon: const Icon(Icons.restart_alt),
-                          label: const Text("Restart"),
+                      label: const Text("නැවත ආරම්භ කරන්න"),
                         ),
                       ),
                     ],
@@ -468,24 +401,23 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   }
 }
 
-// =====================
-// UI CARD
-// =====================
-class _PictureCard extends StatelessWidget {
-  final String imageAsset;
+class _WordCard extends StatelessWidget {
+  final String word;
   final VoidCallback onTap;
   final bool disabled;
-  final bool blinkGreen;
+  final bool highlightGreen;
   final double padding;
   final double radius;
+  final double titleFontSize;
 
-  const _PictureCard({
-    required this.imageAsset,
+  const _WordCard({
+    required this.word,
     required this.onTap,
     required this.disabled,
-    required this.blinkGreen,
+    required this.highlightGreen,
     required this.padding,
     required this.radius,
+    required this.titleFontSize,
   });
 
   @override
@@ -496,7 +428,7 @@ class _PictureCard extends StatelessWidget {
       child: Ink(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
-          color: blinkGreen ? Colors.green.withOpacity(0.35) : Colors.white,
+          color: highlightGreen ? Colors.green.withOpacity(0.3) : Colors.white,
           border: Border.all(color: Colors.black.withOpacity(0.12)),
           boxShadow: [
             BoxShadow(
@@ -508,7 +440,16 @@ class _PictureCard extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.all(padding),
-          child: Image.asset(imageAsset, fit: BoxFit.contain),
+          child: Center(
+            child: Text(
+              word.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
       ),
     );

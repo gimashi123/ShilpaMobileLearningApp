@@ -763,7 +763,19 @@ class _LessonsGrid extends StatelessWidget {
           context,
           "වර්ගය තෝරමු",
           '✏️',
-          '/activity_matchCategory',
+          '/activity_matchNumbers',
+          302,
+          LinearGradient(
+            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+         _gridItem(
+          context,
+          "වර්ගය තෝරමු",
+          '✏️',
+          '/activity_matchImage',
           302,
           LinearGradient(
             colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],

@@ -1,9 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:confetti/confetti.dart';
-
-void main() => runApp(const PatternGameApp());
 
 class PatternGameApp extends StatelessWidget {
   const PatternGameApp({super.key});
@@ -12,7 +11,7 @@ class PatternGameApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pattern Recognition',
+      title: 'රටා හඳුනාගැනීම',
       theme: ThemeData(useMaterial3: true),
       home: const PatternGamePage(),
     );
@@ -53,8 +52,12 @@ class _PatternGamePageState extends State<PatternGamePage>
   late List<String> options;
 
   // UI feedback
-  String feedback = "Tap the correct next item";
+  String feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
   Color feedbackColor = Colors.black;
+
+  int _hintBlinkIndex = -1;
+  Timer? _hintTimer;
+  Timer? _blinkTimer;
 
   bool _showStar = false;
 
@@ -82,15 +85,16 @@ class _PatternGamePageState extends State<PatternGamePage>
     await _tts.setSpeechRate(0.45);
     await _tts.setPitch(1.0);
     await _tts.setVolume(1.0);
-    // If your device supports English voice, this helps.
+    // If your device supports Sinhala voice, this helps.
     // If it fails, it will just use default voice.
     try {
-      await _tts.setLanguage("en-US");
+      await _tts.setLanguage("si-LK");
     } catch (_) {}
   }
 
   @override
   void dispose() {
+    _cancelHintTimers();
     _confettiController.dispose();
     _starController.dispose();
     _tts.stop();
@@ -100,7 +104,7 @@ class _PatternGamePageState extends State<PatternGamePage>
   Future<void> _speakPrompt() async {
     // short + clear for kids
     await _tts.stop();
-    await _tts.speak("What comes next?");
+    await _tts.speak("ඊළඟට එන්නේ මොකක්ද?");
   }
 
   void _newRound({bool speak = false}) {
@@ -116,9 +120,11 @@ class _PatternGamePageState extends State<PatternGamePage>
     }
 
     setState(() {
-      feedback = "Tap the correct next item";
+      feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
       feedbackColor = Colors.black;
     });
+
+    _startHintTimer();
 
     if (speak) {
       _speakPrompt();
@@ -194,21 +200,68 @@ class _PatternGamePageState extends State<PatternGamePage>
     _confettiController.play();
     await _starController.forward(from: 0);
 
-    // Keep star visible a short moment
-    await Future.delayed(const Duration(milliseconds: 550));
+    // Keep star visible before next pattern
+    await Future.delayed(const Duration(milliseconds: 2800));
 
     if (!mounted) return;
     setState(() => _showStar = false);
   }
 
+  void _cancelHintTimers() {
+    _hintTimer?.cancel();
+    _blinkTimer?.cancel();
+    _hintTimer = null;
+    _blinkTimer = null;
+    _hintBlinkIndex = -1;
+  }
+
+  void _startHintTimer() {
+    _cancelHintTimers();
+    _hintTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted) return;
+      _startBlinkHint();
+    });
+  }
+
+  void _startBlinkHint() {
+    _blinkTimer?.cancel();
+
+    final correctIndex = options.indexOf(answer);
+    if (correctIndex == -1) return;
+
+    _hintBlinkIndex = correctIndex;
+
+    int toggles = 0;
+    bool on = false;
+
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 300), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+
+      on = !on;
+      setState(() {
+        _hintBlinkIndex = on ? correctIndex : -1;
+      });
+
+      toggles++;
+      if (toggles >= 6) {
+        t.cancel();
+        setState(() => _hintBlinkIndex = -1);
+      }
+    });
+  }
+
   void _onPick(String pick) async {
+    _cancelHintTimers();
     final ok = pick == answer;
 
     if (ok) {
       setState(() {
         score += 1;
         level += 1;
-        feedback = "✅ Good job!";
+        feedback = "✅ හොඳ වැඩක්!";
         feedbackColor = Colors.green;
       });
 
@@ -218,11 +271,12 @@ class _PatternGamePageState extends State<PatternGamePage>
       _newRound(speak: true);
     } else {
       setState(() {
-        feedback = "❌ Try again";
+        feedback = "❌ නැවත උත්සාහ කරන්න";
         feedbackColor = Colors.red;
       });
       // Optional: re-speak prompt after wrong answer (gentle)
       _speakPrompt();
+      _startHintTimer();
     }
   }
 
@@ -230,7 +284,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     setState(() {
       level = 1;
       score = 0;
-      feedback = "Tap the correct next item";
+      feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
       feedbackColor = Colors.black;
       _showStar = false;
     });
@@ -240,11 +294,11 @@ class _PatternGamePageState extends State<PatternGamePage>
   String _titleForType(PatternType t) {
     switch (t) {
       case PatternType.colors:
-        return "Colors Pattern";
+        return "වර්ණ රටා";
       case PatternType.shapes:
-        return "Shapes Pattern";
+        return "ආකෘති රටා";
       case PatternType.numbers:
-        return "Numbers Pattern";
+        return "අංක රටා";
     }
   }
 
@@ -254,16 +308,16 @@ class _PatternGamePageState extends State<PatternGamePage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Pattern Recognition"),
+        title: const Text("රටා හඳුනාගැනීම"),
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: "Speak",
+            tooltip: "කථනය",
             onPressed: _speakPrompt,
             icon: const Icon(Icons.volume_up),
           ),
           IconButton(
-            tooltip: "Reset",
+            tooltip: "නැවත සැකසන්න",
             onPressed: _resetGame,
             icon: const Icon(Icons.refresh),
           ),
@@ -295,7 +349,7 @@ class _PatternGamePageState extends State<PatternGamePage>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text("Level: $level    Score: $score",
+                        Text("මට්ටම: $level    ලකුණු: $score",
                             style: const TextStyle(fontSize: 16)),
                       ],
                     ),
@@ -347,10 +401,15 @@ class _PatternGamePageState extends State<PatternGamePage>
                       mainAxisSpacing: 14,
                       crossAxisSpacing: 14,
                       childAspectRatio: 1.4,
-                      children: options.map((opt) {
+                      children: options.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final opt = entry.value;
+                        final hintGlow = index == _hintBlinkIndex;
                         return ElevatedButton(
                           onPressed: () => _onPick(opt),
                           style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                hintGlow ? Colors.green.withOpacity(0.25) : null,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -399,9 +458,23 @@ class _PatternGamePageState extends State<PatternGamePage>
                         ),
                       ],
                     ),
-                    child: const Text(
-                      "⭐",
-                      style: TextStyle(fontSize: 72),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Text(
+                          "⭐",
+                          style: TextStyle(fontSize: 72),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          "හරි! හොඳ වැඩයි.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

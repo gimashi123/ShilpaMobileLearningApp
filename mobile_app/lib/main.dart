@@ -22,7 +22,8 @@ import 'package:mobile_app/pages/games_cognitive/activity_iqScore.dart';
 import 'package:mobile_app/pages/games_cognitive/iq.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_matchSound.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_matchPattern.dart';
-import 'package:mobile_app/pages/games_cognitive/activity_matchCategory.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchNumbers.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchImage.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
@@ -121,7 +122,8 @@ class MyApp extends StatelessWidget {
         },
         '/activity_matchSound': (_) => const SoundPictureMatchApp(),
         '/activity_matchPattern': (_) => const PatternGameApp(),
-        '/activity_matchCategory': (_) => const SortingGameApp(),
+        '/activity_matchNumbers': (_) => const NumberMatchingGameApp(),
+        '/activity_matchImage': (_) => const MatchImageGameApp(),
 
         '/visual_game_dashboard': (_) => const VisualGameDashboard(),
         '/visual_math_gamecard': (_) => const AvailableGamesPage(),
