@@ -449,7 +449,11 @@ class Menu extends StatelessWidget {
                             color: Colors.blue,
                             height: btnH,
                             onTap: () {
-                              Navigator.pushNamed(context, '/home_cognitive');
+                              Navigator.of(context, rootNavigator: true)
+                                  .pushNamedAndRemoveUntil(
+                                '/home_cognitive',
+                                (route) => false,
+                              );
                             },
                           ),
                         ],

@@ -9,12 +9,7 @@ class PatternGameApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'රටා හඳුනාගැනීම',
-      theme: ThemeData(useMaterial3: true),
-      home: const PatternGamePage(),
-    );
+    return const PatternGamePage();
   }
 }
 

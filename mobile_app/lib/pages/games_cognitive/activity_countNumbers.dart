@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import '../dashboard/cognitive_dashboard_screen.dart';
 
 class SinhalaNumberGame extends StatefulWidget {
   const SinhalaNumberGame({super.key});
@@ -254,9 +253,11 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true)
+                            .pushNamedAndRemoveUntil(
+                      '/home_cognitive',
+                      (route) => false,
                     ),
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
                   ),

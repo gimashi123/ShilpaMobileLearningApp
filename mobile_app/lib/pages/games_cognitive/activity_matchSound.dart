@@ -3,20 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
-import '../dashboard/cognitive_dashboard_screen.dart';
-
 
 class SoundPictureMatchApp extends StatelessWidget {
   const SoundPictureMatchApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ශබ්දය – රූපය ගැලපීම',
-      theme: ThemeData(useMaterial3: true),
-      home: const SoundPictureMatchGame(),
-    );
+    return const SoundPictureMatchGame();
   }
 }
 
@@ -225,9 +218,9 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     await _player.stop();
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const CognitiveDashboardScreen()),
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
     );
   }
 

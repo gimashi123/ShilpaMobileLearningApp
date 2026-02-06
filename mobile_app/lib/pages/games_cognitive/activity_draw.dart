@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math' as Math;
-import '../dashboard/cognitive_dashboard_screen.dart';
-
 
 class ActivityDraw extends StatefulWidget {
   const ActivityDraw({Key? key}) : super(key: key);
@@ -127,9 +125,11 @@ class _ActivityDrawState extends State<ActivityDraw> {
         // ✅ Back arrow to dashboard
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true)
+                  .pushNamedAndRemoveUntil(
+            '/home_cognitive',
+            (route) => false,
           ),
         ),
         title: Text(

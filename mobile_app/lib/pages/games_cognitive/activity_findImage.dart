@@ -2,8 +2,6 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-// Add this import assuming the dashboard screen is in the same lib directory
-import '../dashboard/cognitive_dashboard_screen.dart';
 
 /* =========================
    APP ROOT
@@ -13,10 +11,7 @@ class PuzzleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: PuzzleScreen(),
-    );
+    return const PuzzleScreen();
   }
 }
 
@@ -115,9 +110,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true)
+                  .pushNamedAndRemoveUntil(
+            '/home_cognitive',
+            (route) => false,
           ),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           tooltip: "Back",

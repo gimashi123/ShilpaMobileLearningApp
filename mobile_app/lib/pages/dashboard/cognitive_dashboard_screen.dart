@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/session/session.dart';
 import 'package:flutter/services.dart'; // ✅ MethodChannel + Haptic
+import 'package:mobile_app/pages/models/cognitive.dart';
+import 'package:mobile_app/services/cognitive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CognitiveDashboardScreen extends StatefulWidget {
   const CognitiveDashboardScreen({super.key});
@@ -13,6 +16,10 @@ class CognitiveDashboardScreen extends StatefulWidget {
 class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   String userName = "";
   int selectedTab = 0; // 0 Home, 1 පාඩම්, 2 Games, 3 ප්‍රශ්න, 4 Profile
+
+  String? _iqCategory;
+  bool _loadingIqCategory = true;
+  bool _enableAllActivities = Session.enableAllCognitiveActivities;
 
   // ✅ Double-click confirm
   int? _pendingKey;
@@ -32,6 +39,186 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     super.initState();
     userName = Session.userName ?? "Student";
     _setupTts();
+    _loadIqCategory();
+    _loadActivityPreference();
+  }
+
+  Future<void> _loadActivityPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(Session.enableAllActivitiesKey) ?? false;
+    if (!mounted) return;
+    setState(() {
+      _enableAllActivities = enabled;
+    });
+    Session.enableAllCognitiveActivities = enabled;
+  }
+
+  Future<void> _loadIqCategory() async {
+    final studentId = Session.userId ?? '';
+    if (studentId.trim().isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _iqCategory = null;
+        _loadingIqCategory = false;
+      });
+      return;
+    }
+
+    try {
+      final attempts = await LdHistoryApi.fetchHistoryByStudentId(
+        studentId.trim(),
+      );
+      LdAttempt? latest;
+      for (final a in attempts) {
+        if (latest == null || a.createdAt.isAfter(latest.createdAt)) {
+          latest = a;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _iqCategory = latest?.predLabel.toLowerCase();
+        _loadingIqCategory = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _iqCategory = null;
+        _loadingIqCategory = false;
+      });
+    }
+  }
+
+  static const _activityIq = _ActivityEntry(
+    title: "IQ බලමු",
+    emoji: '🧠',
+    route: '/iq_game',
+    keyId: 300,
+    gradient: LinearGradient(
+      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityFindImage = _ActivityEntry(
+    title: "රූප හොයමු",
+    emoji: '🖼️',
+    route: '/activity_findImage',
+    keyId: 301,
+    gradient: LinearGradient(
+      colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityDraw = _ActivityEntry(
+    title: "ඉරි අඳිමු",
+    emoji: '✏️',
+    route: '/activity_draw',
+    keyId: 302,
+    gradient: LinearGradient(
+      colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityCountNumbers = _ActivityEntry(
+    title: "ගණන් කරමු",
+    emoji: '🔢',
+    route: '/activity_countNumbers',
+    keyId: 303,
+    gradient: LinearGradient(
+      colors: [Color(0xFF834D9B), Color(0xFFD04ED6)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityMatchSound = _ActivityEntry(
+    title: "රූපය අඳුරගමු",
+    emoji: '🔊',
+    route: '/activity_matchSound',
+    keyId: 304,
+    gradient: LinearGradient(
+      colors: [Color(0xFF00C6FB), Color(0xFF005BEA)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityMatchPattern = _ActivityEntry(
+    title: "රටාව හොයමු",
+    emoji: '🧩',
+    route: '/activity_matchPattern',
+    keyId: 305,
+    gradient: LinearGradient(
+      colors: [Color(0xFFFFB347), Color(0xFFFFCC33)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityMatchNumbers = _ActivityEntry(
+    title: "වර්ගය තෝරමු",
+    emoji: '🔢',
+    route: '/activity_matchNumbers',
+    keyId: 306,
+    gradient: LinearGradient(
+      colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  static const _activityMatchImage = _ActivityEntry(
+    title: "වර්ගය තෝරමු",
+    emoji: '🖼️',
+    route: '/activity_matchImage',
+    keyId: 307,
+    gradient: LinearGradient(
+      colors: [Color(0xFF9CECFB), Color(0xFF65C7F7)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  );
+
+  List<_ActivityEntry> _activitiesFor(
+    String? category,
+    bool enableAll,
+  ) {
+    if (enableAll) {
+      return [
+        _activityIq,
+        _activityFindImage,
+        _activityDraw,
+        _activityMatchSound,
+        _activityMatchImage,
+        _activityCountNumbers,
+        _activityMatchNumbers,
+        _activityMatchPattern,
+      ];
+    }
+
+    final c = (category ?? '').toLowerCase();
+    if (c == 'below') {
+      return [_activityIq, _activityFindImage, _activityDraw];
+    }
+    if (c == 'average') {
+      return [_activityIq, _activityMatchSound, _activityMatchImage];
+    }
+    if (c == 'above') {
+      return [
+        _activityIq,
+        _activityCountNumbers,
+        _activityMatchNumbers,
+        _activityMatchPattern,
+      ];
+    }
+
+    return [_activityIq];
   }
 
   Future<void> _setupTts() async {
@@ -331,10 +518,6 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
                   child: Row(
                     children: [
                       _TabBtn("Home", selectedTab == 0, () => _navTap(0)),
-                      _TabBtn("IQ බලමු", selectedTab == 1, () => _navTap(1)),
-                      _TabBtn("රූප හොයමු", selectedTab == 2, () => _navTap(2)),
-                      _TabBtn("ඉරි අඳිමු", selectedTab == 3, () => _navTap(3)),
-                      _TabBtn("ගණන් කරමු", selectedTab == 4, () => _navTap(4)),
                       _TabBtn("Profile", selectedTab == 5, () => _navTap(5)),
                     ],
                   ),
@@ -502,6 +685,10 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
                       child: _LessonsGrid(
+                        items: _activitiesFor(
+                          _loadingIqCategory ? null : _iqCategory,
+                          _enableAllActivities,
+                        ),
                         onOpen: (title, route, keyId) {
                           _confirmThenGo(
                             keyId: keyId,
@@ -675,9 +862,10 @@ class _SubjectChip extends StatelessWidget {
 // GRID - ENHANCED
 // =====================================================
 class _LessonsGrid extends StatelessWidget {
+  final List<_ActivityEntry> items;
   final void Function(String title, String route, int keyId) onOpen;
 
-  const _LessonsGrid({required this.onOpen});
+  const _LessonsGrid({required this.items, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -687,103 +875,18 @@ class _LessonsGrid extends StatelessWidget {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       childAspectRatio: 2 / 3,
-      children: [
-        _gridItem(
-          context,
-          "IQ බලමු",
-          '🧠',
-          '/iq_game',
-          300,
-          LinearGradient(
-            colors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _gridItem(
-          context,
-          "රූප හොයමු",
-          '🖼️',
-          '/activity_findImage',
-          301,
-          LinearGradient(
-            colors: [const Color(0xFF11998E), const Color(0xFF38EF7D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _gridItem(
-          context,
-          "ඉරි අඳිමු",
-          '✏️',
-          '/activity_draw',
-          302,
-          LinearGradient(
-            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        _gridItem(
-          context,
-          "ගණන් කරමු",
-          '🔢',
-          '/activity_countNumbers',
-          303,
-          LinearGradient(
-            colors: [const Color(0xFF834D9B), const Color(0xFFD04ED6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-         _gridItem(
-          context,
-          "රූපය අඳුරගමු",
-          '🔢',
-          '/activity_matchSound',
-          303,
-          LinearGradient(
-            colors: [const Color(0xFF834D9B), const Color(0xFFD04ED6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ), _gridItem(
-          context,
-          "රටාව හොයමු",
-          '✏️',
-          '/activity_matchPattern',
-          302,
-          LinearGradient(
-            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-         _gridItem(
-          context,
-          "වර්ගය තෝරමු",
-          '✏️',
-          '/activity_matchNumbers',
-          302,
-          LinearGradient(
-            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-         _gridItem(
-          context,
-          "වර්ගය තෝරමු",
-          '✏️',
-          '/activity_matchImage',
-          302,
-          LinearGradient(
-            colors: [const Color(0xFFFF416C), const Color(0xFFFF4B2B)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ],
+      children: items
+          .map(
+            (item) => _gridItem(
+              context,
+              item.title,
+              item.emoji,
+              item.route,
+              item.keyId,
+              item.gradient,
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -875,4 +978,20 @@ class _LessonsGrid extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ActivityEntry {
+  final String title;
+  final String emoji;
+  final String route;
+  final int keyId;
+  final Gradient gradient;
+
+  const _ActivityEntry({
+    required this.title,
+    required this.emoji,
+    required this.route,
+    required this.keyId,
+    required this.gradient,
+  });
 }

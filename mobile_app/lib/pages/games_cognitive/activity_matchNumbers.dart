@@ -2,20 +2,13 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-import '../dashboard/cognitive_dashboard_screen.dart';
-
 
 class NumberMatchingGameApp extends StatelessWidget {
   const NumberMatchingGameApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'අංකය ගැලපීම',
-      theme: ThemeData(useMaterial3: true),
-      home: const NumberMatchingGamePage(),
-    );
+    return const NumberMatchingGamePage();
   }
 }
 
@@ -157,9 +150,9 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
   Future<void> _goDashboard() async {
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const CognitiveDashboardScreen()),
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
     );
   }
 
