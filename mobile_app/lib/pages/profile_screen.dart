@@ -158,16 +158,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final age = (studentObj?["age"] ?? "").toString();
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home_cognitive');
+            }
+          },
+        ),
+        title: const Text("Profile"),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const Text(
-                "Profile",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
 
               Container(
                 width: 110,
