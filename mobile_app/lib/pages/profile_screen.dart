@@ -165,7 +165,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
+              if(disabilityType.toLowerCase() == 'cognitive'){
               Navigator.pushReplacementNamed(context, '/home_cognitive');
+            }
             }
           },
         ),
