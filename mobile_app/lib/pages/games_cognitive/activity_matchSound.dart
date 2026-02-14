@@ -86,6 +86,13 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   // Hint blink
   int _hintBlinkIndex = -1;
 
+  // Attempt stats
+  int _questionsPlayed = 0;
+  int _correctAnswers = 0;
+  Duration _totalReactionTime = Duration.zero;
+  int _reactionSamples = 0;
+  DateTime? _roundSoundPlayedAt;
+
   @override
   void initState() {
     super.initState();
@@ -138,6 +145,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     _choices = [_current, ...pool.take(3)]..shuffle(_rng);
 
     _soundPlayedThisRound = false;
+    _roundSoundPlayedAt = null;
 
     setState(() {
       _feedback = "🔊 ශබ්දය ඇසීමට තට්ටු කරන්න";
@@ -156,6 +164,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 
   Future<void> _playSound({bool startedByAuto = false}) async {
     _soundPlayedThisRound = true;
+    _roundSoundPlayedAt = DateTime.now();
 
     // Stop autoplay timer once sound is played (manual or auto)
     _autoPlayTimer?.cancel();
@@ -213,7 +222,21 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     });
   }
 
+  void _printAttemptStatsToTerminal({required String event}) {
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+
+    debugPrint(
+      "[MATCH_SOUND_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
+    );
+  }
+
   Future<void> _goDashboard() async {
+    _printAttemptStatsToTerminal(event: "home_exit");
     _cancelAllTimers();
     await _player.stop();
     if (!mounted) return;
@@ -238,6 +261,8 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   void _onPick(SoundItem picked) async {
     if (_locked) return;
 
+    final pickedAt = DateTime.now();
+
     // stop hint timer + blink immediately when user taps
     _hintTimer?.cancel();
     _hintTimer = null;
@@ -246,6 +271,18 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     setState(() => _locked = true);
 
     final correct = picked.id == _current.id;
+
+    setState(() {
+      _questionsPlayed++;
+      if (correct) {
+        _correctAnswers++;
+      }
+      if (_roundSoundPlayedAt != null) {
+        _totalReactionTime += pickedAt.difference(_roundSoundPlayedAt!);
+        _reactionSamples++;
+      }
+    });
+    _printAttemptStatsToTerminal(event: correct ? "answer_correct" : "answer_wrong");
 
     if (correct) {
       setState(() => _feedback = "හරි! හොඳ වැඩයි.");
@@ -297,6 +334,16 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
             ? 3
             : 2;
     final childAspectRatio = isPortrait ? 1.0 : 1.15;
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReaction = _reactionSamples == 0
+        ? Duration.zero
+        : Duration(
+            milliseconds:
+                (_totalReactionTime.inMilliseconds / _reactionSamples).round(),
+          );
+    final avgReactionSeconds = avgReaction.inMilliseconds / 1000.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -306,6 +353,13 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
+        actions: [
+          IconButton(
+            tooltip: "Print score to terminal",
+            icon: const Icon(Icons.terminal),
+            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -334,6 +388,24 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                     ),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(double.infinity, buttonHeight),
+                    ),
+                  ),
+                  SizedBox(height: 10 * scale),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12 * scale),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12 * scale),
+                      color: Colors.blue.withOpacity(0.08),
+                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                    ),
+                    child: Text(
+                      "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: (isNarrow ? 13.0 : 14.0) * scale,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   SizedBox(height: 10 * scale),
@@ -392,9 +464,17 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () async {
+                            _printAttemptStatsToTerminal(event: "restart_before_reset");
                             _cancelAllTimers();
                             await _player.stop();
                             if (!mounted) return;
+                            setState(() {
+                              _questionsPlayed = 0;
+                              _correctAnswers = 0;
+                              _totalReactionTime = Duration.zero;
+                              _reactionSamples = 0;
+                              _roundSoundPlayedAt = null;
+                            });
                             _startNewRound();
                           },
                           icon: const Icon(Icons.restart_alt),

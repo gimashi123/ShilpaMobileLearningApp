@@ -56,6 +56,13 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   bool _showStar = false;
 
+  // Attempt stats
+  int _questionsPlayed = 0;
+  int _correctAnswers = 0;
+  Duration _totalReactionTime = Duration.zero;
+  int _reactionSamples = 0;
+  DateTime? _roundStartedAt;
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +125,7 @@ class _PatternGamePageState extends State<PatternGamePage>
       feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
       feedbackColor = Colors.black;
     });
+    _roundStartedAt = DateTime.now();
 
     _startHintTimer();
 
@@ -248,9 +256,35 @@ class _PatternGamePageState extends State<PatternGamePage>
     });
   }
 
+  void _printAttemptStatsToTerminal({required String event}) {
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+
+    debugPrint(
+      "[MATCH_PATTERN_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
+    );
+  }
+
   void _onPick(String pick) async {
+    final pickedAt = DateTime.now();
     _cancelHintTimers();
     final ok = pick == answer;
+
+    setState(() {
+      _questionsPlayed++;
+      if (ok) {
+        _correctAnswers++;
+      }
+      if (_roundStartedAt != null) {
+        _totalReactionTime += pickedAt.difference(_roundStartedAt!);
+        _reactionSamples++;
+      }
+    });
+    _printAttemptStatsToTerminal(event: ok ? "answer_correct" : "answer_wrong");
 
     if (ok) {
       setState(() {
@@ -276,9 +310,15 @@ class _PatternGamePageState extends State<PatternGamePage>
   }
 
   void _resetGame() {
+    _printAttemptStatsToTerminal(event: "restart_before_reset");
     setState(() {
       level = 1;
       score = 0;
+      _questionsPlayed = 0;
+      _correctAnswers = 0;
+      _totalReactionTime = Duration.zero;
+      _reactionSamples = 0;
+      _roundStartedAt = null;
       feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
       feedbackColor = Colors.black;
       _showStar = false;
@@ -300,12 +340,24 @@ class _PatternGamePageState extends State<PatternGamePage>
   @override
   Widget build(BuildContext context) {
     final questionRow = [...pattern, "?"];
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+    final avgReactionSeconds = avgReactionMs / 1000.0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("රටා හඳුනාගැනීම"),
         centerTitle: true,
         actions: [
+          IconButton(
+            tooltip: "Terminal score",
+            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+            icon: const Icon(Icons.terminal),
+          ),
           IconButton(
             tooltip: "කථනය",
             onPressed: _speakPrompt,
@@ -346,6 +398,11 @@ class _PatternGamePageState extends State<PatternGamePage>
                         const SizedBox(height: 8),
                         Text("මට්ටම: $level    ලකුණු: $score",
                             style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Questions: $_questionsPlayed  Correct: $_correctAnswers  Accuracy: ${accuracy.toStringAsFixed(1)}%  Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ],
                     ),
                   ),

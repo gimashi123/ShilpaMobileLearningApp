@@ -53,6 +53,13 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   late final Animation<double> _starScale;
   bool _showStar = false;
 
+  // Attempt stats
+  int _questionsPlayed = 0;
+  int _correctAnswers = 0;
+  Duration _totalReactionTime = Duration.zero;
+  int _reactionSamples = 0;
+  DateTime? _pairStartedAt;
+
   @override
   void initState() {
     super.initState();
@@ -88,12 +95,27 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       _feedbackColor = Colors.black87;
       _checking = false;
     });
+    _pairStartedAt = null;
+  }
+
+  void _printAttemptStatsToTerminal({required String event}) {
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+
+    debugPrint(
+      "[MATCH_IMAGE_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
+    );
   }
 
   Future<void> _checkMatch(String tappedId, int tappedIndex) async {
     if (_checking) return;
 
     if (_selectedId == null) {
+      _pairStartedAt = DateTime.now();
       setState(() {
         _selectedId = tappedId;
         _selectedIndex = tappedIndex;
@@ -108,6 +130,19 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     setState(() => _checking = true);
 
     final correct = _selectedId == tappedId;
+    final secondTappedAt = DateTime.now();
+
+    setState(() {
+      _questionsPlayed++;
+      if (correct) {
+        _correctAnswers++;
+      }
+      if (_pairStartedAt != null) {
+        _totalReactionTime += secondTappedAt.difference(_pairStartedAt!);
+        _reactionSamples++;
+      }
+    });
+    _printAttemptStatsToTerminal(event: correct ? 'answer_correct' : 'answer_wrong');
 
     if (correct) {
       setState(() {
@@ -144,10 +179,12 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       });
     }
 
+    _pairStartedAt = null;
     if (mounted) setState(() => _checking = false);
   }
 
   Future<void> _goDashboard() async {
+    _printAttemptStatsToTerminal(event: 'home_exit');
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
       '/home_cognitive',
@@ -181,6 +218,13 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     final feedbackSize = (isWide ? 16.0 : 14.0) * scale;
     final gridSpacing = (isWide ? 12.0 : 8.0) * scale;
     final cardRadius = (isWide ? 16.0 : 12.0) * scale;
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+    final avgReactionSeconds = avgReactionMs / 1000.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -190,6 +234,13 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Terminal score',
+            icon: const Icon(Icons.terminal),
+            onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -205,6 +256,28 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8 * scale),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10 * scale,
+                      vertical: 8 * scale,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12 * scale),
+                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                    ),
+                    child: Text(
+                      'Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s',
+                      style: TextStyle(
+                        fontSize: feedbackSize,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   SizedBox(height: 8 * scale),
                   AnimatedContainer(
@@ -245,7 +318,19 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _newRound,
+                          onPressed: () {
+                            _printAttemptStatsToTerminal(
+                              event: 'restart_before_reset',
+                            );
+                            setState(() {
+                              _questionsPlayed = 0;
+                              _correctAnswers = 0;
+                              _totalReactionTime = Duration.zero;
+                              _reactionSamples = 0;
+                              _pairStartedAt = null;
+                            });
+                            _newRound();
+                          },
                           icon: const Icon(Icons.refresh),
                           label: const Text('අලුත්'),
                           style: ElevatedButton.styleFrom(

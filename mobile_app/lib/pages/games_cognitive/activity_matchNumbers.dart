@@ -59,6 +59,13 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   bool _showStar = false;
   int _rewardIndex = -1;
 
+  // Attempt stats
+  int _questionsPlayed = 0;
+  int _correctAnswers = 0;
+  Duration _totalReactionTime = Duration.zero;
+  int _reactionSamples = 0;
+  DateTime? _roundStartedAt;
+
   @override
   void initState() {
     super.initState();
@@ -144,11 +151,26 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
       _showStar = false;
       _rewardIndex = -1;
     });
+    _roundStartedAt = DateTime.now();
 
     _startHintTimer();
   }
 
+  void _printAttemptStatsToTerminal({required String event}) {
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+
+    debugPrint(
+      "[MATCH_NUMBERS_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
+    );
+  }
+
   Future<void> _goDashboard() async {
+    _printAttemptStatsToTerminal(event: "home_exit");
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
       '/home_cognitive',
@@ -169,10 +191,23 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
   Future<void> _onPick(NumberItem picked, int index) async {
     if (_locked) return;
+    final pickedAt = DateTime.now();
     _cancelHintTimers();
     setState(() => _locked = true);
 
     final correct = picked.value == _current.value;
+
+    setState(() {
+      _questionsPlayed++;
+      if (correct) {
+        _correctAnswers++;
+      }
+      if (_roundStartedAt != null) {
+        _totalReactionTime += pickedAt.difference(_roundStartedAt!);
+        _reactionSamples++;
+      }
+    });
+    _printAttemptStatsToTerminal(event: correct ? "answer_correct" : "answer_wrong");
 
     if (correct) {
       setState(() {
@@ -229,6 +264,13 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
             ? 3
             : 2;
     final childAspectRatio = isPortrait ? 1.15 : 1.25;
+    final accuracy = _questionsPlayed == 0
+        ? 0.0
+        : (_correctAnswers / _questionsPlayed) * 100;
+    final avgReactionMs = _reactionSamples == 0
+        ? 0
+        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
+    final avgReactionSeconds = avgReactionMs / 1000.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -238,6 +280,13 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
+        actions: [
+          IconButton(
+            tooltip: "Terminal score",
+            icon: const Icon(Icons.terminal),
+            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -269,6 +318,24 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  SizedBox(height: 10 * scale),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12 * scale),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12 * scale),
+                      color: Colors.blue.withOpacity(0.08),
+                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                    ),
+                    child: Text(
+                      "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: (isNarrow ? 13.0 : 14.0) * scale,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   SizedBox(height: 10 * scale),
@@ -323,15 +390,27 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                         child: OutlinedButton.icon(
                           onPressed: _goDashboard,
                           icon: const Icon(Icons.dashboard),
-                      label: const Text("මුල් පිටුව"),
+                          label: const Text("මුල් පිටුව"),
                         ),
                       ),
                       SizedBox(width: 10 * scale),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _startNewRound,
+                          onPressed: () {
+                            _printAttemptStatsToTerminal(
+                              event: "restart_before_reset",
+                            );
+                            setState(() {
+                              _questionsPlayed = 0;
+                              _correctAnswers = 0;
+                              _totalReactionTime = Duration.zero;
+                              _reactionSamples = 0;
+                              _roundStartedAt = null;
+                            });
+                            _startNewRound();
+                          },
                           icon: const Icon(Icons.restart_alt),
-                      label: const Text("නැවත ආරම්භ කරන්න"),
+                          label: const Text("නැවත ආරම්භ කරන්න"),
                         ),
                       ),
                     ],

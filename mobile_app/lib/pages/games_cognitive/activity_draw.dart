@@ -77,7 +77,14 @@ class _ActivityDrawState extends State<ActivityDraw> {
   }
 
   void _resetCurrentTrace() {
+    _printCurrentTraceMetrics();
     _canvasKeys[_currentTraceIndex]?.currentState?.clearCanvas();
+  }
+
+  void _printCurrentTraceMetrics() {
+    _canvasKeys[_currentTraceIndex]?.currentState?.printMetricsToTerminal(
+      reason: 'manual_request',
+    );
   }
 
   void _onLevelCompleted(int index) {
@@ -342,12 +349,16 @@ class _TracingCanvasState extends State<TracingCanvas> {
   final List<List<Offset>> strokes = [];
   List<Offset> currentStroke = [];
   bool _alreadyCompleted = false;
+  DateTime? _firstPanStartAt;
+  DateTime? _completedAt;
 
   void clearCanvas() {
     setState(() {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       for (final d in widget.tracePath.dots) {
         d.isTraced = false;
       }
@@ -390,6 +401,64 @@ class _TracingCanvasState extends State<TracingCanvas> {
       }
     }
     return total;
+  }
+
+  _TraceMetrics _computeMetrics() {
+    final samples = widget.tracePath.samples;
+    final coveredSamples = samples.where((s) => s.isCovered).length;
+    final totalSamples = samples.length;
+
+    // Coverage ratio is the fraction of hidden path samples the user covered.
+    final coverageRatio =
+        totalSamples == 0 ? 0.0 : coveredSamples / totalSamples;
+
+    final allPoints = <Offset>[];
+    for (final stroke in strokes) {
+      allPoints.addAll(stroke);
+    }
+    allPoints.addAll(currentStroke);
+
+    const offPathLimit = 25.0;
+    int offPathPoints = 0;
+
+    for (final p in allPoints) {
+      double minDist = double.infinity;
+      for (final s in samples) {
+        final d = (p - s.position).distance;
+        if (d < minDist) minDist = d;
+      }
+      if (minDist > offPathLimit) offPathPoints++;
+    }
+
+    // Off-path ratio reflects precision: lower means more accurate tracing.
+    final totalStrokePoints = allPoints.length;
+    final offPathRatio =
+        totalStrokePoints == 0 ? 0.0 : offPathPoints / totalStrokePoints;
+
+    final userStrokeLength = _totalStrokeLength();
+    final idealPathLength = widget.tracePath.pathLength;
+
+    // Stroke ratio compares user path length against the ideal guide length.
+    final strokeRatio =
+        idealPathLength <= 0 ? 0.0 : userStrokeLength / idealPathLength;
+
+    final completionMs = (_firstPanStartAt != null && _completedAt != null)
+        ? _completedAt!.difference(_firstPanStartAt!).inMilliseconds
+        : -1;
+
+    return _TraceMetrics(
+      completionMs: completionMs,
+      coverageRatio: coverageRatio,
+      offPathRatio: offPathRatio,
+      strokeRatio: strokeRatio,
+    );
+  }
+
+  void printMetricsToTerminal({required String reason}) {
+    final m = _computeMetrics();
+    debugPrint(
+      "[DRAW_TRACE_METRICS] reason=$reason completion_ms=${m.completionMs} coverage_ratio=${m.coverageRatio.toStringAsFixed(3)} off_path_ratio=${m.offPathRatio.toStringAsFixed(3)} stroke_ratio=${m.strokeRatio.toStringAsFixed(3)}",
+    );
   }
 
   bool _isTraceComplete() {
@@ -455,6 +524,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
 
     if (ok) {
       _alreadyCompleted = true;
+      _completedAt = DateTime.now();
+      printMetricsToTerminal(reason: 'success');
       widget.onCompleted?.call();
     } else {
       final strokeLength = _totalStrokeLength();
@@ -472,6 +543,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       widget.tracePath.dots.clear();
       widget.tracePath.samples.clear();
       widget.tracePath.pathLength = 0.0;
@@ -501,6 +574,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
           GestureDetector(
             onPanStart: (details) {
               final p = details.localPosition;
+              // Timer starts at the first touch of a fresh attempt.
+              _firstPanStartAt ??= DateTime.now();
               setState(() {
                 currentStroke = [p];
                 _handlePoint(p);
@@ -534,6 +609,20 @@ class _TracingCanvasState extends State<TracingCanvas> {
       ),
     );
   }
+}
+
+class _TraceMetrics {
+  final int completionMs;
+  final double coverageRatio;
+  final double offPathRatio;
+  final double strokeRatio;
+
+  const _TraceMetrics({
+    required this.completionMs,
+    required this.coverageRatio,
+    required this.offPathRatio,
+    required this.strokeRatio,
+  });
 }
 
 // ---------------- GUIDE LINE PAINTER ----------------

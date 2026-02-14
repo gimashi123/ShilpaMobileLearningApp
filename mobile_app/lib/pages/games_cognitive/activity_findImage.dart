@@ -44,6 +44,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   late final ConfettiController _confettiController;
   bool _rewardPlayed = false;
 
+  // Attempt metrics
+  DateTime? _attemptStartedAt;
+  DateTime? _attemptCompletedAt;
+  DateTime? _lastTapAt;
+  int _totalTaps = 0;
+  int _piecesRemovedCount = 0;
+  Duration _sumInterTapTime = Duration.zero;
+  int _interTapCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -70,9 +79,36 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       seed: DateTime.now().millisecondsSinceEpoch,
     );
     pieces = paths.map((p) => _Piece(path: p)).toList();
+    _resetAttemptMetrics();
+  }
+
+  void _resetAttemptMetrics() {
+    _attemptStartedAt = DateTime.now();
+    _attemptCompletedAt = null;
+    _lastTapAt = null;
+    _totalTaps = 0;
+    _piecesRemovedCount = 0;
+    _sumInterTapTime = Duration.zero;
+    _interTapCount = 0;
+  }
+
+  void _printAttemptStatsToTerminal({required String event}) {
+    final completionMs =
+        (_attemptStartedAt != null && _attemptCompletedAt != null)
+            ? _attemptCompletedAt!.difference(_attemptStartedAt!).inMilliseconds
+            : -1;
+    final usefulTapRate = _totalTaps == 0 ? 0.0 : _piecesRemovedCount / _totalTaps;
+    final avgInterTapMs = _interTapCount == 0
+        ? 0
+        : (_sumInterTapTime.inMilliseconds / _interTapCount).round();
+
+    debugPrint(
+      "[FIND_IMAGE_SCORE] event=$event completion_ms=$completionMs total_taps=$_totalTaps pieces_removed=$_piecesRemovedCount useful_tap_rate=${usefulTapRate.toStringAsFixed(3)} avg_inter_tap_ms=$avgInterTapMs",
+    );
   }
 
   void _nextImage() {
+    _printAttemptStatsToTerminal(event: 'next_image_before_reset');
     setState(() {
       _index++;
       if (_index >= _playlist.length) {
@@ -85,12 +121,23 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   void _onTap(Offset pos) {
+    final tapTime = DateTime.now();
+    _totalTaps++;
+    if (_lastTapAt != null) {
+      _sumInterTapTime += tapTime.difference(_lastTapAt!);
+      _interTapCount++;
+    }
+    _lastTapAt = tapTime;
+
     for (int i = pieces.length - 1; i >= 0; i--) {
       if (!pieces[i].removed && pieces[i].path.contains(pos)) {
         setState(() {
           pieces[i].removed = true;
+          _piecesRemovedCount++;
         });
         if (completed) {
+          _attemptCompletedAt = tapTime;
+          _printAttemptStatsToTerminal(event: 'attempt_completed');
           _playRewardAnimation();
         }
         break;
@@ -99,6 +146,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   bool get completed => pieces.isNotEmpty && pieces.every((p) => p.removed);
+
+  Future<void> _goDashboard() async {
+    _printAttemptStatsToTerminal(event: 'back_to_home');
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,12 +166,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true)
-                  .pushNamedAndRemoveUntil(
-            '/home_cognitive',
-            (route) => false,
-          ),
+          onPressed: _goDashboard,
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           tooltip: "Back",
         ),
@@ -128,8 +179,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        // same right-side spacing like your first code (SizedBox width 48)
-        actions: const [SizedBox(width: 48)],
+        actions: [
+          IconButton(
+            onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+            icon: const Icon(Icons.terminal, color: Colors.black),
+            tooltip: "Terminal score",
+          ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, c) {
@@ -197,6 +253,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _btn("අලුත්", () {
+                      _printAttemptStatsToTerminal(
+                        event: 'new_round_before_reset',
+                      );
                       setState(() => pieces.clear());
                       _rewardPlayed = false;
                       _confettiController.stop();
