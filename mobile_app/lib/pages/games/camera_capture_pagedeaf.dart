@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class PredictVideoPage extends StatefulWidget {
-  final String apiBaseUrl; // example: http://192.168.1.176:8000
+  final String apiBaseUrl; 
 
   const PredictVideoPage({
     super.key,
@@ -60,9 +60,7 @@ class _PredictVideoPageState extends State<PredictVideoPage> {
     });
 
     try {
-      final uri = Uri.parse(
-        "${widget.apiBaseUrl}/api/hearing-impairment/predict-video",
-      );
+      final uri = Uri.parse("${widget.apiBaseUrl}/api/hearing-impairment/predict-video");
 
       final req = http.MultipartRequest("POST", uri);
 

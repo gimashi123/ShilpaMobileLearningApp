@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Your pages
 import 'package:mobile_app/lesson_dashboard/hearing_lesson.dart';
@@ -26,7 +27,6 @@ import 'package:mobile_app/pages/quiz.dart';
 import 'package:mobile_app/pages/quiz/hearing_quiz_screen.dart';
 import 'package:mobile_app/pages/quiz/quiz_hub.dart';
 import 'package:mobile_app/pages/subject/hearing_math.dart';
-import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
@@ -55,6 +55,9 @@ Future<void> main() async {
     print("ERROR: availableCameras failed: $e");
     cameras = <CameraDescription>[];
   }
+
+
+  await dotenv.load(fileName: ".env");
 
   // Start Flutter UI
   runApp(const MyApp());
@@ -106,7 +109,6 @@ class MyApp extends StatelessWidget {
         '/general_quiz': (_) => const QuizHubPage(),
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
-        '/lessons': (_) => const VisualLessonDashboard(),
 
         // cognitive disability games
         '/iq_game': (_) => const IqGame(),

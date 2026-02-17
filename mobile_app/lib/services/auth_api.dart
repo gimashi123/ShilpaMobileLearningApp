@@ -1,14 +1,15 @@
 import 'dart:io'; // For Platform check
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // For kIsWeb check
+import 'package:flutter/foundation.dart';
+import 'package:mobile_app/config/AppConfig.dart'; // For kIsWeb check
 
 class AuthApi {
   // Use 10.0.2.2 for Android Emulator to access host machine
   // Use localhost for iOS Simulator, Web, and Desktop
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:3000';
-    if (Platform.isAndroid) return 'http://192.168.1.126:3000';
+    if (Platform.isAndroid) return AppConfig.apiBaseUrl;
     return 'http://localhost:3000';
   }
 
