@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/session/session.dart';
 import 'package:flutter/services.dart'; // ✅ MethodChannel + Haptic
 import 'package:mobile_app/pages/models/cognitive.dart';
+import 'package:mobile_app/services/chat_service.dart';
 import 'package:mobile_app/services/cognitive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class CognitiveDashboardScreen extends StatefulWidget {
   const CognitiveDashboardScreen({super.key});
@@ -28,6 +33,15 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
 
   // ✅ TTS
   final FlutterTts _tts = FlutterTts();
+  final ChatService _chatService = ChatService();
+  late LlmProvider _chatProvider;
+  final stt.SpeechToText _chatStt = stt.SpeechToText();
+  bool _sttReady = false;
+  bool _isListening = false;
+  String? _chatLocaleId;
+  String _liveTranscript = '';
+  bool _preferSinhalaChat = true;
+  bool _sendingVoicePrompt = false;
 
   // ✅ Native vibration channel (Android)
   static const MethodChannel _vibChannel = MethodChannel(
@@ -37,8 +51,10 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _chatProvider = _chatService.createProvider(preferSinhala: true);
     userName = Session.userName ?? "Student";
     _setupTts();
+    _initChatVoice();
     _loadIqCategory();
     _loadActivityPreference();
   }
@@ -233,8 +249,180 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
 
   @override
   void dispose() {
+    if (_chatStt.isListening) {
+      _chatStt.stop();
+    }
     _tts.stop();
     super.dispose();
+  }
+
+  Future<void> _initChatVoice() async {
+    final available = await _chatStt.initialize(
+      onStatus: (status) {
+        if (!mounted) return;
+        if (status == 'done' || status == 'notListening') {
+          setState(() {
+            _isListening = false;
+          });
+        }
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isListening = false;
+        });
+      },
+    );
+
+    if (!available) return;
+
+    String? preferredLocale;
+    final locales = await _chatStt.locales();
+    for (final loc in locales) {
+      if (loc.localeId.toLowerCase().startsWith('si')) {
+        preferredLocale = loc.localeId;
+        break;
+      }
+    }
+    preferredLocale ??= (await _chatStt.systemLocale())?.localeId;
+
+    if (!mounted) return;
+    setState(() {
+      _sttReady = true;
+      _chatLocaleId = preferredLocale;
+    });
+  }
+
+  Future<void> _toggleChatLanguage() async {
+    final oldHistory = _chatProvider.history.toList();
+    setState(() {
+      _preferSinhalaChat = !_preferSinhalaChat;
+      _chatProvider = _chatService.createProvider(
+        preferSinhala: _preferSinhalaChat,
+        history: oldHistory,
+      );
+    });
+    final msg = _preferSinhalaChat
+        ? 'Chat language set to Sinhala'
+        : 'Chat language set to English';
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _toggleVoiceInput() async {
+    if (_isListening) {
+      await _stopVoiceInput(submitResult: true);
+      return;
+    }
+    if (!_sttReady) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voice input is not available on this device.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _liveTranscript = '';
+      _isListening = true;
+    });
+
+    await _chatStt.listen(
+      localeId: _chatLocaleId,
+      listenOptions: stt.SpeechListenOptions(
+        listenMode: stt.ListenMode.dictation,
+        partialResults: true,
+      ),
+      pauseFor: const Duration(seconds: 4),
+      listenFor: const Duration(seconds: 25),
+      onResult: (result) {
+        if (!mounted) return;
+        final words = result.recognizedWords.trim();
+        setState(() {
+          _liveTranscript = words;
+        });
+        if (result.finalResult) {
+          unawaited(_stopVoiceInput(submitResult: true));
+        }
+      },
+    );
+  }
+
+  Future<void> _stopVoiceInput({required bool submitResult}) async {
+    if (_chatStt.isListening) {
+      await _chatStt.stop();
+    }
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+    });
+    final prompt = _liveTranscript.trim();
+    if (submitResult && prompt.isNotEmpty) {
+      await _sendPromptFromVoice(prompt);
+      if (!mounted) return;
+      setState(() {
+        _liveTranscript = '';
+      });
+    }
+  }
+
+  Future<void> _sendPromptFromVoice(String prompt) async {
+    if (_sendingVoicePrompt) return;
+    setState(() {
+      _sendingVoicePrompt = true;
+    });
+    try {
+      await for (final _ in _chatProvider.sendMessageStream(prompt)) {}
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not send voice prompt. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sendingVoicePrompt = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _speakLatestAssistantReply() async {
+    final history = _chatProvider.history.toList().reversed;
+    String? latest;
+    for (final msg in history) {
+      if (!msg.origin.isLlm) continue;
+      final text = msg.text?.trim();
+      if (text != null && text.isNotEmpty) {
+        latest = text;
+        break;
+      }
+    }
+
+    if (latest == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No AI reply to read yet.')),
+      );
+      return;
+    }
+
+    try {
+      await _tts.stop();
+      await _tts.setLanguage(_preferSinhalaChat ? 'si-LK' : 'en-US');
+      await _tts.speak(latest);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Text-to-speech is not available.')),
+      );
+    }
   }
 
   // ✅ REAL vibration (Native Android) + fallback haptic
@@ -346,6 +534,10 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
         name = "ගණන් කරමු";
         route = "/activity_countNumbers";
         break;
+        case 5:
+        name = "ප්‍රගතිය";
+        route = "/activity_iqScore";
+        break;
       default:
         name = "Profile";
         route = "/profile";
@@ -358,9 +550,129 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     );
   }
 
+  Future<void> _openAiChat() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final height = MediaQuery.of(ctx).size.height * 0.9;
+        return Theme(
+          data: ThemeData(
+            useMaterial3: true,
+            colorSchemeSeed: const Color(0xFF5B7CFF),
+            brightness: Brightness.light,
+          ),
+          child: Container(
+            height: height,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 6, 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Cognitive AI Assistant',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _toggleChatLanguage,
+                        child: Text(
+                          _preferSinhalaChat ? 'සිංහල' : 'English',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _sendingVoicePrompt
+                            ? null
+                            : _toggleVoiceInput,
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? Colors.red : null,
+                        ),
+                        tooltip: _isListening
+                            ? 'Stop and send voice input'
+                            : 'Start voice input',
+                      ),
+                      IconButton(
+                        onPressed: _speakLatestAssistantReply,
+                        icon: const Icon(Icons.volume_up_outlined),
+                        tooltip: 'Read latest AI response',
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                if (_isListening || _liveTranscript.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    color: const Color(0xFFE8EEFF),
+                    child: Text(
+                      _isListening
+                          ? 'Listening... $_liveTranscript'
+                          : 'Voice text: $_liveTranscript',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF25325F),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: LlmChatView(
+                    provider: _chatProvider,
+                    welcomeMessage:
+                        'ආයුබෝවන්! මම ඔබගේ cognitive ඉගෙනීමේ AI සහායකයා.',
+                    suggestions: const [
+                      'මතකය වැඩි කරගන්න ක්‍රම 3ක් දෙන්න',
+                      'අදට මිනිත්තු 5ක brain exercises දෙන්න',
+                      'matching tasks වලට අමාරු ළමයෙකුට උදව් කරන්නේ කොහොමද?',
+                    ],
+                    enableAttachments: false,
+                    enableVoiceNotes: false,
+                    autofocus: false,
+                    style: LlmChatViewStyle(
+                      backgroundColor: const Color(0xFFF8FAFF),
+                      progressIndicatorColor: const Color(0xFF5B7CFF),
+                      menuColor: const Color(0xFF5B7CFF),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAiChat,
+        icon: const Icon(Icons.smart_toy_outlined),
+        label: const Text('AI Chat'),
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -518,7 +830,8 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
                   child: Row(
                     children: [
                       _TabBtn("Home", selectedTab == 0, () => _navTap(0)),
-                      _TabBtn("Profile", selectedTab == 5, () => _navTap(5)),
+                      _TabBtn("ප්‍රගතිය", selectedTab == 5, () => _navTap(5)),
+                      _TabBtn("Profile", selectedTab == 6, () => _navTap(6)),
                     ],
                   ),
                 ),
