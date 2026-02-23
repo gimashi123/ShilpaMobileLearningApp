@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/session/session.dart';
-import 'package:flutter/services.dart'; // ✅ MethodChannel + Haptic
+import 'package:flutter/services.dart';
 
 class CognitiveDashboardScreen extends StatefulWidget {
   const CognitiveDashboardScreen({super.key});

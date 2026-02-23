@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 class PredictVideoPage extends StatefulWidget {
   final String apiBaseUrl; 
@@ -60,12 +62,24 @@ class _PredictVideoPageState extends State<PredictVideoPage> {
     });
 
     try {
-      final uri = Uri.parse("${widget.apiBaseUrl}/api/hearing-impairment/predict-video");
+      final uri = Uri.parse("${widget.apiBaseUrl}/api/models/hearing-impairment/predict-video");
 
       final req = http.MultipartRequest("POST", uri);
 
-      // MUST be "video" (same as your React: formData.append("video", video))
-      req.files.add(await http.MultipartFile.fromPath("video", _videoFile!.path));
+      final path = _videoFile!.path;
+
+      // Detect MIME from file name/path (better than extension switch)
+      final mime = lookupMimeType(path) ?? 'video/mp4'; // fallback if unknown
+      final parts = mime.split('/');
+
+      req.files.add(
+        await http.MultipartFile.fromPath(
+          "video",
+          path,
+          contentType: MediaType(parts[0], parts[1]),
+          filename: path.split(Platform.pathSeparator).last,
+        ),
+      );
 
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);

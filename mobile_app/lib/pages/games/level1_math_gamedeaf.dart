@@ -6,11 +6,12 @@ import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:http_parser/http_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../config/AppConfig.dart';
 
-/// ✅ CHANGE THIS to your PC IP (same Wi-Fi)
-const String kApiBaseUrl = "http://192.168.1.176:8000";
+
 
 /// =======================
 /// Question Model + Bank
@@ -130,7 +131,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
       MaterialPageRoute(
         builder: (_) => CaptureSignPage(
           expectedAnswer: expected,
-          apiBaseUrl: kApiBaseUrl,
+          apiBaseUrl: AppConfig.apiBaseUrl,
         ),
       ),
     );
@@ -1465,19 +1466,17 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
   }
 
   Future<_CaptureResult> _uploadToApi({required String videoPath}) async {
-    final uri = Uri.parse("${widget.apiBaseUrl}/api/hearing-impairment/predict-video");
+    final uri = Uri.parse("${widget.apiBaseUrl}/api/models/hearing-impairment/predict-video");
     final req = http.MultipartRequest("POST", uri);
 
-    final bytes = await File(videoPath).readAsBytes();
-
     req.files.add(
-      http.MultipartFile.fromBytes(
-        "video",
-        bytes,
-        filename: "capture.mp4",
-        contentType: MediaType("video", "mp4"),
-      ),
-    );
+    await http.MultipartFile.fromPath(
+      "video",
+      videoPath,
+      contentType: MediaType('video', 'mp4'), // force correct type
+    ),
+   );
+
 
     req.fields["expected"] = widget.expectedAnswer.toString();
 

@@ -10,6 +10,7 @@ import numpy as np
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+
 # NOTE:
 # Prefer loading model once at startup via app.state.models (recommended).
 # This routes file uses `services.model_loader.get_model(request, "hearing_impairment")`.
@@ -340,20 +341,37 @@ async def predict_from_video(
     """
     logger.info(f"[PREDICT_VIDEO] Starting video prediction request. Filename: {video.filename}, Description: {description}")
     
-    allowed_types = {
-        "video/mp4",
-        "video/quicktime",
-        "video/x-msvideo",
-        "video/x-matroska",
-        "video/webm",
-    }
+    ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 
-    if video.content_type not in allowed_types:
-        logger.warning(f"[PREDICT_VIDEO] Invalid video type rejected: {video.content_type}")
+    ext = os.path.splitext(video.filename)[1].lower() if video.filename else ""
+
+    logger.info(
+        f"[PREDICT_VIDEO] filename={video.filename}, "
+        f"content_type={video.content_type}, detected_ext={ext}"
+    )
+
+    if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid file type: {video.content_type}. Allowed: {', '.join(sorted(allowed_types))}",
-        )
+            detail=f"Invalid file extension: {ext}. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+    )
+
+
+
+    # allowed_types = {
+    #     "video/mp4",
+    #     "video/quicktime",
+    #     "video/x-msvideo",
+    #     "video/x-matroska",
+    #     "video/webm",
+    # }
+
+    # if video.content_type not in allowed_types:
+    #     logger.warning(f"[PREDICT_VIDEO] Invalid video type rejected: {video.content_type}")
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"Invalid file type: {video.content_type}. Allowed: {', '.join(sorted(allowed_types))}",
+    #     )
 
     temp_video_path = None
 

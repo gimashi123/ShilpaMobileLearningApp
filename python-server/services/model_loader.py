@@ -27,18 +27,18 @@ def initialize_models() -> Dict[str, Any]:
         
         # Load hearing impairment model
         if os.path.exists(HEARING_IMPAIRMENT_MODEL_PATH):
-            logger.info(f"[MODEL_INIT] ✓ Model file found at: {HEARING_IMPAIRMENT_MODEL_PATH}")
+            logger.info(f"[MODEL_INIT] Model file found at: {HEARING_IMPAIRMENT_MODEL_PATH}")
             try:
                 logger.debug("[MODEL_INIT] Loading hearing impairment model with joblib...")
                 models['hearing_impairment'] = joblib.load(HEARING_IMPAIRMENT_MODEL_PATH)
-                logger.info("[MODEL_INIT] ✓ Hearing impairment model loaded successfully")
+                logger.info("[MODEL_INIT] Hearing impairment model loaded successfully")
                 logger.debug(f"[MODEL_INIT] Model type: {type(models['hearing_impairment'])}")
                 logger.debug(f"[MODEL_INIT] Model attributes: {dir(models['hearing_impairment'])}")
             except Exception as e:
-                logger.error(f"[MODEL_INIT] ✗ Failed to load model with joblib: {str(e)}", exc_info=True)
+                logger.error(f"[MODEL_INIT] Failed to load model with joblib: {str(e)}", exc_info=True)
                 raise
         else:
-            logger.warning(f"[MODEL_INIT] ⚠ Hearing impairment model not found at {HEARING_IMPAIRMENT_MODEL_PATH}")
+            logger.warning(f"[MODEL_INIT] Hearing impairment model not found at {HEARING_IMPAIRMENT_MODEL_PATH}")
             logger.warning("[MODEL_INIT] Application will continue but predictions will fail")
         
         logger.info(f"[MODEL_INIT] Model initialization complete. Loaded {len(models)} model(s)")
@@ -46,7 +46,7 @@ def initialize_models() -> Dict[str, Any]:
         logger.info("=" * 60)
     
     except Exception as e:
-        logger.error(f"[MODEL_INIT] ✗ Error loading models: {str(e)}", exc_info=True)
+        logger.error(f"[MODEL_INIT] Error loading models: {str(e)}", exc_info=True)
         logger.error("=" * 60)
         raise
     

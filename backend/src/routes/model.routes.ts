@@ -8,19 +8,33 @@ import path from 'path';
 const router = Router();
 
 // Configure multer for video uploads
+
+const storage = multer.diskStorage({
+  destination: 'uploads/videos/',
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);   // ✅ get real extension
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueName + ext);                    // ✅ keep extension
+  }
+});
+
+
 const videoUpload = multer({
-  dest: 'uploads/videos/',
+  storage,
   limits: {
-    fileSize: 500 * 1024 * 1024 // 500MB limit for videos
+    fileSize: 500 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
-    // Accept only video files
-    const allowedMimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only video files are allowed'));
-    }
+    const allowedMimes = [
+      'video/mp4',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/x-matroska',
+      'video/webm'
+    ];
+
+    if (allowedMimes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only video files are allowed'));
   }
 });
 
@@ -78,12 +92,18 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     videoPath = req.file.path;
     const { description } = req.body;
 
-    logger.info(`Processing video for prediction: ${req.file.filename}`);
+    const ext = path.extname(req.file.originalname);
+    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext})`);
 
     // Create FormData to send video to Python server
     const FormData = require('form-data');
     const form = new FormData();
-    form.append('video', fs.createReadStream(videoPath));
+
+    form.append('video', fs.createReadStream(videoPath), {
+      filename: req.file.originalname,   // ✅ important
+      contentType: req.file.mimetype     // ✅ important
+    });
+
     if (description) {
       form.append('description', description);
     }

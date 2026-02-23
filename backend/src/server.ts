@@ -45,7 +45,13 @@ const port = process.env.PORT || 3000;
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Middleware
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info(`[${req.method}] ${req.originalUrl} from ${req.ip}`);
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -100,9 +106,9 @@ app.post(
     const videoPath = req.file.path;
 
     // Call Python script
-   const pyScript = path.join(__dirname, "predict_video.py"); // ✅ because server.ts is in src
+     const pyScript = path.join(__dirname, "predict_video.py"); // ✅ because server.ts is in src
 
-const py = spawn("python", [pyScript, videoPath]);
+    const py = spawn("python", [pyScript, videoPath]);
 
 
     let output = "";
