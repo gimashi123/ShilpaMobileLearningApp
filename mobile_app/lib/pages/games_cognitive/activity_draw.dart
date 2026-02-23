@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 import 'dart:math' as Math;
 
 class ActivityDraw extends StatefulWidget {
@@ -104,17 +105,26 @@ class _ActivityDrawState extends State<ActivityDraw> {
     });
     _confettiController.play();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _showNotification = false);
+    await Future.delayed(const Duration(milliseconds: 4500));
+    if (!mounted) return;
+    setState(() => _showNotification = false);
 
-      if (index < tracePaths.length - 1) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          if (_currentTraceIndex == index) _nextTrace();
-        });
-      }
-    });
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'ඉරි අඳිමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
+    if (!mounted) return;
+
+    if (index < tracePaths.length - 1 && _currentTraceIndex == index) {
+      _nextTrace();
+      return;
+    }
+    await _goDashboard();
   }
 
   void _onLevelFailed(int index) {

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class NumberMatchingGameApp extends StatelessWidget {
   const NumberMatchingGameApp({super.key});
@@ -194,6 +195,16 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
     setState(() => _showStar = false);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'අංකය ගැලපීම',
+          autoNavigate: false,
+          duration: Duration(seconds: 4),
+        ),
+      ),
+    );
   }
 
   Future<void> _onPick(NumberItem picked, int index) async {
@@ -218,7 +229,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
     if (correct) {
       setState(() {
-        _feedback = "හරි! හොඳ වැඩයි.";
+        _feedback = "";
         _feedbackColor = Colors.green;
         _rewardIndex = index;
       });
@@ -287,13 +298,13 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
-        actions: [
-          IconButton(
-            tooltip: "Terminal score",
-            icon: const Icon(Icons.terminal),
-            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     tooltip: "Terminal score",
+        //     icon: const Icon(Icons.terminal),
+        //     onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+        //   ),
+        // ],
       ),
       body: SafeArea(
         child: Stack(
@@ -327,24 +338,24 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                       ],
                     ),
                   ),
-                  SizedBox(height: 10 * scale),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(12 * scale),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12 * scale),
-                      color: Colors.blue.withOpacity(0.08),
-                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
-                    ),
-                    child: Text(
-                      "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: (isNarrow ? 13.0 : 14.0) * scale,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  // SizedBox(height: 10 * scale),
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: EdgeInsets.all(12 * scale),
+                  //   decoration: BoxDecoration(
+                  //     borderRadius: BorderRadius.circular(12 * scale),
+                  //     color: Colors.blue.withOpacity(0.08),
+                  //     border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                  //   ),
+                  //   child: Text(
+                  //     "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                  //     textAlign: TextAlign.center,
+                  //     style: TextStyle(
+                  //       fontSize: (isNarrow ? 13.0 : 14.0) * scale,
+                  //       fontWeight: FontWeight.w600,
+                  //     ),
+                  //   ),
+                  // ),
                   SizedBox(height: 10 * scale),
                   Container(
                     width: double.infinity,
@@ -397,7 +408,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                         child: OutlinedButton.icon(
                           onPressed: _goDashboard,
                           icon: const Icon(Icons.dashboard),
-                          label: const Text("මුල් පිටුව"),
+                          label: const Text("Home"),
                         ),
                       ),
                       SizedBox(width: 10 * scale),
@@ -462,8 +473,8 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                         ),
                         SizedBox(height: 6),
                         Text(
-                          "හරි! හොඳ වැඩයි.",
-                          textAlign: TextAlign.center,
+                          "හරි! ගැලපුණා.",
+                         textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,

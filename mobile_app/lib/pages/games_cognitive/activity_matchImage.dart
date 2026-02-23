@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class MatchImageGameApp extends StatelessWidget {
   const MatchImageGameApp({super.key});
@@ -46,7 +47,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   int? _selectedIndex;
   final Set<String> _matchedIds = {};
 
-  String _feedback = 'එකම රූප දෙක තෝරන්න';
+  String _feedback = 'පටන් ගමු';
   Color _feedbackColor = Colors.black87;
   bool _checking = false;
 
@@ -94,7 +95,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       _selectedId = null;
       _selectedIndex = null;
       _matchedIds.clear();
-      _feedback = 'එකම රූප දෙක තෝරන්න';
+      // _feedback = 'එකම රූප දෙක තෝරන්න';
       _feedbackColor = Colors.black87;
       _checking = false;
     });
@@ -122,7 +123,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       setState(() {
         _selectedId = tappedId;
         _selectedIndex = tappedIndex;
-        _feedback = 'එකම රූපය තෝරන්න';
+        // _feedback = 'එකම රූපය තෝරන්න';
         _feedbackColor = Colors.black87;
       });
       return;
@@ -150,7 +151,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     if (correct) {
       setState(() {
         _matchedIds.add(tappedId);
-        _feedback = 'හරි! ගැලපුවා.';
+        _feedback = 'හරි! ගැලපුණා.';
         _feedbackColor = Colors.green;
         _selectedId = null;
         _selectedIndex = null;
@@ -159,12 +160,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       if (_matchedIds.length == 6) {
         await _playRewardAnimation();
         if (!mounted) return;
-        await Future.delayed(const Duration(milliseconds: 650));
-        if (!mounted) return;
-        setState(() {
-          _feedback = 'සියල්ල ගැලපුණා!';
-          _feedbackColor = Colors.green.shade700;
-        });
+        _newRound();
       }
     } else {
       setState(() {
@@ -177,7 +173,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       setState(() {
         _selectedId = null;
         _selectedIndex = null;
-        _feedback = 'එකම රූප දෙක තෝරන්න';
+        // _feedback = 'එකම රූප දෙක තෝරන්න';
         _feedbackColor = Colors.black87;
       });
     }
@@ -208,6 +204,16 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     await Future.delayed(const Duration(milliseconds: 2400));
     if (!mounted) return;
     setState(() => _showStar = false);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'රූප ගැලපීම',
+          autoNavigate: false,
+          duration: Duration(seconds: 2),
+        ),
+      ),
+    );
   }
 
   @override
@@ -241,13 +247,13 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Terminal score',
-            icon: const Icon(Icons.terminal),
-            onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     tooltip: 'Terminal score',
+        //     icon: const Icon(Icons.terminal),
+        //     onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+        //   ),
+        // ],
       ),
       body: SafeArea(
         child: Stack(
@@ -257,35 +263,35 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
               child: Column(
                 children: [
                   Text(
-                    'එකම රූප දෙක තෝරා ගැලපෙන්න',
+                    'එකම රූප දෙක තෝරා ගලපන්න',
                     style: TextStyle(
                       fontSize: titleSize,
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 8 * scale),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10 * scale,
-                      vertical: 8 * scale,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12 * scale),
-                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
-                    ),
-                    child: Text(
-                      'Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s',
-                      style: TextStyle(
-                        fontSize: feedbackSize,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  // SizedBox(height: 8 * scale),
+                  // AnimatedContainer(
+                  //   duration: const Duration(milliseconds: 250),
+                  //   padding: EdgeInsets.symmetric(
+                  //     horizontal: 10 * scale,
+                  //     vertical: 8 * scale,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.blue.withOpacity(0.08),
+                  //     borderRadius: BorderRadius.circular(12 * scale),
+                  //     border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                  //   ),
+                  //   child: Text(
+                  //     'Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s',
+                  //     style: TextStyle(
+                  //       fontSize: feedbackSize,
+                  //       color: Colors.black87,
+                  //       fontWeight: FontWeight.w600,
+                  //     ),
+                  //     textAlign: TextAlign.center,
+                  //   ),
+                  // ),
                   SizedBox(height: 8 * scale),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
@@ -337,10 +343,10 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
                               _reactionSamples = 0;
                               _pairStartedAt = null;
                             });
-                            _newRound();
+                           _goDashboard();
                           },
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('අලුත්'),
+                          icon: const Icon(Icons.dashboard),
+                          label: const Text('Home'),
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
                               vertical: 12 * scale,

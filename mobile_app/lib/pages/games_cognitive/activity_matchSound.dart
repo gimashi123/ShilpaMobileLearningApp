@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class SoundPictureMatchApp extends StatelessWidget {
   const SoundPictureMatchApp({super.key});
@@ -259,9 +260,19 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     _confettiController.play();
     await _starController.forward(from: 0);
 
-    await Future.delayed(const Duration(milliseconds: 2800));
+    await Future.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;
     setState(() => _showStar = false);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'ශබ්දය අහලා රූපය තෝරමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 4),
+        ),
+      ),
+    );
   }
 
   void _onPick(SoundItem picked) async {
@@ -304,7 +315,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       // If sound was already played, restart hint timer for another 4 seconds
       if (_soundPlayedThisRound) {
         _hintTimer?.cancel();
-        _hintTimer = Timer(const Duration(seconds: 4), () {
+        _hintTimer = Timer(const Duration(seconds: 3), () {
           if (!mounted) return;
           if (_locked) return;
           _startBlinkHint();
@@ -359,13 +370,13 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
           icon: const Icon(Icons.arrow_back),
           onPressed: _goDashboard,
         ),
-        actions: [
-          IconButton(
-            tooltip: "Print score to terminal",
-            icon: const Icon(Icons.terminal),
-            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     tooltip: "Print score to terminal",
+        //     icon: const Icon(Icons.terminal),
+        //     onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+        //   ),
+        // ],
       ),
       body: SafeArea(
         child: Stack(
@@ -396,24 +407,24 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                       minimumSize: Size(double.infinity, buttonHeight),
                     ),
                   ),
-                  SizedBox(height: 10 * scale),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(12 * scale),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12 * scale),
-                      color: Colors.blue.withOpacity(0.08),
-                      border: Border.all(color: Colors.blue.withOpacity(0.16)),
-                    ),
-                    child: Text(
-                      "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: (isNarrow ? 13.0 : 14.0) * scale,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  // SizedBox(height: 10 * scale),
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: EdgeInsets.all(12 * scale),
+                  //   decoration: BoxDecoration(
+                  //     borderRadius: BorderRadius.circular(12 * scale),
+                  //     color: Colors.blue.withOpacity(0.08),
+                  //     border: Border.all(color: Colors.blue.withOpacity(0.16)),
+                  //   ),
+                    // child: Text(
+                    //   "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                    //   textAlign: TextAlign.center,
+                    //   style: TextStyle(
+                    //     fontSize: (isNarrow ? 13.0 : 14.0) * scale,
+                    //     fontWeight: FontWeight.w600,
+                    //   ),
+                    // ),
+                  // ),
                   SizedBox(height: 10 * scale),
                   Container(
                     width: double.infinity,

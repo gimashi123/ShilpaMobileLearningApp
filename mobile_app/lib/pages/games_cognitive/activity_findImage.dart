@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 /* =========================
    APP ROOT
@@ -46,6 +47,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   late final ConfettiController _confettiController;
   final AudioPlayer _sfxPlayer = AudioPlayer();
   bool _rewardPlayed = false;
+  bool _autoAdvancing = false;
 
   // Attempt metrics
   DateTime? _attemptStartedAt;
@@ -121,6 +123,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       }
       pieces.clear();
       _rewardPlayed = false;
+      _autoAdvancing = false;
     });
     _confettiController.stop();
   }
@@ -185,13 +188,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
-            icon: const Icon(Icons.terminal, color: Colors.black),
-            tooltip: "Terminal score",
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+        //     icon: const Icon(Icons.terminal, color: Colors.black),
+        //     tooltip: "Terminal score",
+        //   ),
+        // ],
       ),
       body: LayoutBuilder(
         builder: (context, c) {
@@ -209,13 +212,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 children: [
                     Image.asset(currentImage, fit: BoxFit.cover),
                     GestureDetector(
-                      onTapDown: (d) => _onTap(d.localPosition),
+                      onTapDown: _autoAdvancing
+                          ? null
+                          : (d) => _onTap(d.localPosition),
                       child: CustomPaint(painter: PiecePainter(pieces)),
                     ),
-                    if (completed)
-                      Center(
+                    if (completed) ...[
+                      Align(
+                        alignment: Alignment.center,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -228,7 +237,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                             ],
                           ),
                           child: const Text(
-                            "🎉 නියමයි! 🎉 ",
+                            "⭐\n🎉 නියමයි! 🎉",
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 28,
                               color: Colors.black,
@@ -237,18 +247,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                           ),
                         ),
                       ),
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: ConfettiWidget(
-                        confettiController: _confettiController,
-                        blastDirectionality: BlastDirectionality.explosive,
-                        numberOfParticles: 16,
-                        emissionFrequency: 0.12,
-                        maxBlastForce: 18,
-                        minBlastForce: 10,
-                        gravity: 0.3,
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: ConfettiWidget(
+                          confettiController: _confettiController,
+                          blastDirectionality: BlastDirectionality.explosive,
+                          numberOfParticles: 16,
+                          emissionFrequency: 0.12,
+                          maxBlastForce: 18,
+                          minBlastForce: 10,
+                          gravity: 0.3,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -258,16 +269,21 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _btn("අලුත්", () {
-                      _printAttemptStatsToTerminal(
-                        event: 'new_round_before_reset',
-                      );
-                      unawaited(_sfxPlayer.stop());
-                      setState(() => pieces.clear());
-                      _rewardPlayed = false;
-                      _confettiController.stop();
-                    }),
-                    _btn("ඉදිරියට", _nextImage),
+                    // _btn("අලුත්", _autoAdvancing ? null : () {
+                    //   _printAttemptStatsToTerminal(
+                    //     event: 'new_round_before_reset',
+                    //   );
+                    //   unawaited(_sfxPlayer.stop());
+                    //   setState(() {
+                    //     pieces.clear();
+                    //     _rewardPlayed = false;
+                    //     _autoAdvancing = false;
+                    //   });
+                    //   _confettiController.stop();
+                    // }),                   
+                    _btn("Home", _goDashboard),
+                    _btn("ඉදිරියට", _autoAdvancing ? null : _nextImage),
+                    
                   ],
                 ),
               ),
@@ -278,7 +294,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     );
   }
 
-  Widget _btn(String text, VoidCallback onTap) {
+  Widget _btn(String text, VoidCallback? onTap) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
@@ -291,11 +307,25 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   Future<void> _playRewardAnimation() async {
-    if (_rewardPlayed) return;
+    if (_rewardPlayed || _autoAdvancing) return;
     _rewardPlayed = true;
+    _autoAdvancing = true;
     await _sfxPlayer.stop();
     await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
     _confettiController.play();
+    await Future.delayed(const Duration(milliseconds: 4500));
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'රූප හොයමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 4),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _nextImage();
   }
 }
 

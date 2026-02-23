@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class PatternGameApp extends StatelessWidget {
   const PatternGameApp({super.key});
@@ -125,7 +126,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     }
 
     setState(() {
-      feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
+      feedback = "නිවැරදි ඊළඟ අංගය තෝරන්න";
       feedbackColor = Colors.black;
     });
     _roundStartedAt = DateTime.now();
@@ -214,6 +215,16 @@ class _PatternGamePageState extends State<PatternGamePage>
 
     if (!mounted) return;
     setState(() => _showStar = false);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'රටා හඳුනාගැනීම',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
   }
 
   void _cancelHintTimers() {
@@ -296,7 +307,7 @@ class _PatternGamePageState extends State<PatternGamePage>
       setState(() {
         score += 1;
         level += 1;
-        feedback = "✅ හොඳ වැඩක්!";
+        feedback = "";
         feedbackColor = Colors.green;
       });
 
@@ -326,11 +337,21 @@ class _PatternGamePageState extends State<PatternGamePage>
       _totalReactionTime = Duration.zero;
       _reactionSamples = 0;
       _roundStartedAt = null;
-      feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
+      feedback = "නිවැරදි ඊළඟ අංගය තෝරන්න";
       feedbackColor = Colors.black;
       _showStar = false;
     });
     _newRound(speak: true);
+  }
+
+  Future<void> _goDashboard() async {
+    _printAttemptStatsToTerminal(event: "home_exit");
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
+    );
   }
 
   String _titleForType(PatternType t) {
@@ -346,6 +367,8 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
     final questionRow = [...pattern, "?"];
     final accuracy = _questionsPlayed == 0
         ? 0.0
@@ -360,21 +383,21 @@ class _PatternGamePageState extends State<PatternGamePage>
         title: const Text("රටා හඳුනාගැනීම"),
         centerTitle: true,
         actions: [
-          IconButton(
-            tooltip: "Terminal score",
-            onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
-            icon: const Icon(Icons.terminal),
-          ),
-          IconButton(
-            tooltip: "කථනය",
-            onPressed: _speakPrompt,
-            icon: const Icon(Icons.volume_up),
-          ),
-          IconButton(
-            tooltip: "නැවත සැකසන්න",
-            onPressed: _resetGame,
-            icon: const Icon(Icons.refresh),
-          ),
+          // IconButton(
+          //   tooltip: "Terminal score",
+          //   onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
+          //   icon: const Icon(Icons.terminal),
+          // ),
+          // IconButton(
+          //   tooltip: "කථනය",
+          //   onPressed: _speakPrompt,
+          //   icon: const Icon(Icons.volume_up),
+          // ),
+          // IconButton(
+          //   tooltip: "නැවත සැකසන්න",
+          //   onPressed: _resetGame,
+          //   icon: const Icon(Icons.refresh),
+          // ),
         ],
       ),
       body: SafeArea(
@@ -385,36 +408,36 @@ class _PatternGamePageState extends State<PatternGamePage>
               child: Column(
                 children: [
                   // Status
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _titleForType(type),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text("මට්ටම: $level    ලකුණු: $score",
-                            style: const TextStyle(fontSize: 16)),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Questions: $_questionsPlayed  Correct: $_correctAnswers  Accuracy: ${accuracy.toStringAsFixed(1)}%  Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: const EdgeInsets.all(14),
+                  //   decoration: BoxDecoration(
+                  //     borderRadius: BorderRadius.circular(16),
+                  //     border: Border.all(color: Colors.black12),
+                  //   ),
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                  //     children: [
+                  //       Text(
+                  //         _titleForType(type),
+                  //         style: const TextStyle(
+                  //           fontSize: 18,
+                  //           fontWeight: FontWeight.w700,
+                  //         ),
+                  //       ),
+                  //       const SizedBox(height: 8),
+                  //       Text("මට්ටම: $level    ලකුණු: $score",
+                  //           style: const TextStyle(fontSize: 16)),
+                  //       const SizedBox(height: 8),
+                  //       Text(
+                  //         "Questions: $_questionsPlayed  Correct: $_correctAnswers  Accuracy: ${accuracy.toStringAsFixed(1)}%  Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
+                  //         style: const TextStyle(fontSize: 14),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
 
-                  const SizedBox(height: 18),
+                  // const SizedBox(height: 18),
 
                   // Pattern display
                   Container(
@@ -483,6 +506,39 @@ class _PatternGamePageState extends State<PatternGamePage>
                       }).toList(),
                     ),
                   ),
+                  SizedBox(height: 8 * scale),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _goDashboard(),
+                          icon: const Icon(Icons.dashboard),
+                          label: const Text("Home"),
+                        ),
+                      ),
+                      SizedBox(width: 10 * scale),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            _printAttemptStatsToTerminal(
+                              event: "restart_before_reset",
+                            );
+                            await _sfxPlayer.stop();
+                            setState(() {
+                              _questionsPlayed = 0;
+                              _correctAnswers = 0;
+                              _totalReactionTime = Duration.zero;
+                              _reactionSamples = 0;
+                              _roundStartedAt = null;
+                            });
+                            _newRound(speak: true);
+                          },
+                          icon: const Icon(Icons.restart_alt),
+                          label: const Text("නැවත ආරම්භ කරන්න"),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -526,7 +582,7 @@ class _PatternGamePageState extends State<PatternGamePage>
                         ),
                         SizedBox(height: 6),
                         Text(
-                          "හරි! හොඳ වැඩයි.",
+                          "හරි! නිවැරදියි.",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 18,

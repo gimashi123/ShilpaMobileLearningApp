@@ -6,6 +6,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/session/session.dart';
 import 'package:flutter/services.dart'; // ✅ MethodChannel + Haptic
 import 'package:mobile_app/pages/models/cognitive.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 import 'package:mobile_app/services/chat_service.dart';
 import 'package:mobile_app/services/cognitive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -178,7 +179,7 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   );
 
   static const _activityMatchNumbers = _ActivityEntry(
-    title: "වර්ගය තෝරමු",
+    title: "සංඛ්‍යා ගලපමු",
     emoji: '🔢',
     route: '/activity_matchNumbers',
     keyId: 306,
@@ -546,7 +547,26 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     await _confirmThenGo(
       keyId: keyId,
       name: name,
-      go: () => Navigator.pushReplacementNamed(context, route),
+      go: () => _openCognitiveRoute(name, route),
+    );
+  }
+
+  void _openCognitiveRoute(String title, String route) {
+    final isGameRoute =
+        route == '/iq_game' ||
+        (route.startsWith('/activity_') && route != '/activity_iqScore');
+
+    if (!isGameRoute) {
+      Navigator.pushReplacementNamed(context, route);
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            CognitiveGameLoadingScreen(gameTitle: title, targetRoute: route),
+      ),
     );
   }
 
@@ -1006,8 +1026,7 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
                           _confirmThenGo(
                             keyId: keyId,
                             name: title,
-                            go: () =>
-                                Navigator.pushReplacementNamed(context, route),
+                            go: () => _openCognitiveRoute(title, route),
                           );
                         },
                       ),
