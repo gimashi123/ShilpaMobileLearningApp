@@ -377,11 +377,11 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     });
     try {
       await for (final _ in _chatProvider.sendMessageStream(prompt)) {}
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not send voice prompt. Please try again.'),
+        SnackBar(
+          content: Text(ChatService.userFriendlyError(e)),
         ),
       );
     } finally {

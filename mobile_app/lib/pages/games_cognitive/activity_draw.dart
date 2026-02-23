@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math' as Math;
 
@@ -18,6 +20,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
   String _notificationEmoji = '';
   Color _notificationColor = Colors.green;
   late final ConfettiController _confettiController;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   final List<TracePath> tracePaths = [
     TracePath(name: 'Straight Line', type: PathType.straight),
@@ -39,6 +42,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
 
   @override
   void dispose() {
+    _sfxPlayer.dispose();
     _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -78,6 +82,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
 
   void _resetCurrentTrace() {
     _printCurrentTraceMetrics();
+    unawaited(_sfxPlayer.stop());
     _canvasKeys[_currentTraceIndex]?.currentState?.clearCanvas();
   }
 
@@ -87,7 +92,10 @@ class _ActivityDrawState extends State<ActivityDraw> {
     );
   }
 
-  void _onLevelCompleted(int index) {
+  Future<void> _onLevelCompleted(int index) async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() {
       _showNotification = true;
       _notificationTitle = 'පුදුමයි!\nඔයා ඒක කළා!';
@@ -132,12 +140,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
         // ✅ Back arrow to dashboard
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true)
-                  .pushNamedAndRemoveUntil(
-            '/home_cognitive',
-            (route) => false,
-          ),
+          onPressed: _goDashboard,
         ),
         title: Text(
           "✨ $currentTitle ✨",
@@ -291,6 +294,15 @@ class _ActivityDrawState extends State<ActivityDraw> {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _goDashboard() async {
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
     );
   }
 }

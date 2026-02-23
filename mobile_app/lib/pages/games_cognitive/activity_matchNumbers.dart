@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 
 class NumberMatchingGameApp extends StatelessWidget {
@@ -29,6 +30,7 @@ class NumberMatchingGamePage extends StatefulWidget {
 class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   final List<NumberItem> _items = const [
     NumberItem(value: 1, word: "එක"),
@@ -84,6 +86,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   @override
   void dispose() {
     _cancelHintTimers();
+    _sfxPlayer.dispose();
     _confettiController.dispose();
     _starController.dispose();
     super.dispose();
@@ -171,6 +174,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
   Future<void> _goDashboard() async {
     _printAttemptStatsToTerminal(event: "home_exit");
+    await _sfxPlayer.stop();
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
       '/home_cognitive',
@@ -179,6 +183,9 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   }
 
   Future<void> _playRewardAnimation() async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() => _showStar = true);
 
     _confettiController.play();
@@ -396,10 +403,11 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                       SizedBox(width: 10 * scale),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
+                          onPressed: () async {
                             _printAttemptStatsToTerminal(
                               event: "restart_before_reset",
                             );
+                            await _sfxPlayer.stop();
                             setState(() {
                               _questionsPlayed = 0;
                               _correctAnswers = 0;

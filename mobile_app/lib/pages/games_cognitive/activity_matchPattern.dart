@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 
 class PatternGameApp extends StatelessWidget {
@@ -28,6 +29,7 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   // TTS
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   // Confetti
   late final ConfettiController _confettiController;
@@ -97,6 +99,7 @@ class _PatternGamePageState extends State<PatternGamePage>
   @override
   void dispose() {
     _cancelHintTimers();
+    _sfxPlayer.dispose();
     _confettiController.dispose();
     _starController.dispose();
     _tts.stop();
@@ -198,6 +201,9 @@ class _PatternGamePageState extends State<PatternGamePage>
   }
 
   Future<void> _playRewardAnimation() async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() => _showStar = true);
 
     _confettiController.play();
@@ -311,6 +317,7 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   void _resetGame() {
     _printAttemptStatsToTerminal(event: "restart_before_reset");
+    unawaited(_sfxPlayer.stop());
     setState(() {
       level = 1;
       score = 0;

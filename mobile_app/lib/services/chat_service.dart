@@ -5,6 +5,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
 import 'package:http/http.dart' as http;
 
+class ChatServiceException implements Exception {
+  const ChatServiceException(
+    this.userMessage, {
+    this.statusCode,
+    this.retryable = false,
+    this.details,
+  });
+
+  final String userMessage;
+  final int? statusCode;
+  final bool retryable;
+  final String? details;
+
+  @override
+  String toString() => userMessage;
+}
+
 class ChatService {
   static const String _chatBackendUrlFromEnv = String.fromEnvironment(
     'CHAT_BACKEND_URL',
@@ -29,6 +46,27 @@ class ChatService {
       languageCode: preferSinhala ? 'si' : 'en',
       history: history,
     );
+  }
+
+  static String userFriendlyError(Object error) {
+    if (error is ChatServiceException) {
+      return error.userMessage;
+    }
+
+    // Toolkit wrappers may prepend type names like:
+    // "LlmFailureException: ChatServiceException: <message>"
+    var message = error.toString().trim();
+    final prefixPattern = RegExp(r'^[A-Za-z0-9_<>]+Exception:\s*');
+    for (var i = 0; i < 3; i++) {
+      final stripped = message.replaceFirst(prefixPattern, '');
+      if (stripped == message) break;
+      message = stripped.trim();
+    }
+
+    if (message.isEmpty) {
+      return 'Could not send message. Please try again.';
+    }
+    return message;
   }
 }
 
@@ -57,6 +95,50 @@ class _BackendChatProvider extends LlmProvider with ChangeNotifier {
 
   String _buildPromptWithContext(String prompt) => prompt.trim();
 
+  String _messageForStatusCode(int statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Invalid request. Please try again.';
+      case 401:
+      case 403:
+        return 'You are not authorized. Please sign in again.';
+      case 404:
+        return 'Chat service was not found. Please contact support.';
+      case 408:
+        return 'The request timed out. Please try again.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
+      case 500:
+        return 'Server error. Please try again in a moment.';
+      case 502:
+        return 'Server is temporarily unavailable. Please wait and try again.';
+      case 503:
+        return 'Service is temporarily down. Please wait and try again.';
+      case 504:
+        return 'Gateway timeout. Please try again.';
+      default:
+        return 'Unable to send message right now. Please try again.';
+    }
+  }
+
+  String _extractServerErrorDetails(String rawBody) {
+    final body = rawBody.trim();
+    if (body.isEmpty) return '';
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final candidate =
+            decoded['message'] ?? decoded['error'] ?? decoded['detail'];
+        if (candidate is String && candidate.trim().isNotEmpty) {
+          return candidate.trim();
+        }
+      }
+    } catch (_) {
+      // Ignore parse errors and fall back to raw text.
+    }
+    return body;
+  }
+
   Future<String> _fetchReply(String prompt) async {
     final uri = Uri.parse(backendUrl);
     final payload = <String, dynamic>{
@@ -69,13 +151,33 @@ class _BackendChatProvider extends LlmProvider with ChangeNotifier {
       debugPrint('CHAT REQ BODY => ${jsonEncode(payload)}');
     }
 
-    final response = await _client
-        .post(
-          uri,
-          headers: const {'Content-Type': 'application/json'},
-          body: jsonEncode(payload),
-        )
-        .timeout(const Duration(seconds: 60));
+    http.Response response;
+    try {
+      response = await _client
+          .post(
+            uri,
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 60));
+    } on SocketException catch (e) {
+      throw ChatServiceException(
+        'Cannot connect to chat server. Check your internet connection and try again.',
+        retryable: true,
+        details: e.message,
+      );
+    } on TimeoutException {
+      throw const ChatServiceException(
+        'Chat request timed out. Please try again.',
+        retryable: true,
+      );
+    } on http.ClientException catch (e) {
+      throw ChatServiceException(
+        'Network error while contacting chat server. Please try again.',
+        retryable: true,
+        details: e.message,
+      );
+    }
 
     if (kDebugMode) {
       debugPrint('CHAT RES STATUS => ${response.statusCode}');
@@ -83,18 +185,37 @@ class _BackendChatProvider extends LlmProvider with ChangeNotifier {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Backend failed: ${response.statusCode} ${response.body}',
+      final details = _extractServerErrorDetails(response.body);
+      throw ChatServiceException(
+        _messageForStatusCode(response.statusCode),
+        statusCode: response.statusCode,
+        retryable: response.statusCode >= 500 || response.statusCode == 429,
+        details: details.isEmpty ? null : details,
       );
     }
 
-    final decoded = jsonDecode(response.body);
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw const ChatServiceException(
+        'Received an invalid response from chat server. Please try again.',
+        retryable: true,
+      );
+    }
+
     if (decoded is! Map<String, dynamic>) {
-      throw Exception('Invalid backend response format.');
+      throw const ChatServiceException(
+        'Received an unexpected response from chat server.',
+        retryable: true,
+      );
     }
     final reply = decoded['reply'] ?? decoded['response'];
     if (reply is! String || reply.trim().isEmpty) {
-      throw Exception('Invalid response format.');
+      throw const ChatServiceException(
+        'Chat server returned an empty response. Please try again.',
+        retryable: true,
+      );
     }
     return reply.trim();
   }

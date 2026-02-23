@@ -42,6 +42,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
   final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   // ✅ Make sure these paths match your pubspec.yaml assets
   final List<SoundItem> _items = const [
@@ -112,6 +113,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   void dispose() {
     _cancelAllTimers();
     _player.dispose();
+    _sfxPlayer.dispose();
     _confettiController.dispose();
     _starController.dispose();
     super.dispose();
@@ -239,6 +241,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     _printAttemptStatsToTerminal(event: "home_exit");
     _cancelAllTimers();
     await _player.stop();
+    await _sfxPlayer.stop();
     if (!mounted) return;
 
     Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
@@ -248,6 +251,9 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   }
 
   Future<void> _playRewardAnimation() async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() => _showStar = true);
 
     _confettiController.play();
@@ -467,6 +473,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
                             _printAttemptStatsToTerminal(event: "restart_before_reset");
                             _cancelAllTimers();
                             await _player.stop();
+                            await _sfxPlayer.stop();
                             if (!mounted) return;
                             setState(() {
                               _questionsPlayed = 0;

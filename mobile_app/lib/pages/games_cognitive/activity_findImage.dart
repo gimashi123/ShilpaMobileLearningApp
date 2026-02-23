@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 
 /* =========================
@@ -42,6 +44,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   /* ---- PIECES ---- */
   List<_Piece> pieces = [];
   late final ConfettiController _confettiController;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
   bool _rewardPlayed = false;
 
   // Attempt metrics
@@ -63,6 +66,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   @override
   void dispose() {
+    _sfxPlayer.dispose();
     _confettiController.dispose();
     super.dispose();
   }
@@ -109,6 +113,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   void _nextImage() {
     _printAttemptStatsToTerminal(event: 'next_image_before_reset');
+    unawaited(_sfxPlayer.stop());
     setState(() {
       _index++;
       if (_index >= _playlist.length) {
@@ -149,6 +154,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   Future<void> _goDashboard() async {
     _printAttemptStatsToTerminal(event: 'back_to_home');
+    await _sfxPlayer.stop();
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
       '/home_cognitive',
@@ -256,6 +262,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       _printAttemptStatsToTerminal(
                         event: 'new_round_before_reset',
                       );
+                      unawaited(_sfxPlayer.stop());
                       setState(() => pieces.clear());
                       _rewardPlayed = false;
                       _confettiController.stop();
@@ -286,6 +293,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   Future<void> _playRewardAnimation() async {
     if (_rewardPlayed) return;
     _rewardPlayed = true;
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
     _confettiController.play();
   }
 }

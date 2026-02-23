@@ -138,6 +138,7 @@ flutter:
     - assets/sounds/cognitive/bell.mp3
     - assets/sounds/cognitive/dog.mp3
     - assets/sounds/cognitive/cat.mp3
+    - assets/sounds/cognitive/cheers.mp3
     - assets/images/cognitive/monkey.png
     - assets/images/cognitive/panda.png
     - assets/images/cognitive/dog.png

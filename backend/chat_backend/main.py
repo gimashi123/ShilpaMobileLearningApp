@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -10,7 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 
-load_dotenv()
+CHAT_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(CHAT_BACKEND_DIR / ".env")
+# Allow sharing a single backend/.env after folder moves.
+load_dotenv(CHAT_BACKEND_DIR.parent / ".env", override=False)
 
 logger = logging.getLogger("chat_backend")
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +63,10 @@ def _get_client_and_model() -> tuple[genai.Client, str]:
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY is not set in chat_backend/.env",
+            detail=(
+                "GEMINI_API_KEY is not set. Add it to "
+                "backend/chat_backend/.env (or backend/.env)."
+            ),
         )
     return genai.Client(api_key=api_key), model_name
 
