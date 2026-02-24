@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
@@ -72,6 +73,10 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     _pulse = AnimationController(
       vsync: this,
@@ -112,6 +117,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _runToken++;
     _pulse.dispose();
     _tts.stop();

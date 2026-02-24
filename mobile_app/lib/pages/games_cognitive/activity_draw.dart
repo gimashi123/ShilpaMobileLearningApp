@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
@@ -33,6 +34,10 @@ class _ActivityDrawState extends State<ActivityDraw> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _pageController = PageController();
     _confettiController =
         ConfettiController(duration: const Duration(milliseconds: 900));
@@ -43,6 +48,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _sfxPlayer.dispose();
     _confettiController.dispose();
     _pageController.dispose();

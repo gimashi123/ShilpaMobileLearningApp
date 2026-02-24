@@ -20,6 +20,8 @@ class CognitiveDashboardScreen extends StatefulWidget {
 }
 
 class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
+  static const String _ttsMutedPrefKey = 'cognitive_dashboard_tts_muted';
+
   String userName = "";
   int selectedTab = 0; // 0 Home, 1 පාඩම්, 2 Games, 3 ප්‍රශ්න, 4 Profile
 
@@ -40,9 +42,12 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   bool _sttReady = false;
   bool _isListening = false;
   String? _chatLocaleId;
+  String? _systemLocaleId;
+  bool _sttFallbackRetried = false;
   String _liveTranscript = '';
   bool _preferSinhalaChat = true;
   bool _sendingVoicePrompt = false;
+  bool _ttsMuted = false;
 
   // ✅ Native vibration channel (Android)
   static const MethodChannel _vibChannel = MethodChannel(
@@ -58,6 +63,7 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     _initChatVoice();
     _loadIqCategory();
     _loadActivityPreference();
+    _loadTtsMutePreference();
   }
 
   Future<void> _loadActivityPreference() async {
@@ -68,6 +74,15 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
       _enableAllActivities = enabled;
     });
     Session.enableAllCognitiveActivities = enabled;
+  }
+
+  Future<void> _loadTtsMutePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final muted = prefs.getBool(_ttsMutedPrefKey) ?? false;
+    if (!mounted) return;
+    setState(() {
+      _ttsMuted = muted;
+    });
   }
 
   Future<void> _loadIqCategory() async {
@@ -267,11 +282,55 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
           });
         }
       },
-      onError: (_) {
+      onError: (error) {
         if (!mounted) return;
+
+        final msg = error.errorMsg.toLowerCase();
+        if (msg.contains('error_speech_timeout')) {
+          setState(() {
+            _isListening = false;
+          });
+
+          final localeIsSinhala =
+              (_chatLocaleId ?? '').toLowerCase().startsWith('si');
+          final canRetryWithSystem =
+              !_sttFallbackRetried &&
+              localeIsSinhala &&
+              _systemLocaleId != null &&
+              _systemLocaleId != _chatLocaleId;
+
+          if (canRetryWithSystem) {
+            _sttFallbackRetried = true;
+            _chatLocaleId = _systemLocaleId;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Sinhala voice timed out. Retrying with system language.',
+                ),
+              ),
+            );
+            unawaited(_startVoiceListening(localeId: _chatLocaleId));
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'No speech detected. Tap mic and speak clearly.',
+              ),
+            ),
+          );
+          return;
+        }
+
         setState(() {
           _isListening = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Voice input error: ${error.errorMsg}'),
+          ),
+        );
       },
     );
 
@@ -286,11 +345,13 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
       }
     }
     preferredLocale ??= (await _chatStt.systemLocale())?.localeId;
+    final systemLocale = (await _chatStt.systemLocale())?.localeId;
 
     if (!mounted) return;
     setState(() {
       _sttReady = true;
       _chatLocaleId = preferredLocale;
+      _systemLocaleId = systemLocale;
     });
   }
 
@@ -329,28 +390,49 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
 
     setState(() {
       _liveTranscript = '';
+      _sttFallbackRetried = false;
+    });
+
+    await _startVoiceListening(localeId: _chatLocaleId);
+  }
+
+  Future<void> _startVoiceListening({String? localeId}) async {
+    if (!mounted) return;
+    setState(() {
       _isListening = true;
     });
 
-    await _chatStt.listen(
-      localeId: _chatLocaleId,
-      listenOptions: stt.SpeechListenOptions(
-        listenMode: stt.ListenMode.dictation,
-        partialResults: true,
-      ),
-      pauseFor: const Duration(seconds: 4),
-      listenFor: const Duration(seconds: 25),
-      onResult: (result) {
-        if (!mounted) return;
-        final words = result.recognizedWords.trim();
-        setState(() {
-          _liveTranscript = words;
-        });
-        if (result.finalResult) {
-          unawaited(_stopVoiceInput(submitResult: true));
-        }
-      },
-    );
+    try {
+      await _chatStt.listen(
+        localeId: localeId,
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
+        ),
+        pauseFor: const Duration(seconds: 8),
+        listenFor: const Duration(seconds: 35),
+        onResult: (result) {
+          if (!mounted) return;
+          final words = result.recognizedWords.trim();
+          setState(() {
+            _liveTranscript = words;
+          });
+          if (result.finalResult) {
+            unawaited(_stopVoiceInput(submitResult: true));
+          }
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isListening = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voice input could not start. Please try again.'),
+        ),
+      );
+    }
   }
 
   Future<void> _stopVoiceInput({required bool submitResult}) async {
@@ -395,6 +477,8 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   }
 
   Future<void> _speakLatestAssistantReply() async {
+    if (_ttsMuted) return;
+
     final history = _chatProvider.history.toList().reversed;
     String? latest;
     for (final msg in history) {
@@ -417,13 +501,34 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
     try {
       await _tts.stop();
       await _tts.setLanguage(_preferSinhalaChat ? 'si-LK' : 'en-US');
-      await _tts.speak(latest);
+      await _tts.speak(ChatService.sanitizeAssistantText(latest));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Text-to-speech is not available.')),
       );
     }
+  }
+
+  Future<void> _toggleMuteSpeaker() async {
+    final nextMuted = !_ttsMuted;
+    setState(() {
+      _ttsMuted = nextMuted;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_ttsMutedPrefKey, nextMuted);
+
+    if (nextMuted) {
+      await _tts.stop();
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(nextMuted ? 'Speaker muted' : 'Speaker unmuted'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // ✅ REAL vibration (Native Android) + fallback haptic
@@ -498,6 +603,8 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
         ),
       );
     }
+
+    if (_ttsMuted) return;
 
     try {
       await _tts.stop();
@@ -628,9 +735,21 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
                             : 'Start voice input',
                       ),
                       IconButton(
-                        onPressed: _speakLatestAssistantReply,
-                        icon: const Icon(Icons.volume_up_outlined),
-                        tooltip: 'Read latest AI response',
+                        onPressed: _toggleMuteSpeaker,
+                        icon: Icon(
+                          _ttsMuted
+                              ? Icons.volume_off_outlined
+                              : Icons.volume_up_outlined,
+                        ),
+                        tooltip:
+                            _ttsMuted ? 'Unmute speaker' : 'Mute speaker',
+                      ),
+                      IconButton(
+                        onPressed: _ttsMuted ? null : _speakLatestAssistantReply,
+                        icon: const Icon(Icons.record_voice_over_outlined),
+                        tooltip: _ttsMuted
+                            ? 'Unmute to read latest AI response'
+                            : 'Read latest AI response',
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(ctx).pop(),

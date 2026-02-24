@@ -33,7 +33,9 @@ class ChatService {
       return _chatBackendUrlFromEnv.trim();
     }
     if (kIsWeb) return 'http://localhost:8000/chat';
-    if (Platform.isAndroid) return 'http://127.0.0.1:8000/chat';
+    if (Platform.isAndroid) return 'http://192.168.1.20:8000/chat';
+    // if (Platform.isAndroid) return 'http://127.0.0.1:8000/chat';
+
     return 'http://127.0.0.1:8000/chat';
   }
 
@@ -67,6 +69,28 @@ class ChatService {
       return 'Could not send message. Please try again.';
     }
     return message;
+  }
+
+  // Backend replies may include markdown (**, _, `, etc.).
+  // Strip formatting markers so plain-text UIs and TTS read naturally.
+  static String sanitizeAssistantText(String text) {
+    var cleaned = text;
+    cleaned = cleaned.replaceAll('*', '');
+    cleaned = cleaned.replaceAll('_', '');
+    cleaned = cleaned.replaceAll('`', '');
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'^\s{0,3}#{1,6}\s+', multiLine: true),
+      (_) => '',
+    );
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'^\s{0,3}>\s?', multiLine: true),
+      (_) => '',
+    );
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'[ \t]+\n'),
+      (_) => '\n',
+    );
+    return cleaned.trim();
   }
 }
 
@@ -217,7 +241,7 @@ class _BackendChatProvider extends LlmProvider with ChangeNotifier {
         retryable: true,
       );
     }
-    return reply.trim();
+    return ChatService.sanitizeAssistantText(reply.trim());
   }
 
   // This creates the typing effect in the UI

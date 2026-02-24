@@ -9,8 +9,8 @@ class AuthApi {
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:3000';
     // if (Platform.isAndroid) return 'http://192.168.43.79:3000';
-    // if (Platform.isAndroid) return 'http://192.168.43.79:3000';
-    if (Platform.isAndroid) return 'http://127.0.0.1:3000';
+    if (Platform.isAndroid) return 'http://192.168.1.20:3000';
+    // if (Platform.isAndroid) return 'http://127.0.0.1:3000';
 
     return 'http://localhost:3000';
   }

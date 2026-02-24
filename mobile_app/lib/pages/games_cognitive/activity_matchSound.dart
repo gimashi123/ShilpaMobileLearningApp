@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
@@ -98,6 +99,10 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _confettiController =
         ConfettiController(duration: const Duration(milliseconds: 900));
     _starController = AnimationController(
@@ -112,6 +117,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _cancelAllTimers();
     _player.dispose();
     _sfxPlayer.dispose();

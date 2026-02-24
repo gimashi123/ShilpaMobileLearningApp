@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
@@ -69,6 +70,10 @@ class _PatternGamePageState extends State<PatternGamePage>
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     _confettiController =
         ConfettiController(duration: const Duration(milliseconds: 900));
@@ -99,6 +104,7 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _cancelHintTimers();
     _sfxPlayer.dispose();
     _confettiController.dispose();

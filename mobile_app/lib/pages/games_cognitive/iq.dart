@@ -229,6 +229,10 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _loadSettingsThenStart();
   }
 
@@ -366,6 +370,7 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     countdownTimer?.cancel();
     disposeGameSpecific();
     super.dispose();
@@ -765,6 +770,10 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     studentId = Session.userId ?? 'Student';
     _loadTflite(); // ✅ TFLITE ADDED
     games = [
@@ -828,6 +837,7 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     // ✅ TFLITE ADDED
     _interpreter?.close();
     super.dispose();
