@@ -58,12 +58,12 @@ class Sfx {
 
   static Future<void> correct(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/correct.mp3');
+    await _playAsset('sounds/cognitive/correct.mp3');
   }
 
   static Future<void> wrong(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/wrong.mp3');
+    await _playAsset('sounds/cognitive/wrong.mp3');
   }
 }
 
@@ -229,6 +229,10 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _loadSettingsThenStart();
   }
 
@@ -366,6 +370,7 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     countdownTimer?.cancel();
     disposeGameSpecific();
     super.dispose();
@@ -449,7 +454,11 @@ class Menu extends StatelessWidget {
                             color: Colors.blue,
                             height: btnH,
                             onTap: () {
-                              Navigator.pushNamed(context, '/home_cognitive');
+                              Navigator.of(context, rootNavigator: true)
+                                  .pushNamedAndRemoveUntil(
+                                '/home_cognitive',
+                                (route) => false,
+                              );
                             },
                           ),
                         ],
@@ -761,6 +770,10 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     studentId = Session.userId ?? 'Student';
     _loadTflite(); // ✅ TFLITE ADDED
     games = [
@@ -824,6 +837,7 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     // ✅ TFLITE ADDED
     _interpreter?.close();
     super.dispose();

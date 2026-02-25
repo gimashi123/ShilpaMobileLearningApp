@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
@@ -18,11 +19,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? errorText;
 
   Map<String, dynamic>? me;
+  bool _enableAllActivities = Session.enableAllCognitiveActivities;
 
   @override
   void initState() {
     super.initState();
     _loadMe();
+    _loadActivityPreference();
+  }
+
+  Future<void> _loadActivityPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(Session.enableAllActivitiesKey) ?? false;
+    if (!mounted) return;
+    setState(() {
+      _enableAllActivities = enabled;
+    });
+    Session.enableAllCognitiveActivities = enabled;
+  }
+
+  Future<void> _setEnableAllActivities(bool value) async {
+    setState(() {
+      _enableAllActivities = value;
+    });
+    Session.enableAllCognitiveActivities = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(Session.enableAllActivitiesKey, value);
   }
 
   Future<void> _loadMe() async {
@@ -126,6 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final email = (me?["email"] ?? "").toString();
 
     final disabilityType = (me?["disabilityType"] ?? "").toString();
+    final isCognitive = disabilityType.toLowerCase() == "cognitive";
 
     final dynamic studentRaw = me?["student"];
     final Map<String, dynamic>? studentObj =
@@ -135,16 +158,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final age = (studentObj?["age"] ?? "").toString();
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              if(disabilityType.toLowerCase() == 'cognitive'){
+              Navigator.pushReplacementNamed(context, '/home_cognitive');
+            }
+            }
+          },
+        ),
+        title: const Text("Profile"),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const Text(
-                "Profile",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
 
               Container(
                 width: 110,
@@ -192,6 +226,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 30),
 
+              if (isCognitive)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.tune, size: 22),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Enable all activities",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Switch(
+                        value: _enableAllActivities,
+                        onChanged: _setEnableAllActivities,
+                      ),
+                    ],
+                  ),
+                ),
               _ProfileItem(
                 icon: Icons.edit,
                 text: "Edit Profile",

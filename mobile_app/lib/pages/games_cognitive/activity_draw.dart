@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 import 'dart:math' as Math;
-import '../dashboard/cognative_dashboard_screen.dart';
-
 
 class ActivityDraw extends StatefulWidget {
   const ActivityDraw({Key? key}) : super(key: key);
@@ -18,6 +21,8 @@ class _ActivityDrawState extends State<ActivityDraw> {
   String _notificationTitle = '';
   String _notificationEmoji = '';
   Color _notificationColor = Colors.green;
+  late final ConfettiController _confettiController;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   final List<TracePath> tracePaths = [
     TracePath(name: 'Straight Line', type: PathType.straight),
@@ -29,7 +34,13 @@ class _ActivityDrawState extends State<ActivityDraw> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     _pageController = PageController();
+    _confettiController =
+        ConfettiController(duration: const Duration(milliseconds: 900));
     for (int i = 0; i < tracePaths.length; i++) {
       _canvasKeys[i] = GlobalKey<_TracingCanvasState>();
     }
@@ -37,6 +48,9 @@ class _ActivityDrawState extends State<ActivityDraw> {
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    _sfxPlayer.dispose();
+    _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -74,28 +88,49 @@ class _ActivityDrawState extends State<ActivityDraw> {
   }
 
   void _resetCurrentTrace() {
+    _printCurrentTraceMetrics();
+    unawaited(_sfxPlayer.stop());
     _canvasKeys[_currentTraceIndex]?.currentState?.clearCanvas();
   }
 
-  void _onLevelCompleted(int index) {
+  void _printCurrentTraceMetrics() {
+    _canvasKeys[_currentTraceIndex]?.currentState?.printMetricsToTerminal(
+      reason: 'manual_request',
+    );
+  }
+
+  Future<void> _onLevelCompleted(int index) async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() {
       _showNotification = true;
       _notificationTitle = 'පුදුමයි!\nඔයා ඒක කළා!';
       _notificationEmoji = '🌟';
       _notificationColor = Colors.green.shade400;
     });
+    _confettiController.play();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _showNotification = false);
+    await Future.delayed(const Duration(milliseconds: 4500));
+    if (!mounted) return;
+    setState(() => _showNotification = false);
 
-      if (index < tracePaths.length - 1) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          if (_currentTraceIndex == index) _nextTrace();
-        });
-      }
-    });
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'ඉරි අඳිමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
+    if (!mounted) return;
+
+    if (index < tracePaths.length - 1 && _currentTraceIndex == index) {
+      _nextTrace();
+      return;
+    }
+    await _goDashboard();
   }
 
   void _onLevelFailed(int index) {
@@ -121,10 +156,7 @@ class _ActivityDrawState extends State<ActivityDraw> {
         // ✅ Back arrow to dashboard
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
-          ),
+          onPressed: _goDashboard,
         ),
         title: Text(
           "✨ $currentTitle ✨",
@@ -259,8 +291,34 @@ class _ActivityDrawState extends State<ActivityDraw> {
                 ),
               ),
             ),
+          if (_showNotification)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    numberOfParticles: 18,
+                    emissionFrequency: 0.12,
+                    maxBlastForce: 18,
+                    minBlastForce: 10,
+                    gravity: 0.3,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  Future<void> _goDashboard() async {
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/home_cognitive',
+      (route) => false,
     );
   }
 }
@@ -319,12 +377,16 @@ class _TracingCanvasState extends State<TracingCanvas> {
   final List<List<Offset>> strokes = [];
   List<Offset> currentStroke = [];
   bool _alreadyCompleted = false;
+  DateTime? _firstPanStartAt;
+  DateTime? _completedAt;
 
   void clearCanvas() {
     setState(() {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       for (final d in widget.tracePath.dots) {
         d.isTraced = false;
       }
@@ -367,6 +429,64 @@ class _TracingCanvasState extends State<TracingCanvas> {
       }
     }
     return total;
+  }
+
+  _TraceMetrics _computeMetrics() {
+    final samples = widget.tracePath.samples;
+    final coveredSamples = samples.where((s) => s.isCovered).length;
+    final totalSamples = samples.length;
+
+    // Coverage ratio is the fraction of hidden path samples the user covered.
+    final coverageRatio =
+        totalSamples == 0 ? 0.0 : coveredSamples / totalSamples;
+
+    final allPoints = <Offset>[];
+    for (final stroke in strokes) {
+      allPoints.addAll(stroke);
+    }
+    allPoints.addAll(currentStroke);
+
+    const offPathLimit = 25.0;
+    int offPathPoints = 0;
+
+    for (final p in allPoints) {
+      double minDist = double.infinity;
+      for (final s in samples) {
+        final d = (p - s.position).distance;
+        if (d < minDist) minDist = d;
+      }
+      if (minDist > offPathLimit) offPathPoints++;
+    }
+
+    // Off-path ratio reflects precision: lower means more accurate tracing.
+    final totalStrokePoints = allPoints.length;
+    final offPathRatio =
+        totalStrokePoints == 0 ? 0.0 : offPathPoints / totalStrokePoints;
+
+    final userStrokeLength = _totalStrokeLength();
+    final idealPathLength = widget.tracePath.pathLength;
+
+    // Stroke ratio compares user path length against the ideal guide length.
+    final strokeRatio =
+        idealPathLength <= 0 ? 0.0 : userStrokeLength / idealPathLength;
+
+    final completionMs = (_firstPanStartAt != null && _completedAt != null)
+        ? _completedAt!.difference(_firstPanStartAt!).inMilliseconds
+        : -1;
+
+    return _TraceMetrics(
+      completionMs: completionMs,
+      coverageRatio: coverageRatio,
+      offPathRatio: offPathRatio,
+      strokeRatio: strokeRatio,
+    );
+  }
+
+  void printMetricsToTerminal({required String reason}) {
+    final m = _computeMetrics();
+    debugPrint(
+      "[DRAW_TRACE_METRICS] reason=$reason completion_ms=${m.completionMs} coverage_ratio=${m.coverageRatio.toStringAsFixed(3)} off_path_ratio=${m.offPathRatio.toStringAsFixed(3)} stroke_ratio=${m.strokeRatio.toStringAsFixed(3)}",
+    );
   }
 
   bool _isTraceComplete() {
@@ -432,6 +552,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
 
     if (ok) {
       _alreadyCompleted = true;
+      _completedAt = DateTime.now();
+      printMetricsToTerminal(reason: 'success');
       widget.onCompleted?.call();
     } else {
       final strokeLength = _totalStrokeLength();
@@ -449,6 +571,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       widget.tracePath.dots.clear();
       widget.tracePath.samples.clear();
       widget.tracePath.pathLength = 0.0;
@@ -478,6 +602,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
           GestureDetector(
             onPanStart: (details) {
               final p = details.localPosition;
+              // Timer starts at the first touch of a fresh attempt.
+              _firstPanStartAt ??= DateTime.now();
               setState(() {
                 currentStroke = [p];
                 _handlePoint(p);
@@ -511,6 +637,20 @@ class _TracingCanvasState extends State<TracingCanvas> {
       ),
     );
   }
+}
+
+class _TraceMetrics {
+  final int completionMs;
+  final double coverageRatio;
+  final double offPathRatio;
+  final double strokeRatio;
+
+  const _TraceMetrics({
+    required this.completionMs,
+    required this.coverageRatio,
+    required this.offPathRatio,
+    required this.strokeRatio,
+  });
 }
 
 // ---------------- GUIDE LINE PAINTER ----------------
@@ -673,15 +813,59 @@ class GuideLinePainter extends CustomPainter {
 
     const double arrowLength = 18.0;
     const double arrowWidth = 10.0;
+    const double dotRadius = 20.0;
+    const double dotPadding = 6.0;
 
     for (int i = 0; i < tracePath.dots.length - 1; i++) {
       final from = tracePath.dots[i].position;
       final to = tracePath.dots[i + 1].position;
 
-      final dir = to - from;
-      final angle = Math.atan2(dir.dy, dir.dx);
+      final midpoint = Offset(
+        (from.dx + to.dx) / 2,
+        (from.dy + to.dy) / 2,
+      );
 
-      final tip = to;
+      int? bestIndex;
+      Offset? samplePos;
+      if (tracePath.samples.length >= 2) {
+        int localBestIndex = 0;
+        double bestDist = double.infinity;
+        for (int s = 0; s < tracePath.samples.length; s++) {
+          final d = (tracePath.samples[s].position - midpoint).distance;
+          if (d < bestDist) {
+            bestDist = d;
+            localBestIndex = s;
+          }
+        }
+        bestIndex = localBestIndex;
+        samplePos = tracePath.samples[localBestIndex].position;
+      }
+
+      Offset dir = to - from;
+      if (bestIndex != null) {
+        final prevIndex = bestIndex == 0 ? 0 : bestIndex - 1;
+        final nextIndex = bestIndex == tracePath.samples.length - 1
+            ? tracePath.samples.length - 1
+            : bestIndex + 1;
+        final prev = tracePath.samples[prevIndex].position;
+        final next = tracePath.samples[nextIndex].position;
+        if (next != prev) {
+          dir = next - prev;
+        }
+      }
+
+      final dirLen = dir.distance;
+      if (dirLen == 0) continue;
+      final dirNorm = dir / dirLen;
+      final angle = Math.atan2(dirNorm.dy, dirNorm.dx);
+
+      Offset tip = samplePos ?? midpoint;
+      if ((tip - from).distance < dotRadius + dotPadding) {
+        tip = from + dirNorm * (dotRadius + dotPadding);
+      }
+      if ((tip - to).distance < dotRadius + dotPadding) {
+        tip = to - dirNorm * (dotRadius + dotPadding);
+      }
 
       final back = tip -
           Offset(Math.cos(angle) * arrowLength, Math.sin(angle) * arrowLength);
