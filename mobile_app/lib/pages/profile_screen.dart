@@ -216,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     [
                       if (disabilityType.isNotEmpty) "Type: $disabilityType",
-                      if (grade.isNotEmpty) "Grade: $grade",
+                      if (grade.isNotEmpty && !isCognitive) "Grade: $grade",
                       if (age.isNotEmpty) "Age: $age",
                     ].join("  •  "),
                     textAlign: TextAlign.center,
