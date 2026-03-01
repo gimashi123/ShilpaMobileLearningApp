@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'find_image_hand_hint_overlay.dart';
 
 /* =========================
    APP ROOT
@@ -49,6 +49,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   final AudioPlayer _sfxPlayer = AudioPlayer();
   bool _rewardPlayed = false;
   bool _autoAdvancing = false;
+  Timer? _inactivityTimer;
+  Timer? _hintVisibleTimer;
+  bool _showHandHint = false;
 
   // Attempt metrics
   DateTime? _attemptStartedAt;
@@ -62,18 +65,17 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-    _confettiController =
-        ConfettiController(duration: const Duration(milliseconds: 900));
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 900),
+    );
     _reshuffle();
+    _resetHintInactivityTimer();
   }
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
     _sfxPlayer.dispose();
     _confettiController.dispose();
     super.dispose();
@@ -82,6 +84,22 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   void _reshuffle() {
     _playlist = List<String>.from(imagePool)..shuffle();
     _index = 0;
+  }
+
+  void _resetHintInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    if (_showHandHint) {
+      setState(() => _showHandHint = false);
+    }
+    _inactivityTimer = Timer(const Duration(seconds: 15), () {
+      if (!mounted || _autoAdvancing) return;
+      setState(() => _showHandHint = true);
+      _hintVisibleTimer = Timer(const Duration(seconds: 15), () {
+        if (!mounted) return;
+        setState(() => _showHandHint = false);
+      });
+    });
   }
 
   void _buildPieces(Size size) {
@@ -107,9 +125,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   void _printAttemptStatsToTerminal({required String event}) {
     final completionMs =
         (_attemptStartedAt != null && _attemptCompletedAt != null)
-            ? _attemptCompletedAt!.difference(_attemptStartedAt!).inMilliseconds
-            : -1;
-    final usefulTapRate = _totalTaps == 0 ? 0.0 : _piecesRemovedCount / _totalTaps;
+        ? _attemptCompletedAt!.difference(_attemptStartedAt!).inMilliseconds
+        : -1;
+    final usefulTapRate = _totalTaps == 0
+        ? 0.0
+        : _piecesRemovedCount / _totalTaps;
     final avgInterTapMs = _interTapCount == 0
         ? 0
         : (_sumInterTapTime.inMilliseconds / _interTapCount).round();
@@ -132,9 +152,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _autoAdvancing = false;
     });
     _confettiController.stop();
+    _resetHintInactivityTimer();
   }
 
   void _onTap(Offset pos) {
+    _resetHintInactivityTimer();
     final tapTime = DateTime.now();
     _totalTaps++;
     if (_lastTapAt != null) {
@@ -161,141 +183,159 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   bool get completed => pieces.isNotEmpty && pieces.every((p) => p.removed);
 
+  Offset? get _hintTargetPosition {
+    for (final piece in pieces) {
+      if (!piece.removed) {
+        return piece.path.getBounds().center;
+      }
+    }
+    return null;
+  }
+
   Future<void> _goDashboard() async {
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
     _printAttemptStatsToTerminal(event: 'back_to_home');
     await _sfxPlayer.stop();
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/home_cognitive',
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     const green = Color(0xFF2EAA3A);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: green,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: _goDashboard,
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          tooltip: "Back",
-        ),
-        title: const Text(
-          "රූපය හොයමු",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+    return Listener(
+      onPointerDown: (_) => _resetHintInactivityTimer(),
+      onPointerMove: (_) => _resetHintInactivityTimer(),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: green,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            onPressed: _goDashboard,
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            tooltip: "Back",
           ),
+          title: const Text(
+            "රූපය හොයමු",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          // actions: [
+          //   IconButton(
+          //     onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+          //     icon: const Icon(Icons.terminal, color: Colors.black),
+          //     tooltip: "Terminal score",
+          //   ),
+          // ],
         ),
-        // actions: [
-        //   IconButton(
-        //     onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
-        //     icon: const Icon(Icons.terminal, color: Colors.black),
-        //     tooltip: "Terminal score",
-        //   ),
-        // ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, c) {
-          final size = Size(c.maxWidth, c.maxHeight);
+        body: LayoutBuilder(
+          builder: (context, c) {
+            final size = Size(c.maxWidth, c.maxHeight);
 
-          if (pieces.isEmpty) {
-            _buildPieces(size);
-          }
+            if (pieces.isEmpty) {
+              _buildPieces(size);
+            }
 
-        return Column(
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                    Image.asset(currentImage, fit: BoxFit.cover),
-                    GestureDetector(
-                      onTapDown: _autoAdvancing
-                          ? null
-                          : (d) => _onTap(d.localPosition),
-                      child: CustomPaint(painter: PiecePainter(pieces)),
-                    ),
-                    if (completed) ...[
-                      Align(
-                        alignment: Alignment.center,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: const [
-                              BoxShadow(
-                                blurRadius: 12,
-                                offset: Offset(0, 6),
-                                color: Colors.black26,
+            return Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(currentImage, fit: BoxFit.cover),
+                      GestureDetector(
+                        onTapDown: _autoAdvancing
+                            ? null
+                            : (d) => _onTap(d.localPosition),
+                        child: CustomPaint(painter: PiecePainter(pieces)),
+                      ),
+                      FindImageHandHintOverlay(
+                        isVisible: _showHandHint,
+                        targetPosition: _hintTargetPosition,
+                      ),
+                      if (completed) ...[
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                  color: Colors.black26,
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              "⭐\n🎉 නියමයි! 🎉",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
-                          child: const Text(
-                            "⭐\n🎉 නියමයි! 🎉",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 28,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                      Align(
-                        alignment: Alignment.topCenter,
-                        child: ConfettiWidget(
-                          confettiController: _confettiController,
-                          blastDirectionality: BlastDirectionality.explosive,
-                          numberOfParticles: 16,
-                          emissionFrequency: 0.12,
-                          maxBlastForce: 18,
-                          minBlastForce: 10,
-                          gravity: 0.3,
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: ConfettiWidget(
+                            confettiController: _confettiController,
+                            blastDirectionality: BlastDirectionality.explosive,
+                            numberOfParticles: 16,
+                            emissionFrequency: 0.12,
+                            maxBlastForce: 18,
+                            minBlastForce: 10,
+                            gravity: 0.3,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Container(
-                color: green,
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // _btn("අලුත්", _autoAdvancing ? null : () {
-                    //   _printAttemptStatsToTerminal(
-                    //     event: 'new_round_before_reset',
-                    //   );
-                    //   unawaited(_sfxPlayer.stop());
-                    //   setState(() {
-                    //     pieces.clear();
-                    //     _rewardPlayed = false;
-                    //     _autoAdvancing = false;
-                    //   });
-                    //   _confettiController.stop();
-                    // }),                   
-                    _btn("Home", _goDashboard),
-                    _btn("ඉදිරියට", _autoAdvancing ? null : _nextImage),
-                    
-                  ],
+                Container(
+                  color: green,
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // _btn("අලුත්", _autoAdvancing ? null : () {
+                      //   _printAttemptStatsToTerminal(
+                      //     event: 'new_round_before_reset',
+                      //   );
+                      //   unawaited(_sfxPlayer.stop());
+                      //   setState(() {
+                      //     pieces.clear();
+                      //     _rewardPlayed = false;
+                      //     _autoAdvancing = false;
+                      //   });
+                      //   _confettiController.stop();
+                      // }),
+                      _btn("Home", _goDashboard),
+                      _btn("ඉදිරියට", _autoAdvancing ? null : _nextImage),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -316,6 +356,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     if (_rewardPlayed || _autoAdvancing) return;
     _rewardPlayed = true;
     _autoAdvancing = true;
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    if (_showHandHint) {
+      setState(() => _showHandHint = false);
+    }
     await _sfxPlayer.stop();
     await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
     _confettiController.play();

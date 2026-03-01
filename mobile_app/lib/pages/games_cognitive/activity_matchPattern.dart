@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'hand_hint_overlay.dart';
+import 'idle_dino_overlay.dart';
 
 class PatternGameApp extends StatelessWidget {
   const PatternGameApp({super.key});
@@ -29,22 +30,22 @@ class _PatternGamePageState extends State<PatternGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
 
-  // TTS
+  // Animation & Hint State
+  final List<GlobalKey> _optionKeys = List.generate(4, (index) => GlobalKey());
+  bool _showHandHint = false;
+
+  // TTS & Audio
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _sfxPlayer = AudioPlayer();
 
-  // Confetti
+  // Confetti & Star
   late final ConfettiController _confettiController;
-
-  // Star pop animation
   late final AnimationController _starController;
   late final Animation<double> _starScale;
 
-  // Levels
+  // Levels & Pattern State
   int level = 1;
   int score = 0;
-
-  // Current pattern
   PatternType type = PatternType.colors;
   late List<String> pattern;
   late String answer;
@@ -57,10 +58,9 @@ class _PatternGamePageState extends State<PatternGamePage>
   int _hintBlinkIndex = -1;
   Timer? _hintTimer;
   Timer? _blinkTimer;
-
   bool _showStar = false;
 
-  // Attempt stats
+  // Stats
   int _questionsPlayed = 0;
   int _correctAnswers = 0;
   Duration _totalReactionTime = Duration.zero;
@@ -70,14 +70,10 @@ class _PatternGamePageState extends State<PatternGamePage>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
 
-    _confettiController =
-        ConfettiController(duration: const Duration(milliseconds: 900));
-
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 900),
+    );
     _starController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 450),
@@ -91,12 +87,9 @@ class _PatternGamePageState extends State<PatternGamePage>
   }
 
   Future<void> _setupTts() async {
-    // Basic safe defaults (works on Android/iOS if TTS engine is available)
     await _tts.setSpeechRate(0.45);
     await _tts.setPitch(1.0);
     await _tts.setVolume(1.0);
-    // If your device supports Sinhala voice, this helps.
-    // If it fails, it will just use default voice.
     try {
       await _tts.setLanguage("si-LK");
     } catch (_) {}
@@ -104,7 +97,6 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _cancelHintTimers();
     _sfxPlayer.dispose();
     _confettiController.dispose();
@@ -113,14 +105,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     super.dispose();
   }
 
-  Future<void> _speakPrompt() async {
-    // short + clear for kids
-    await _tts.stop();
-    await _tts.speak("ඊළඟට එන්නේ මොකක්ද?");
-  }
-
   void _newRound({bool speak = false}) {
-    // Rotate pattern types by level
     type = PatternType.values[(level - 1) % PatternType.values.length];
 
     if (level <= 2) {
@@ -132,18 +117,19 @@ class _PatternGamePageState extends State<PatternGamePage>
     }
 
     setState(() {
+      _showHandHint = false;
       feedback = "නිවැරදි ඊළඟ අංගය තෝරන්න";
       feedbackColor = Colors.black;
     });
+
     _roundStartedAt = DateTime.now();
-
     _startHintTimer();
-
     if (speak) {
       _speakPrompt();
     }
   }
 
+  // --- Pattern Logic (Unchanged) ---
   void _makeABAB() {
     final bank = _bankForType(type);
     final a = bank[_rng.nextInt(bank.length)];
@@ -151,7 +137,6 @@ class _PatternGamePageState extends State<PatternGamePage>
     while (b == a) {
       b = bank[_rng.nextInt(bank.length)];
     }
-
     pattern = [a, b, a, b];
     answer = a;
     options = _buildOptions(answer, bank, 3);
@@ -168,7 +153,6 @@ class _PatternGamePageState extends State<PatternGamePage>
     while (c == a || c == b) {
       c = bank[_rng.nextInt(bank.length)];
     }
-
     pattern = [a, b, c, a, b, c];
     answer = a;
     options = _buildOptions(answer, bank, 4);
@@ -181,7 +165,6 @@ class _PatternGamePageState extends State<PatternGamePage>
     while (b == a) {
       b = bank[_rng.nextInt(bank.length)];
     }
-
     pattern = [a, a, b, a, a, b];
     answer = a;
     options = _buildOptions(answer, bank, 4);
@@ -207,31 +190,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     return list;
   }
 
-  Future<void> _playRewardAnimation() async {
-    await _sfxPlayer.stop();
-    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
-
-    setState(() => _showStar = true);
-
-    _confettiController.play();
-    await _starController.forward(from: 0);
-
-    // Keep star visible before next pattern
-    await Future.delayed(const Duration(milliseconds: 2800));
-
-    if (!mounted) return;
-    setState(() => _showStar = false);
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const CognitiveGameLoadingScreen(
-          gameTitle: 'රටා හඳුනාගැනීම',
-          autoNavigate: false,
-          duration: Duration(seconds: 3),
-        ),
-      ),
-    );
-  }
+  // --- Hint & Animation Logic ---
 
   void _cancelHintTimers() {
     _hintTimer?.cancel();
@@ -245,32 +204,33 @@ class _PatternGamePageState extends State<PatternGamePage>
     _cancelHintTimers();
     _hintTimer = Timer(const Duration(seconds: 4), () {
       if (!mounted) return;
-      _startBlinkHint();
+      _startBlinkHint(); // Triggers both blinking and hand overlay
     });
   }
 
   void _startBlinkHint() {
     _blinkTimer?.cancel();
-
     final correctIndex = options.indexOf(answer);
     if (correctIndex == -1) return;
 
-    _hintBlinkIndex = correctIndex;
+    // Show Hand Hint
+    setState(() {
+      _showHandHint = true;
+      _hintBlinkIndex = correctIndex;
+    });
 
+    // Blink Logic (runs 3 times)
     int toggles = 0;
     bool on = false;
-
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 300), (t) {
       if (!mounted) {
         t.cancel();
         return;
       }
-
       on = !on;
       setState(() {
         _hintBlinkIndex = on ? correctIndex : -1;
       });
-
       toggles++;
       if (toggles >= 6) {
         t.cancel();
@@ -279,24 +239,12 @@ class _PatternGamePageState extends State<PatternGamePage>
     });
   }
 
-  void _printAttemptStatsToTerminal({required String event}) {
-    final accuracy = _questionsPlayed == 0
-        ? 0.0
-        : (_correctAnswers / _questionsPlayed) * 100;
-    final avgReactionMs = _reactionSamples == 0
-        ? 0
-        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
-
-    debugPrint(
-      "[MATCH_PATTERN_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
-    );
-  }
-
   void _onPick(String pick) async {
     final pickedAt = DateTime.now();
     _cancelHintTimers();
-    final ok = pick == answer;
+    setState(() => _showHandHint = false); // Hide hand immediately on tap
 
+    final ok = pick == answer;
     setState(() {
       _questionsPlayed++;
       if (ok) {
@@ -307,7 +255,6 @@ class _PatternGamePageState extends State<PatternGamePage>
         _reactionSamples++;
       }
     });
-    _printAttemptStatsToTerminal(event: ok ? "answer_correct" : "answer_wrong");
 
     if (ok) {
       setState(() {
@@ -316,9 +263,7 @@ class _PatternGamePageState extends State<PatternGamePage>
         feedback = "";
         feedbackColor = Colors.green;
       });
-
       await _playRewardAnimation();
-
       if (!mounted) return;
       _newRound(speak: true);
     } else {
@@ -326,49 +271,46 @@ class _PatternGamePageState extends State<PatternGamePage>
         feedback = "❌ නැවත උත්සාහ කරන්න";
         feedbackColor = Colors.red;
       });
-      // Optional: re-speak prompt after wrong answer (gentle)
       _speakPrompt();
       _startHintTimer();
     }
   }
 
-  void _resetGame() {
-    _printAttemptStatsToTerminal(event: "restart_before_reset");
-    unawaited(_sfxPlayer.stop());
-    setState(() {
-      level = 1;
-      score = 0;
-      _questionsPlayed = 0;
-      _correctAnswers = 0;
-      _totalReactionTime = Duration.zero;
-      _reactionSamples = 0;
-      _roundStartedAt = null;
-      feedback = "නිවැරදි ඊළඟ අංගය තෝරන්න";
-      feedbackColor = Colors.black;
-      _showStar = false;
-    });
-    _newRound(speak: true);
+  // --- UI Helpers ---
+
+  Future<void> _speakPrompt() async {
+    await _tts.stop();
+    await _tts.speak("ඊළඟට එන්නේ මොකක්ද?");
+  }
+
+  Future<void> _playRewardAnimation() async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+    setState(() => _showStar = true);
+    _confettiController.play();
+    await _starController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 2800));
+    if (!mounted) return;
+    setState(() => _showStar = false);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'රටා හඳුනාගැනීම',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
+    if (!mounted) return;
   }
 
   Future<void> _goDashboard() async {
-    _printAttemptStatsToTerminal(event: "home_exit");
     await _sfxPlayer.stop();
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/home_cognitive',
-      (route) => false,
-    );
-  }
-
-  String _titleForType(PatternType t) {
-    switch (t) {
-      case PatternType.colors:
-        return "වර්ණ රටා";
-      case PatternType.shapes:
-        return "ආකෘති රටා";
-      case PatternType.numbers:
-        return "අංක රටා";
-    }
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
   }
 
   @override
@@ -376,36 +318,10 @@ class _PatternGamePageState extends State<PatternGamePage>
     final size = MediaQuery.sizeOf(context);
     final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
     final questionRow = [...pattern, "?"];
-    final accuracy = _questionsPlayed == 0
-        ? 0.0
-        : (_correctAnswers / _questionsPlayed) * 100;
-    final avgReactionMs = _reactionSamples == 0
-        ? 0
-        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
-    final avgReactionSeconds = avgReactionMs / 1000.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("රටා හඳුනාගැනීම"),
-        centerTitle: true,
-        actions: [
-          // IconButton(
-          //   tooltip: "Terminal score",
-          //   onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
-          //   icon: const Icon(Icons.terminal),
-          // ),
-          // IconButton(
-          //   tooltip: "කථනය",
-          //   onPressed: _speakPrompt,
-          //   icon: const Icon(Icons.volume_up),
-          // ),
-          // IconButton(
-          //   tooltip: "නැවත සැකසන්න",
-          //   onPressed: _resetGame,
-          //   icon: const Icon(Icons.refresh),
-          // ),
-        ],
-      ),
+return IdleDinoOverlay(
+    gifPath: 'assets/images/cognitive/dinosaur_2.gif',
+    child: Scaffold(
+      appBar: AppBar(title: const Text("රටා හඳුනාගැනීම"), centerTitle: true),
       body: SafeArea(
         child: Stack(
           children: [
@@ -413,38 +329,6 @@ class _PatternGamePageState extends State<PatternGamePage>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Status
-                  // Container(
-                  //   width: double.infinity,
-                  //   padding: const EdgeInsets.all(14),
-                  //   decoration: BoxDecoration(
-                  //     borderRadius: BorderRadius.circular(16),
-                  //     border: Border.all(color: Colors.black12),
-                  //   ),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.start,
-                  //     children: [
-                  //       Text(
-                  //         _titleForType(type),
-                  //         style: const TextStyle(
-                  //           fontSize: 18,
-                  //           fontWeight: FontWeight.w700,
-                  //         ),
-                  //       ),
-                  //       const SizedBox(height: 8),
-                  //       Text("මට්ටම: $level    ලකුණු: $score",
-                  //           style: const TextStyle(fontSize: 16)),
-                  //       const SizedBox(height: 8),
-                  //       Text(
-                  //         "Questions: $_questionsPlayed  Correct: $_correctAnswers  Accuracy: ${accuracy.toStringAsFixed(1)}%  Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
-                  //         style: const TextStyle(fontSize: 14),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-
-                  // const SizedBox(height: 18),
-
                   // Pattern display
                   Container(
                     width: double.infinity,
@@ -459,18 +343,17 @@ class _PatternGamePageState extends State<PatternGamePage>
                       spacing: 12,
                       runSpacing: 12,
                       children: questionRow
-                          .map((e) => _TokenChip(
-                                text: e,
-                                big: true,
-                                isQuestionMark: e == "?",
-                              ))
+                          .map(
+                            (e) => _TokenChip(
+                              text: e,
+                              big: true,
+                              isQuestionMark: e == "?",
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
-
                   const SizedBox(height: 14),
-
-                  // Feedback
                   Text(
                     feedback,
                     style: TextStyle(
@@ -479,9 +362,7 @@ class _PatternGamePageState extends State<PatternGamePage>
                       color: feedbackColor,
                     ),
                   ),
-
                   const SizedBox(height: 18),
-
                   // Options buttons
                   Expanded(
                     child: GridView.count(
@@ -491,13 +372,14 @@ class _PatternGamePageState extends State<PatternGamePage>
                       childAspectRatio: 1.4,
                       children: options.asMap().entries.map((entry) {
                         final index = entry.key;
-                        final opt = entry.value;
                         final hintGlow = index == _hintBlinkIndex;
                         return ElevatedButton(
-                          onPressed: () => _onPick(opt),
+                          key: _optionKeys[index], // KEY ASSIGNED HERE
+                          onPressed: () => _onPick(entry.value),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                hintGlow ? Colors.green.withOpacity(0.25) : null,
+                            backgroundColor: hintGlow
+                                ? Colors.green.withOpacity(0.3)
+                                : null,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
                             ),
@@ -507,40 +389,26 @@ class _PatternGamePageState extends State<PatternGamePage>
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          child: Text(opt),
+                          child: Text(entry.value),
                         );
                       }).toList(),
                     ),
                   ),
-                  SizedBox(height: 8 * scale),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _goDashboard(),
+                          onPressed: _goDashboard,
                           icon: const Icon(Icons.dashboard),
                           label: const Text("Home"),
                         ),
                       ),
-                      SizedBox(width: 10 * scale),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () async {
-                            _printAttemptStatsToTerminal(
-                              event: "restart_before_reset",
-                            );
-                            await _sfxPlayer.stop();
-                            setState(() {
-                              _questionsPlayed = 0;
-                              _correctAnswers = 0;
-                              _totalReactionTime = Duration.zero;
-                              _reactionSamples = 0;
-                              _roundStartedAt = null;
-                            });
-                            _newRound(speak: true);
-                          },
+                          onPressed: () => _newRound(speak: true),
                           icon: const Icon(Icons.restart_alt),
-                          label: const Text("නැවත ආරම්භ කරන්න"),
+                          label: const Text("Restart"),
                         ),
                       ),
                     ],
@@ -548,80 +416,49 @@ class _PatternGamePageState extends State<PatternGamePage>
                 ],
               ),
             ),
-
-            // Confetti (top center)
+            // Confetti
             Align(
               alignment: Alignment.topCenter,
               child: ConfettiWidget(
                 confettiController: _confettiController,
                 blastDirectionality: BlastDirectionality.explosive,
-                emissionFrequency: 0.06,
-                numberOfParticles: 18,
-                gravity: 0.25,
               ),
             ),
-
-            // Star pop overlay (center)
+            // Star Overlay
             if (_showStar)
               Center(
                 child: ScaleTransition(
                   scale: _starScale,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black12),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 18,
-                          color: Colors.black.withOpacity(0.12),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          "⭐",
-                          style: TextStyle(fontSize: 72),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          "හරි! නිවැරදියි.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _StarRewardBox(),
                 ),
+              ),
+
+            // HAND HINT OVERLAY (Placed inside the stack list)
+            if (_showHandHint && options.contains(answer))
+              HandHintOverlay(
+                targetKey: _optionKeys[options.indexOf(answer)],
+                onFinished: () => setState(() => _showHandHint = false),
               ),
           ],
         ),
       ),
+    ),
     );
   }
 }
 
+// Sub-widgets to keep build clean
 class _TokenChip extends StatelessWidget {
   final String text;
   final bool big;
   final bool isQuestionMark;
-
   const _TokenChip({
     required this.text,
     this.big = false,
     this.isQuestionMark = false,
   });
-
   @override
   Widget build(BuildContext context) {
-    final size = big ? 34.0 : 22.0;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -632,9 +469,37 @@ class _TokenChip extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: size,
+          fontSize: big ? 34.0 : 22.0,
           fontWeight: FontWeight.w800,
         ),
+      ),
+    );
+  }
+}
+
+class _StarRewardBox extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: Colors.white,
+        border: Border.all(color: Colors.black12),
+        boxShadow: [
+          BoxShadow(blurRadius: 18, color: Colors.black.withOpacity(0.12)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text("⭐", style: TextStyle(fontSize: 72)),
+          SizedBox(height: 6),
+          Text(
+            "හරි! නිවැරදියි.",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }

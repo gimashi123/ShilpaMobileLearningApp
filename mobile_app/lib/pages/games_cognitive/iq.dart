@@ -17,7 +17,7 @@ import 'package:http/http.dart' as http;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'dart:typed_data';
 import 'package:mobile_app/session/session.dart';
-import 'package:mobile_app/services/cognitive.dart'; 
+import 'package:mobile_app/services/cognitive.dart';
 
 void main() {
   runApp(const IqGame());
@@ -229,10 +229,6 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
     _loadSettingsThenStart();
   }
 
@@ -370,7 +366,6 @@ abstract class BaseTimedGameState<T extends StatefulWidget> extends State<T> {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     countdownTimer?.cancel();
     disposeGameSpecific();
     super.dispose();
@@ -385,9 +380,7 @@ class IqGame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Menu(
-     
-    );
+    return Menu();
   }
 }
 
@@ -454,8 +447,10 @@ class Menu extends StatelessWidget {
                             color: Colors.blue,
                             height: btnH,
                             onTap: () {
-                              Navigator.of(context, rootNavigator: true)
-                                  .pushNamedAndRemoveUntil(
+                              Navigator.of(
+                                context,
+                                rootNavigator: true,
+                              ).pushNamedAndRemoveUntil(
                                 '/home_cognitive',
                                 (route) => false,
                               );
@@ -770,10 +765,6 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
     studentId = Session.userId ?? 'Student';
     _loadTflite(); // ✅ TFLITE ADDED
     games = [
@@ -837,31 +828,30 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     // ✅ TFLITE ADDED
     _interpreter?.close();
     super.dispose();
   }
 
-
-Future<void> _saveResultToBackend(
-  Map<String, dynamic> payload,
-  Map<String, dynamic> result,
-) async {
-  await saveLdResultToBackend(
-    // baseUrl: apiBaseUrl,
-    studentId: studentId,
-    features: payload,  // ✅ Pass your model payload map here
-    shapeGameScore: shapeGameScore,  // Fixed: Removed quotes, used correct syntax
-    colorGameScore: colorGameScore,
-    bubbleGameScore: popGameScore,  // Note: Using popGameScore as the value (assuming it's the variable name in iq.dart)
-    totalScore: totalScore,
-    probs: List<double>.from(result['probs']),
-    predLabel: result['predLabel'] as String,
-    predScore: (result['predScore'] as num).toDouble(),
-  );
-}
-
+  Future<void> _saveResultToBackend(
+    Map<String, dynamic> payload,
+    Map<String, dynamic> result,
+  ) async {
+    await saveLdResultToBackend(
+      // baseUrl: apiBaseUrl,
+      studentId: studentId,
+      features: payload, // ✅ Pass your model payload map here
+      shapeGameScore:
+          shapeGameScore, // Fixed: Removed quotes, used correct syntax
+      colorGameScore: colorGameScore,
+      bubbleGameScore:
+          popGameScore, // Note: Using popGameScore as the value (assuming it's the variable name in iq.dart)
+      totalScore: totalScore,
+      probs: List<double>.from(result['probs']),
+      predLabel: result['predLabel'] as String,
+      predScore: (result['predScore'] as num).toDouble(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

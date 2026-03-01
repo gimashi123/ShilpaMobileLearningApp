@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
@@ -67,12 +66,9 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-    _confettiController =
-        ConfettiController(duration: const Duration(milliseconds: 900));
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 900),
+    );
     _starController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 450),
@@ -85,7 +81,6 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _sfxPlayer.dispose();
     _confettiController.dispose();
     _starController.dispose();
@@ -152,7 +147,9 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
         _reactionSamples++;
       }
     });
-    _printAttemptStatsToTerminal(event: correct ? 'answer_correct' : 'answer_wrong');
+    _printAttemptStatsToTerminal(
+      event: correct ? 'answer_correct' : 'answer_wrong',
+    );
 
     if (correct) {
       setState(() {
@@ -192,10 +189,10 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     _printAttemptStatsToTerminal(event: 'home_exit');
     await _sfxPlayer.stop();
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/home_cognitive',
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
   }
 
   Future<void> _playRewardAnimation() async {
@@ -220,6 +217,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
         ),
       ),
     );
+    if (!mounted) return;
   }
 
   @override
@@ -349,14 +347,12 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
                               _reactionSamples = 0;
                               _pairStartedAt = null;
                             });
-                           _goDashboard();
+                            _goDashboard();
                           },
                           icon: const Icon(Icons.dashboard),
                           label: const Text('Home'),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 12 * scale,
-                            ),
+                            padding: EdgeInsets.symmetric(vertical: 12 * scale),
                           ),
                         ),
                       ),
@@ -428,8 +424,8 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     final crossAxisCount = screenWidth < 360
         ? 2
         : screenWidth < 600
-            ? 3
-            : 4;
+        ? 3
+        : 4;
 
     return GridView.builder(
       itemCount: items.length,
@@ -449,8 +445,8 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
         final borderColor = isMatched
             ? Colors.green
             : isSelected
-                ? Colors.blue
-                : Colors.grey.shade400;
+            ? Colors.blue
+            : Colors.grey.shade400;
 
         return InkWell(
           onTap: isMatched ? null : () => onTap(item, index),
@@ -459,8 +455,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:
-                  isMatched ? Colors.green.withOpacity(0.12) : Colors.white,
+              color: isMatched ? Colors.green.withOpacity(0.12) : Colors.white,
               borderRadius: BorderRadius.circular(cardRadius),
               border: Border.all(color: borderColor, width: 2),
               boxShadow: [
@@ -473,10 +468,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
             ),
             child: Opacity(
               opacity: isMatched ? 0.6 : 1.0,
-              child: Image.asset(
-                item.asset,
-                fit: BoxFit.contain,
-              ),
+              child: Image.asset(item.asset, fit: BoxFit.contain),
             ),
           ),
         );

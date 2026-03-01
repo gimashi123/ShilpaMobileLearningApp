@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 
 class CognitiveGameLoadingScreen extends StatefulWidget {
   final String gameTitle;
@@ -15,8 +17,7 @@ class CognitiveGameLoadingScreen extends StatefulWidget {
     this.duration = const Duration(seconds: 3),
     this.autoNavigate = true,
   }) : assert(
-         !autoNavigate ||
-             (targetRoute != null && targetRoute != ''),
+         !autoNavigate || (targetRoute != null && targetRoute != ''),
          'targetRoute is required when autoNavigate is true.',
        );
 
@@ -32,6 +33,12 @@ class _CognitiveGameLoadingScreenState
   @override
   void initState() {
     super.initState();
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
     _timer = Timer(widget.duration, () {
       if (!mounted) return;
       if (!widget.autoNavigate || widget.targetRoute == null) {

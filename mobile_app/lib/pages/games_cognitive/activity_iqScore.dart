@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mobile_app/pages/models/cognitive.dart';
 import 'package:mobile_app/services/cognitive.dart';
 
@@ -17,10 +16,6 @@ class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
 
     // ✅ Student ID තිබේ නම් පමණක් API call කරන්න
     if (widget.studentId.trim().isNotEmpty) {
@@ -32,7 +27,6 @@ class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
 

@@ -5,6 +5,97 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'idle_dino_overlay.dart';
+// --- HAND HINT OVERLAY WIDGET ---
+class HandHintOverlay extends StatefulWidget {
+  final GlobalKey targetKey;
+  final VoidCallback onFinished;
+
+  const HandHintOverlay({
+    super.key,
+    required this.targetKey,
+    required this.onFinished,
+  });
+
+  @override
+  State<HandHintOverlay> createState() => _HandHintOverlayState();
+}
+
+class _HandHintOverlayState extends State<HandHintOverlay> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _positionAnimation;
+  late Animation<double> _opacityAnimation;
+  Offset? _targetOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+
+    _opacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 20),
+    ]).animate(_controller);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _calculatePosition());
+    _controller.forward().then((_) => widget.onFinished());
+  }
+
+  void _calculatePosition() {
+    final renderBox = widget.targetKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null && mounted) {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final center = Offset(
+        position.dx + renderBox.size.width / 2,
+        position.dy + renderBox.size.height / 2,
+      );
+
+      setState(() {
+        _targetOffset = center;
+        _positionAnimation = Tween<Offset>(
+          begin: center + const Offset(80, 120),
+          end: center,
+        ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_targetOffset == null) return const SizedBox.shrink();
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Positioned(
+          left: _positionAnimation.value.dx - 30,
+          top: _positionAnimation.value.dy - 30,
+          child: Opacity(
+            opacity: _opacityAnimation.value,
+            child: const Icon(
+              Icons.front_hand,
+              size: 70,
+              color: Colors.orangeAccent,
+              shadows: [Shadow(blurRadius: 15, color: Colors.black45)],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// --- MAIN GAME CLASSES ---
 
 class NumberMatchingGameApp extends StatelessWidget {
   const NumberMatchingGameApp({super.key});
@@ -18,7 +109,6 @@ class NumberMatchingGameApp extends StatelessWidget {
 class NumberItem {
   final int value;
   final String word;
-
   const NumberItem({required this.value, required this.word});
 }
 
@@ -30,9 +120,10 @@ class NumberMatchingGamePage extends StatefulWidget {
 }
 
 class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _rng = Random();
   final AudioPlayer _sfxPlayer = AudioPlayer();
+  final GlobalKey _correctKey = GlobalKey(); // Key to track correct answer position
 
   final List<NumberItem> _items = const [
     NumberItem(value: 1, word: "එක"),
@@ -53,6 +144,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   Color _feedbackColor = Colors.black87;
   bool _locked = false;
   int _hintBlinkIndex = -1;
+  bool _showHandHint = false; 
   Timer? _hintTimer;
   Timer? _blinkTimer;
 
@@ -63,7 +155,6 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   bool _showStar = false;
   int _rewardIndex = -1;
 
-  // Attempt stats
   int _questionsPlayed = 0;
   int _correctAnswers = 0;
   Duration _totalReactionTime = Duration.zero;
@@ -91,7 +182,6 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _cancelHintTimers();
     _sfxPlayer.dispose();
     _confettiController.dispose();
@@ -110,35 +200,27 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   void _startHintTimer() {
     _cancelHintTimers();
     _hintTimer = Timer(const Duration(seconds: 4), () {
-      if (!mounted) return;
-      if (_locked) return;
+      if (!mounted || _locked) return;
       _startBlinkHint();
     });
   }
 
   void _startBlinkHint() {
     _blinkTimer?.cancel();
-
-    final correctIndex =
-        _choices.indexWhere((it) => it.value == _current.value);
+    final correctIndex = _choices.indexWhere((it) => it.value == _current.value);
     if (correctIndex == -1) return;
 
-    _hintBlinkIndex = correctIndex;
+    setState(() {
+      _showHandHint = true; // Trigger Hand Animation
+    });
 
     int toggles = 0;
     bool on = false;
 
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 300), (t) {
-      if (!mounted) {
-        t.cancel();
-        return;
-      }
-
+      if (!mounted) { t.cancel(); return; }
       on = !on;
-      setState(() {
-        _hintBlinkIndex = on ? correctIndex : -1;
-      });
-
+      setState(() => _hintBlinkIndex = on ? correctIndex : -1);
       toggles++;
       if (toggles >= 6) {
         t.cancel();
@@ -150,8 +232,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   void _startNewRound() {
     _cancelHintTimers();
     _current = _items[_rng.nextInt(_items.length)];
-    final pool = _items.where((e) => e.value != _current.value).toList()
-      ..shuffle(_rng);
+    final pool = _items.where((e) => e.value != _current.value).toList()..shuffle(_rng);
     _choices = [_current, ...pool.take(3)]..shuffle(_rng);
 
     setState(() {
@@ -160,95 +241,39 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
       _locked = false;
       _showStar = false;
       _rewardIndex = -1;
+      _showHandHint = false;
     });
     _roundStartedAt = DateTime.now();
-
     _startHintTimer();
-  }
-
-  void _printAttemptStatsToTerminal({required String event}) {
-    final accuracy = _questionsPlayed == 0
-        ? 0.0
-        : (_correctAnswers / _questionsPlayed) * 100;
-    final avgReactionMs = _reactionSamples == 0
-        ? 0
-        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
-
-    debugPrint(
-      "[MATCH_NUMBERS_SCORE] event=$event questions=$_questionsPlayed correct=$_correctAnswers accuracy=${accuracy.toStringAsFixed(1)} avg_reaction_ms=$avgReactionMs samples=$_reactionSamples",
-    );
-  }
-
-  Future<void> _goDashboard() async {
-    _printAttemptStatsToTerminal(event: "home_exit");
-    await _sfxPlayer.stop();
-    if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/home_cognitive',
-      (route) => false,
-    );
-  }
-
-  Future<void> _playRewardAnimation() async {
-    await _sfxPlayer.stop();
-    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
-
-    setState(() => _showStar = true);
-
-    _confettiController.play();
-    await _starController.forward(from: 0);
-
-    await Future.delayed(const Duration(milliseconds: 2800));
-    if (!mounted) return;
-    setState(() => _showStar = false);
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const CognitiveGameLoadingScreen(
-          gameTitle: 'අංකය ගැලපීම',
-          autoNavigate: false,
-          duration: Duration(seconds: 4),
-        ),
-      ),
-    );
   }
 
   Future<void> _onPick(NumberItem picked, int index) async {
     if (_locked) return;
-    final pickedAt = DateTime.now();
     _cancelHintTimers();
-    setState(() => _locked = true);
+    setState(() {
+      _locked = true;
+      _showHandHint = false; // Hide hand if user interacts
+    });
 
     final correct = picked.value == _current.value;
-
-    setState(() {
-      _questionsPlayed++;
-      if (correct) {
-        _correctAnswers++;
-      }
+    _questionsPlayed++;
+    if (correct) {
+      _correctAnswers++;
       if (_roundStartedAt != null) {
-        _totalReactionTime += pickedAt.difference(_roundStartedAt!);
+        _totalReactionTime += DateTime.now().difference(_roundStartedAt!);
         _reactionSamples++;
       }
-    });
-    _printAttemptStatsToTerminal(event: correct ? "answer_correct" : "answer_wrong");
-
-    if (correct) {
       setState(() {
         _feedback = "";
-        _feedbackColor = Colors.green;
         _rewardIndex = index;
       });
-
       await _playRewardAnimation();
-      if (!mounted) return;
       _startNewRound();
     } else {
       setState(() {
         _feedback = "වැරදියි. නැවත උත්සාහ කරන්න.";
         _feedbackColor = Colors.red;
       });
-
       await Future.delayed(const Duration(milliseconds: 650));
       if (!mounted) return;
       setState(() {
@@ -256,245 +281,110 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
         _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
         _feedbackColor = Colors.black87;
       });
-
       _startHintTimer();
     }
+  }
+
+  Future<void> _playRewardAnimation() async {
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+    setState(() => _showStar = true);
+    _confettiController.play();
+    await _starController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 2800));
+    if (!mounted) return;
+    setState(() => _showStar = false);
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const CognitiveGameLoadingScreen(gameTitle: 'අංකය ගැලපීම', autoNavigate: false, duration: Duration(seconds: 4)),
+    ));
+  }
+
+  Future<void> _goDashboard() async {
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final width = size.width;
-    final height = size.height;
-    final shortestSide = size.shortestSide;
-    final isPortrait = height >= width;
+    final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
+    return IdleDinoOverlay(
+    gifPath: 'assets/images/cognitive/dinosaur_2.gif',
 
-    final scale = (shortestSide / 360).clamp(0.85, 1.2);
-    final isNarrow = width < 340;
-    final isWide = width >= 720;
-
-    final horizontalPadding = (isWide ? 24.0 : 14.0) * scale;
-    final verticalPadding = (isWide ? 20.0 : 14.0) * scale;
-    final titleFontSize = (isNarrow ? 18.0 : 22.0) * scale;
-    final numberFontSize = (isNarrow ? 52.0 : 66.0) * scale;
-    final feedbackFontSize = (isNarrow ? 15.0 : 18.0) * scale;
-    final gridSpacing = (isWide ? 16.0 : (isNarrow ? 8.0 : 12.0)) * scale;
-    final cardPadding = (isNarrow ? 9.0 : 12.0) * scale;
-    final cardRadius = (isNarrow ? 14.0 : 18.0) * scale;
-
-    final crossAxisCount = width >= 900
-        ? 4
-        : width >= 720
-            ? 3
-            : 2;
-    final childAspectRatio = isPortrait ? 1.15 : 1.25;
-    final accuracy = _questionsPlayed == 0
-        ? 0.0
-        : (_correctAnswers / _questionsPlayed) * 100;
-    final avgReactionMs = _reactionSamples == 0
-        ? 0
-        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
-    final avgReactionSeconds = avgReactionMs / 1000.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("අංකය ගැලපීම"),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _goDashboard,
-        ),
-        // actions: [
-        //   IconButton(
-        //     tooltip: "Terminal score",
-        //     icon: const Icon(Icons.terminal),
-        //     onPressed: () => _printAttemptStatsToTerminal(event: "manual_view"),
-        //   ),
-        // ],
-      ),
+    child: Scaffold(
+      appBar: AppBar(title: const Text("අංකය ගැලපීම"), centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: _goDashboard)),
       body: SafeArea(
         child: Stack(
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: verticalPadding,
-              ),
+              padding: EdgeInsets.all(16.0 * scale),
               child: Column(
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14 * scale),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14 * scale),
-                      color: Colors.black.withOpacity(0.05),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "${_current.value}",
-                          style: TextStyle(
-                            fontSize: numberFontSize,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // SizedBox(height: 10 * scale),
-                  // Container(
-                  //   width: double.infinity,
-                  //   padding: EdgeInsets.all(12 * scale),
-                  //   decoration: BoxDecoration(
-                  //     borderRadius: BorderRadius.circular(12 * scale),
-                  //     color: Colors.blue.withOpacity(0.08),
-                  //     border: Border.all(color: Colors.blue.withOpacity(0.16)),
-                  //   ),
-                  //   child: Text(
-                  //     "Questions: $_questionsPlayed   Correct: $_correctAnswers   Accuracy: ${accuracy.toStringAsFixed(1)}%   Avg reaction: ${avgReactionSeconds.toStringAsFixed(2)}s",
-                  //     textAlign: TextAlign.center,
-                  //     style: TextStyle(
-                  //       fontSize: (isNarrow ? 13.0 : 14.0) * scale,
-                  //       fontWeight: FontWeight.w600,
-                  //     ),
-                  //   ),
-                  // ),
-                  SizedBox(height: 10 * scale),
+                  // Number Display
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(12 * scale),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12 * scale),
-                      color: Colors.black.withOpacity(0.05),
-                    ),
-                    child: Text(
-                      _feedback,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: feedbackFontSize,
-                        fontWeight: FontWeight.w600,
-                        color: _feedbackColor,
-                      ),
-                    ),
+                    padding: EdgeInsets.symmetric(vertical: 20 * scale),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), color: Colors.black.withOpacity(0.05)),
+                    child: Center(child: Text("${_current.value}", style: TextStyle(fontSize: 70 * scale, fontWeight: FontWeight.bold))),
                   ),
-                  SizedBox(height: 14 * scale),
+                  const SizedBox(height: 15),
+                  // Feedback
+                  Text(_feedback, textAlign: TextAlign.center, style: TextStyle(fontSize: 18 * scale, fontWeight: FontWeight.w600, color: _feedbackColor)),
+                  const SizedBox(height: 15),
+                  // Choices Grid
                   Expanded(
                     child: GridView.builder(
                       itemCount: _choices.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: gridSpacing,
-                        crossAxisSpacing: gridSpacing,
-                        childAspectRatio: childAspectRatio,
-                      ),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.2),
                       itemBuilder: (context, index) {
                         final item = _choices[index];
-                        final rewardGlow = index == _rewardIndex;
-                        final hintGlow = index == _hintBlinkIndex;
-
+                        final isCorrect = item.value == _current.value;
                         return _WordCard(
+                          key: isCorrect ? _correctKey : null, // Attach key to correct choice
                           word: item.word,
                           onTap: () => _onPick(item, index),
                           disabled: _locked,
-                          highlightGreen: rewardGlow || hintGlow,
-                          padding: cardPadding,
-                          radius: cardRadius,
-                          titleFontSize: titleFontSize,
+                          highlightGreen: (index == _rewardIndex || index == _hintBlinkIndex),
                         );
                       },
                     ),
                   ),
-                  SizedBox(height: 8 * scale),
+                  // Controls
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _goDashboard,
-                          icon: const Icon(Icons.dashboard),
-                          label: const Text("Home"),
-                        ),
-                      ),
-                      SizedBox(width: 10 * scale),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            _printAttemptStatsToTerminal(
-                              event: "restart_before_reset",
-                            );
-                            await _sfxPlayer.stop();
-                            setState(() {
-                              _questionsPlayed = 0;
-                              _correctAnswers = 0;
-                              _totalReactionTime = Duration.zero;
-                              _reactionSamples = 0;
-                              _roundStartedAt = null;
-                            });
-                            _startNewRound();
-                          },
-                          icon: const Icon(Icons.restart_alt),
-                          label: const Text("නැවත ආරම්භ කරන්න"),
-                        ),
-                      ),
+                      Expanded(child: OutlinedButton.icon(onPressed: _goDashboard, icon: const Icon(Icons.dashboard), label: const Text("Home"))),
+                      const SizedBox(width: 10),
+                      Expanded(child: OutlinedButton.icon(onPressed: _startNewRound, icon: const Icon(Icons.restart_alt), label: const Text("නැවත ආරම්භ කරන්න"))),
                     ],
                   ),
                 ],
               ),
             ),
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                emissionFrequency: 0.06,
-                numberOfParticles: 18,
-                gravity: 0.25,
+            // Hand Hint Overlay (Above game content)
+            if (_showHandHint)
+              HandHintOverlay(
+                targetKey: _correctKey,
+                onFinished: () => setState(() => _showHandHint = false),
               ),
-            ),
+            // Confetti
+            Align(alignment: Alignment.topCenter, child: ConfettiWidget(confettiController: _confettiController, blastDirectionality: BlastDirectionality.explosive)),
+            // Star Success View
             if (_showStar)
               Center(
                 child: ScaleTransition(
                   scale: _starScale,
                   child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black12),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 18,
-                          color: Colors.black.withOpacity(0.12),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          "⭐",
-                          style: TextStyle(fontSize: 72),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          "හරි! ගැලපුණා.",
-                         textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(blurRadius: 20, color: Colors.black12)]),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: const [Text("⭐", style: TextStyle(fontSize: 80)), Text("හරි! ගැලපුණා.", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))]),
                   ),
                 ),
               ),
           ],
         ),
       ),
-    );
+    ),);
   }
 }
 
@@ -503,51 +393,28 @@ class _WordCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool disabled;
   final bool highlightGreen;
-  final double padding;
-  final double radius;
-  final double titleFontSize;
 
   const _WordCard({
+    super.key,
     required this.word,
     required this.onTap,
     required this.disabled,
     required this.highlightGreen,
-    required this.padding,
-    required this.radius,
-    required this.titleFontSize,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: disabled ? null : onTap,
-      borderRadius: BorderRadius.circular(radius),
-      child: Ink(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius),
+          borderRadius: BorderRadius.circular(18),
           color: highlightGreen ? Colors.green.withOpacity(0.3) : Colors.white,
-          border: Border.all(color: Colors.black.withOpacity(0.12)),
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 10,
-              color: Colors.black.withOpacity(0.06),
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: Colors.black12),
+          boxShadow: [BoxShadow(blurRadius: 8, color: Colors.black.withOpacity(0.05), offset: const Offset(0, 4))],
         ),
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Center(
-            child: Text(
-              word.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: titleFontSize,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
+        child: Center(child: Text(word, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
       ),
     );
   }
