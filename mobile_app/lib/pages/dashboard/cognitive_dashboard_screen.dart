@@ -122,7 +122,7 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   }
 
   static const _activityIq = _ActivityEntry(
-    title: "IQ බලමු",
+    title: "මට්ටම බලමු",
     emoji: '🧠',
     route: '/iq_game',
     keyId: 300,

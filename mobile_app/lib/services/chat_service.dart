@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/config/AppConfig.dart'; // For kIsWeb check
 
 class ChatServiceException implements Exception {
   const ChatServiceException(
@@ -33,7 +34,7 @@ class ChatService {
       return _chatBackendUrlFromEnv.trim();
     }
     if (kIsWeb) return 'http://localhost:8000/chat';
-    if (Platform.isAndroid) return 'http://192.168.1.20:8000/chat';
+    if (Platform.isAndroid) return AppConfig.apiBaseUrl;
     // if (Platform.isAndroid) return 'http://127.0.0.1:8000/chat';
 
     return 'http://127.0.0.1:8000/chat';
