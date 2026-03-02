@@ -27,7 +27,7 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
 
   String? _iqCategory;
   bool _loadingIqCategory = true;
-  bool _enableAllActivities = Session.enableAllCognitiveActivities;
+  bool _enableAllActivities = false;
 
   // ✅ Double-click confirm
   int? _pendingKey;
@@ -68,7 +68,8 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
 
   Future<void> _loadActivityPreference() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(Session.enableAllActivitiesKey) ?? false;
+    final enabled =
+        prefs.getBool(Session.enableAllActivitiesKeyForCurrentUser()) ?? false;
     if (!mounted) return;
     setState(() {
       _enableAllActivities = enabled;

@@ -19,18 +19,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? errorText;
 
   Map<String, dynamic>? me;
-  bool _enableAllActivities = Session.enableAllCognitiveActivities;
+  bool _enableAllActivities = false;
 
   @override
   void initState() {
     super.initState();
     _loadMe();
-    _loadActivityPreference();
+    if ((Session.disabilityType ?? '').toLowerCase() == 'cognitive') {
+      _loadActivityPreference();
+    }
   }
 
   Future<void> _loadActivityPreference() async {
+    if ((Session.disabilityType ?? '').toLowerCase() != 'cognitive') {
+      Session.enableAllCognitiveActivities = false;
+      if (!mounted) return;
+      setState(() {
+        _enableAllActivities = false;
+      });
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(Session.enableAllActivitiesKey) ?? false;
+    final enabled =
+        prefs.getBool(Session.enableAllActivitiesKeyForCurrentUser()) ?? false;
     if (!mounted) return;
     setState(() {
       _enableAllActivities = enabled;
@@ -39,12 +51,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _setEnableAllActivities(bool value) async {
+    if ((Session.disabilityType ?? '').toLowerCase() != 'cognitive') return;
+
     setState(() {
       _enableAllActivities = value;
     });
     Session.enableAllCognitiveActivities = value;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(Session.enableAllActivitiesKey, value);
+    await prefs.setBool(Session.enableAllActivitiesKeyForCurrentUser(), value);
   }
 
   Future<void> _loadMe() async {
