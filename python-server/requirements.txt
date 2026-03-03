@@ -6,3 +6,4 @@ numpy
 python-multipart
 python-dotenv
 opencv-python
+tensorflow

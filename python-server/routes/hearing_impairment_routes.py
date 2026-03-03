@@ -29,6 +29,311 @@ class PredictionResponse(BaseModel):
     success: bool
     message: str
 
+# ---------------------------
+# Endpoints
+# ---------------------------
+
+
+@router.get("/health")
+async def health_check(request: Request):
+    """
+    Checks whether the hearing impairment models are loaded in app.state.models
+    """
+    try:
+        from services.model_loader import VALID_LEVELS
+        models = getattr(request.app.state, "models", {})
+        loaded_levels = [
+            lvl for lvl in sorted(VALID_LEVELS)
+            if f"hearing_impairment_level{lvl}" in models
+        ]
+        return {
+            "status": "healthy" if loaded_levels else "model_missing",
+            "loaded_levels": loaded_levels,
+            "total_levels": len(VALID_LEVELS),
+        }
+    except Exception as e:
+        logger.exception("Health check error")
+        return {"status": "unhealthy", "error": str(e)}
+
+# Testing endpoint to verify model loading (optional) --- not used in production
+@router.post("/predict", response_model=PredictionResponse)
+async def predict_sign_number(request: Request, body: PredictionRequest):
+    """
+    Predict sign number from a single 42-feature vector (client-side extracted).
+    Accepts an optional 'level' query parameter (1-4, default 1).
+    """
+    logger.info(f"[PREDICT] Received prediction request with description: {body.description}")
+    
+    try:
+        if not body.features:
+            logger.warning("[PREDICT] Prediction request rejected: Features list is empty")
+            raise HTTPException(status_code=400, detail="Features list cannot be empty")
+
+        # Optional strict validation (recommended)
+        if len(body.features) != 42:
+            logger.warning(f"[PREDICT] Prediction request rejected: Expected 42 features, got {len(body.features)}")
+            raise HTTPException(status_code=400, detail=f"Expected 42 features, got {len(body.features)}")
+
+        logger.debug(f"[PREDICT] Raw features: min={min(body.features):.4f}, max={max(body.features):.4f}")
+
+        # Get model loaded at startup
+        try:
+            logger.debug("[PREDICT] Attempting to retrieve hearing_impairment model...")
+            from services.model_loader import get_model
+            model = get_model(request, "hearing_impairment")
+            logger.debug("[PREDICT] Model retrieved successfully")
+        except ValueError as e:
+            logger.error(f"[PREDICT] Model not found: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"[PREDICT] Failed to get model: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+
+        # If your model was trained on normalized features, normalize here too:
+        try:
+            features = _normalize_landmarks_42(body.features)
+            logger.debug(f"[PREDICT] Normalized features: min={min(features):.4f}, max={max(features):.4f}")
+        except Exception as e:
+            logger.error(f"[PREDICT] Failed to normalize features: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Feature normalization failed: {str(e)}")
+
+        try:
+            logger.debug("[PREDICT] Running model prediction...")
+            pred = model.predict([features])[0]
+            logger.debug(f"[PREDICT] Raw prediction: {pred}")
+        except Exception as e:
+            logger.error(f"[PREDICT] Prediction failed: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+        confidence = None
+        try:
+            if hasattr(model, "predict_proba"):
+                logger.debug("[PREDICT] Calculating confidence with predict_proba...")
+                probs = model.predict_proba([features])[0]
+                confidence = float(np.max(probs))
+                logger.debug(f"[PREDICT] Prediction confidence: {confidence}")
+        except Exception as e:
+            logger.warning(f"[PREDICT] Failed to calculate confidence: {str(e)}", exc_info=True)
+            # Don't fail the whole request if confidence calculation fails
+
+        logger.info(f"[PREDICT] Prediction completed successfully: sign={pred}, confidence={confidence}")
+        
+        return PredictionResponse(
+            prediction=int(pred),
+            confidence=confidence,
+            success=True,
+            message="Prediction completed successfully",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[PREDICT] Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+# -----------------------------------------------------------------
+# Keras sequence model config
+# These models expect input shape (batch, KERAS_SEQ_LEN, 42).
+# -----------------------------------------------------------------
+KERAS_SEQ_LEN = 30  # number of frames the keras models expect per sequence
+
+# Label-offset map: maps keras class index 0 -> actual number
+# Level 3 predicts classes 0..19 which map to numbers 21..40
+# Level 4 predicts classes 0..25 which map to numbers 45..70
+# Adjust these offsets if your training labels differ.
+KERAS_LABEL_OFFSET = {
+    3: 21,
+    4: 45,
+}
+
+
+@router.post("/predict-video", response_model=PredictionResponse)
+async def predict_from_video(
+    request: Request,
+    video: UploadFile = File(...),
+    level: int = Form(1),
+    description: Optional[str] = Form(None),
+):
+    """
+    Predict sign number from uploaded video:
+    - extract multiple 42-feature vectors using MediaPipe
+    - predict each vector using the model for the given level
+    - majority vote for final prediction
+    - optional confidence from predict_proba
+
+    Levels:
+      1 -> numbers 1-10   (sklearn .pkl)
+      2 -> numbers 11-20  (sklearn .pkl)
+      3 -> numbers 21-40  (keras .keras)
+      4 -> numbers 45-70  (keras .keras)
+    """
+    logger.info(
+        f"[PREDICT_VIDEO] Starting video prediction request. "
+        f"Filename: {video.filename}, Level: {level}, Description: {description}"
+    )
+
+    # --- Validate level ---
+    from services.model_loader import VALID_LEVELS, MODEL_LEVELS
+    if level not in VALID_LEVELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid level: {level}. Must be one of {sorted(VALID_LEVELS)}",
+        )
+
+    is_keras = MODEL_LEVELS[level]["loader"] == "keras"
+
+    ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+
+    ext = os.path.splitext(video.filename)[1].lower() if video.filename else ""
+
+    logger.info(
+        f"[PREDICT_VIDEO] filename={video.filename}, "
+        f"content_type={video.content_type}, detected_ext={ext}"
+    )
+
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file extension: {ext}. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
+
+    temp_video_path = None
+
+    try:
+        # Save uploaded file to temp path
+        suffix = ".mp4"
+        if video.filename and "." in video.filename:
+            suffix = "." + video.filename.rsplit(".", 1)[-1].lower()
+
+        logger.debug(f"[PREDICT_VIDEO] Creating temp file with suffix: {suffix}")
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            temp_video_path = tmp.name
+            logger.debug(f"[PREDICT_VIDEO] Temp file created at: {temp_video_path}")
+
+            content = await video.read()
+            logger.debug(f"[PREDICT_VIDEO] Read {len(content)} bytes from uploaded file")
+
+            tmp.write(content)
+            logger.debug(f"[PREDICT_VIDEO] Wrote {len(content)} bytes to temp file")
+
+        if not content:
+            logger.warning("[PREDICT_VIDEO] Empty video file uploaded")
+            raise HTTPException(status_code=400, detail="Uploaded video is empty")
+
+        logger.info(f"[PREDICT_VIDEO] Received video: {video.filename} ({len(content)} bytes, type: {video.content_type})")
+
+        # Extract feature vectors (each length=42)
+        logger.info("[PREDICT_VIDEO] Starting video vector extraction...")
+        try:
+            vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
+            logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[PREDICT_VIDEO] Vector extraction failed: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Vector extraction failed: {str(e)}")
+
+        # Get the model for the requested level
+        try:
+            model_key = f"hearing_impairment_level{level}"
+            logger.debug(f"[PREDICT_VIDEO] Attempting to retrieve model: {model_key}")
+            from services.model_loader import get_model
+            model = get_model(request, model_key)
+            logger.info(f"[PREDICT_VIDEO] Model '{model_key}' retrieved successfully")
+        except ValueError as e:
+            logger.error(f"[PREDICT_VIDEO] Model not found or not loaded: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"[PREDICT_VIDEO] Failed to get model: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+
+        # Predict per-vector and majority vote
+        try:
+            logger.debug(f"[PREDICT_VIDEO] Running prediction on {len(vectors)} vectors (is_keras={is_keras})...")
+
+            if is_keras:
+                # Keras model: .predict() returns probability arrays
+                input_array = np.array(vectors, dtype=np.float32)
+                probs = model.predict(input_array)          # (n_frames, n_classes)
+                raw_classes = np.argmax(probs, axis=1)      # class indices
+                offset = KERAS_LABEL_OFFSET.get(level, 0)
+                preds = raw_classes + offset                # map to actual numbers
+                logger.debug(f"[PREDICT_VIDEO] Keras raw classes: {raw_classes}, offset: {offset}, mapped preds: {preds}")
+
+                confidence = float(np.mean(np.max(probs, axis=1)))
+                logger.info(f"[PREDICT_VIDEO] Keras mean confidence: {confidence}")
+            else:
+                # Sklearn model: .predict() returns class labels directly
+                preds = model.predict(vectors)
+                logger.debug(f"[PREDICT_VIDEO] Sklearn raw predictions: {preds}")
+
+                confidence = None
+                try:
+                    if hasattr(model, "predict_proba"):
+                        logger.debug("[PREDICT_VIDEO] Calculating confidence with predict_proba...")
+                        prob_matrix = model.predict_proba(vectors)  # (n_frames, n_classes)
+                        logger.debug(f"[PREDICT_VIDEO] Probabilities shape: {prob_matrix.shape}")
+                        confidence = float(np.mean(np.max(prob_matrix, axis=1)))
+                        logger.info(f"[PREDICT_VIDEO] Sklearn mean confidence: {confidence}")
+                except Exception as e:
+                    logger.warning(f"[PREDICT_VIDEO] Failed to calculate confidence: {str(e)}", exc_info=True)
+
+            final_pred = _majority_vote(np.asarray(preds))
+            logger.info(f"[PREDICT_VIDEO] Predictions from {len(vectors)} vectors: final prediction={final_pred}")
+        except Exception as e:
+            logger.error(f"[PREDICT_VIDEO] Prediction failed: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+        logger.info(f"[PREDICT_VIDEO] Video prediction completed successfully: sign={final_pred}, confidence={confidence}")
+
+        return PredictionResponse(
+            prediction=int(final_pred),
+            confidence=confidence,
+            success=True,
+            message=f"Prediction from video completed successfully (level {level})",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[PREDICT_VIDEO] Unexpected error in video prediction: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Video processing failed: {str(e)}")
+
+    finally:
+        if temp_video_path and os.path.exists(temp_video_path):
+            try:
+                os.unlink(temp_video_path)
+                logger.debug(f"[PREDICT_VIDEO] Cleaned up temp video file: {temp_video_path}")
+            except Exception as e:
+                logger.warning(f"[PREDICT_VIDEO] Failed to remove temp video file: {temp_video_path} - {str(e)}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ---------------------------
 # Helpers
@@ -227,247 +532,3 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
 def _majority_vote(preds: np.ndarray) -> int:
     values, counts = np.unique(preds, return_counts=True)
     return int(values[np.argmax(counts)])
-
-
-# ---------------------------
-# Endpoints
-# ---------------------------
-
-@router.post("/predict", response_model=PredictionResponse)
-async def predict_sign_number(request: Request, body: PredictionRequest):
-    """
-    Predict sign number from a single 42-feature vector (client-side extracted).
-    """
-    logger.info(f"[PREDICT] Received prediction request with description: {body.description}")
-    
-    try:
-        if not body.features:
-            logger.warning("[PREDICT] Prediction request rejected: Features list is empty")
-            raise HTTPException(status_code=400, detail="Features list cannot be empty")
-
-        # Optional strict validation (recommended)
-        if len(body.features) != 42:
-            logger.warning(f"[PREDICT] Prediction request rejected: Expected 42 features, got {len(body.features)}")
-            raise HTTPException(status_code=400, detail=f"Expected 42 features, got {len(body.features)}")
-
-        logger.debug(f"[PREDICT] Raw features: min={min(body.features):.4f}, max={max(body.features):.4f}")
-
-        # Get model loaded at startup
-        try:
-            logger.debug("[PREDICT] Attempting to retrieve hearing_impairment model...")
-            from services.model_loader import get_model
-            model = get_model(request, "hearing_impairment")
-            logger.debug("[PREDICT] Model retrieved successfully")
-        except ValueError as e:
-            logger.error(f"[PREDICT] Model not found: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
-        except Exception as e:
-            logger.error(f"[PREDICT] Failed to get model: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
-
-        # If your model was trained on normalized features, normalize here too:
-        try:
-            features = _normalize_landmarks_42(body.features)
-            logger.debug(f"[PREDICT] Normalized features: min={min(features):.4f}, max={max(features):.4f}")
-        except Exception as e:
-            logger.error(f"[PREDICT] Failed to normalize features: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Feature normalization failed: {str(e)}")
-
-        try:
-            logger.debug("[PREDICT] Running model prediction...")
-            pred = model.predict([features])[0]
-            logger.debug(f"[PREDICT] Raw prediction: {pred}")
-        except Exception as e:
-            logger.error(f"[PREDICT] Prediction failed: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-
-        confidence = None
-        try:
-            if hasattr(model, "predict_proba"):
-                logger.debug("[PREDICT] Calculating confidence with predict_proba...")
-                probs = model.predict_proba([features])[0]
-                confidence = float(np.max(probs))
-                logger.debug(f"[PREDICT] Prediction confidence: {confidence}")
-        except Exception as e:
-            logger.warning(f"[PREDICT] Failed to calculate confidence: {str(e)}", exc_info=True)
-            # Don't fail the whole request if confidence calculation fails
-
-        logger.info(f"[PREDICT] Prediction completed successfully: sign={pred}, confidence={confidence}")
-        
-        return PredictionResponse(
-            prediction=int(pred),
-            confidence=confidence,
-            success=True,
-            message="Prediction completed successfully",
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"[PREDICT] Unexpected error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-
-
-@router.get("/health")
-async def health_check(request: Request):
-    """
-    Checks whether the hearing impairment model is loaded in app.state.models
-    """
-    try:
-        models = getattr(request.app.state, "models", {})
-        ok = "hearing_impairment" in models
-        return {
-            "status": "healthy" if ok else "model_missing",
-            "model_loaded": ok,
-            "model_name": "hearing_impairment",
-        }
-    except Exception as e:
-        logger.exception("Health check error")
-        return {"status": "unhealthy", "error": str(e)}
-
-
-@router.post("/predict-video", response_model=PredictionResponse)
-async def predict_from_video(
-    request: Request,
-    video: UploadFile = File(...),
-    description: Optional[str] = Form(None),
-):
-    """
-    Predict sign number from uploaded video:
-    - extract multiple 42-feature vectors using MediaPipe
-    - predict each vector
-    - majority vote for final prediction
-    - optional confidence from predict_proba
-    """
-    logger.info(f"[PREDICT_VIDEO] Starting video prediction request. Filename: {video.filename}, Description: {description}")
-    
-    ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
-
-    ext = os.path.splitext(video.filename)[1].lower() if video.filename else ""
-
-    logger.info(
-        f"[PREDICT_VIDEO] filename={video.filename}, "
-        f"content_type={video.content_type}, detected_ext={ext}"
-    )
-
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file extension: {ext}. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
-    )
-
-
-
-    # allowed_types = {
-    #     "video/mp4",
-    #     "video/quicktime",
-    #     "video/x-msvideo",
-    #     "video/x-matroska",
-    #     "video/webm",
-    # }
-
-    # if video.content_type not in allowed_types:
-    #     logger.warning(f"[PREDICT_VIDEO] Invalid video type rejected: {video.content_type}")
-    #     raise HTTPException(
-    #         status_code=400,
-    #         detail=f"Invalid file type: {video.content_type}. Allowed: {', '.join(sorted(allowed_types))}",
-    #     )
-
-    temp_video_path = None
-
-    try:
-        # Save uploaded file to temp path
-        suffix = ".mp4"
-        if video.filename and "." in video.filename:
-            suffix = "." + video.filename.rsplit(".", 1)[-1].lower()
-
-        logger.debug(f"[PREDICT_VIDEO] Creating temp file with suffix: {suffix}")
-        
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            temp_video_path = tmp.name
-            logger.debug(f"[PREDICT_VIDEO] Temp file created at: {temp_video_path}")
-            
-            content = await video.read()
-            logger.debug(f"[PREDICT_VIDEO] Read {len(content)} bytes from uploaded file")
-            
-            tmp.write(content)
-            logger.debug(f"[PREDICT_VIDEO] Wrote {len(content)} bytes to temp file")
-
-        if not content:
-            logger.warning("[PREDICT_VIDEO] Empty video file uploaded")
-            raise HTTPException(status_code=400, detail="Uploaded video is empty")
-
-        logger.info(f"[PREDICT_VIDEO] Received video: {video.filename} ({len(content)} bytes, type: {video.content_type})")
-
-        # Extract feature vectors (each length=42)
-        logger.info("[PREDICT_VIDEO] Starting video vector extraction...")
-        try:
-            vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
-            logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[PREDICT_VIDEO] Vector extraction failed: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Vector extraction failed: {str(e)}")
-
-        # Get model loaded at startup
-        try:
-            logger.debug("[PREDICT_VIDEO] Attempting to retrieve hearing_impairment model...")
-            from services.model_loader import get_model
-            model = get_model(request, "hearing_impairment")
-            logger.info("[PREDICT_VIDEO] Model retrieved successfully")
-        except ValueError as e:
-            logger.error(f"[PREDICT_VIDEO] Model not found or not loaded: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
-        except Exception as e:
-            logger.error(f"[PREDICT_VIDEO] Failed to get model: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
-
-        # Predict per-vector and majority vote
-        try:
-            logger.debug(f"[PREDICT_VIDEO] Running prediction on {len(vectors)} vectors...")
-            preds = model.predict(vectors)
-            logger.debug(f"[PREDICT_VIDEO] Raw predictions: {preds}")
-            
-            final_pred = _majority_vote(np.asarray(preds))
-            logger.info(f"[PREDICT_VIDEO] Predictions from {len(vectors)} vectors: final prediction={final_pred}")
-        except Exception as e:
-            logger.error(f"[PREDICT_VIDEO] Prediction failed: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-
-        confidence = None
-        try:
-            if hasattr(model, "predict_proba"):
-                logger.debug("[PREDICT_VIDEO] Model has predict_proba method, calculating confidence...")
-                probs = model.predict_proba(vectors)  # (n_frames, n_classes)
-                logger.debug(f"[PREDICT_VIDEO] Probabilities shape: {probs.shape}")
-                confidence = float(np.mean(np.max(probs, axis=1)))
-                logger.info(f"[PREDICT_VIDEO] Mean confidence from video: {confidence}")
-            else:
-                logger.debug("[PREDICT_VIDEO] Model does not have predict_proba method")
-        except Exception as e:
-            logger.warning(f"[PREDICT_VIDEO] Failed to calculate confidence: {str(e)}", exc_info=True)
-            # Don't fail the whole request if confidence calculation fails
-
-        logger.info(f"[PREDICT_VIDEO] Video prediction completed successfully: sign={final_pred}, confidence={confidence}")
-        
-        return PredictionResponse(
-            prediction=int(final_pred),
-            confidence=confidence,
-            success=True,
-            message="Prediction from video completed successfully",
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"[PREDICT_VIDEO] Unexpected error in video prediction: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Video processing failed: {str(e)}")
-
-    finally:
-        if temp_video_path and os.path.exists(temp_video_path):
-            try:
-                os.unlink(temp_video_path)
-                logger.debug(f"[PREDICT_VIDEO] Cleaned up temp video file: {temp_video_path}")
-            except Exception as e:
-                logger.warning(f"[PREDICT_VIDEO] Failed to remove temp video file: {temp_video_path} - {str(e)}")
