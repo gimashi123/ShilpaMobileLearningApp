@@ -3,12 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/input_modes.dart';
 import '../services/eye_tracking_service.dart';
+import '../services/adaptive_dwell_service.dart';
 
 class InputAwareButton extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final InputMode inputMode;
-  final Duration dwellDuration;
+  final Duration? dwellDuration; // Optional override
   final Color progressColor;
   final BorderRadius? borderRadius;
 
@@ -17,7 +18,7 @@ class InputAwareButton extends StatefulWidget {
     required this.child,
     required this.onTap,
     required this.inputMode,
-    this.dwellDuration = const Duration(milliseconds: 1200), // Slightly faster
+    this.dwellDuration,
     this.progressColor = const Color(0xFF6E4BC6),
     this.borderRadius,
   });
@@ -34,12 +35,17 @@ class _InputAwareButtonState extends State<InputAwareButton>
   StreamSubscription? _gazeSubscription;
   bool _isGazeInside = false;
 
+  final _adaptiveService = AdaptiveDwellService();
+
   @override
   void initState() {
     super.initState();
+    // Initialize service (async but we can start using defaults)
+    _adaptiveService.init();
+
     _controller = AnimationController(
       vsync: this,
-      duration: widget.dwellDuration,
+      duration: widget.dwellDuration ?? _adaptiveService.currentDuration,
     );
     _updateGazeSubscription();
   }
@@ -48,7 +54,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
   void didUpdateWidget(InputAwareButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.dwellDuration != widget.dwellDuration) {
-      _controller.duration = widget.dwellDuration;
+      _controller.duration =
+          widget.dwellDuration ?? _adaptiveService.currentDuration;
     }
 
     if (oldWidget.inputMode != widget.inputMode) {
@@ -60,7 +67,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _gazeSubscription?.cancel();
     _gazeSubscription = null;
     _isGazeInside = false;
-    _resetDwell();
+    _resetDwell(isCancellation: false); // Mode change isn't a "failure"
 
     if (widget.inputMode == InputMode.eyeGaze) {
       _gazeSubscription = EyeTrackingService().gazeStream.listen((data) {
@@ -83,7 +90,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
       _handleDwellStart(localPos);
     } else if (!isInside && _isGazeInside) {
       _isGazeInside = false;
-      _resetDwell();
+      _resetDwell(isCancellation: true); // Look away = cancellation
     } else if (isInside && _isGazeInside) {
       _handleDwellUpdate(localPos);
     }
@@ -100,21 +107,23 @@ class _InputAwareButtonState extends State<InputAwareButton>
   void _handleDwellStart(Offset localPosition) {
     if (widget.onTap == null) return;
 
+    // Refresh duration from service in case it changed since last build
+    _controller.duration =
+        widget.dwellDuration ?? _adaptiveService.currentDuration;
+
     setState(() {
       _touchPosition = localPosition;
     });
     _controller.forward(from: 0.0);
 
     _dwellTimer?.cancel();
-    _dwellTimer = Timer(widget.dwellDuration, () {
+    _dwellTimer = Timer(_controller.duration!, () {
       if (mounted) {
+        // Successful activation!
+        _adaptiveService.recordSuccess();
+
         widget.onTap!();
-        // Don't reset immediately to give feedback, but normally we should or the user lifts finger
-        // For now, let's keep showing full circle until lift?
-        // Or just reset.
-        // If we reset, the user might not know it activated if there is no audio feedback.
-        // But the action normally navigates away or changes state.
-        _resetDwell();
+        _resetDwell(isCancellation: false);
       }
     });
   }
@@ -127,7 +136,14 @@ class _InputAwareButtonState extends State<InputAwareButton>
     }
   }
 
-  void _resetDwell() {
+  /// Resets the dwell state.
+  /// [isCancellation] should be true if the user interrupted the progress.
+  void _resetDwell({bool isCancellation = false}) {
+    // If timer was active and we reset due to cancellation (not success or mode change)
+    if (isCancellation && _dwellTimer != null && _dwellTimer!.isActive) {
+      _adaptiveService.recordCancellation();
+    }
+
     _dwellTimer?.cancel();
     _controller.reset();
     if (mounted) {
@@ -193,11 +209,11 @@ class _InputAwareButtonState extends State<InputAwareButton>
       onPointerMove: (event) => _handleDwellUpdate(event.localPosition),
       onPointerUp: (_) {
         setState(() => _isPressed = false);
-        _resetDwell();
+        _resetDwell(isCancellation: true);
       },
       onPointerCancel: (_) {
         setState(() => _isPressed = false);
-        _resetDwell();
+        _resetDwell(isCancellation: true);
       },
       behavior: HitTestBehavior.opaque,
       child: Stack(

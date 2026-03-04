@@ -3,6 +3,8 @@ import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
 import '../../models/input_modes.dart';
 import '../../components/responsive_layout.dart';
+import '../../services/adaptive_dwell_service.dart';
+import '../../components/input_aware_button.dart';
 
 /// Profile content (Profile tab)
 /// Fetches the latest data from backend to ensure accuracy
@@ -209,6 +211,102 @@ class _ProfileContentState extends State<ProfileContent> {
                   ),
           ),
           const SizedBox(height: 32),
+          const SizedBox(height: 32),
+
+          // ================= Interaction Settings (Adaptive Reset) =================
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 8, bottom: 12),
+                  child: Text(
+                    "අන්තර්ක්‍රියා සැකසුම් (Interaction Settings)",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF4527A0),
+                    ),
+                  ),
+                ),
+                InputAwareButton(
+                  inputMode: widget.inputMode,
+                  onTap: () async {
+                    await AdaptiveDwellService().resetToDefault();
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.deepPurple.withOpacity(0.2),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepPurple.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "ප්‍රතිස්ථාපනය කරන්න (Reset Speed)",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF4527A0),
+                                ),
+                              ),
+                              Text(
+                                "ප්‍රතිචාර කාලය මුල් තත්වයට පත් කරයි",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.black26,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
           // Logout Button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

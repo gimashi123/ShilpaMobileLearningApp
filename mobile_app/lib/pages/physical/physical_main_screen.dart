@@ -13,6 +13,7 @@ import '../../services/eye_tracking_service.dart';
 import '../../services/speech_service.dart';
 import '../../services/voice_command_parser.dart';
 import '../../components/voice_indicator.dart';
+import '../../services/adaptive_dwell_service.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -31,9 +32,11 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
       InputMode.standard; // Default to standard mode, not dwell
   int _selectedTab = 0; // 0: Home, 1: Learn, 2: Games, 3: Profile
 
-  // --- Eye Gaze State ---
+  // --- Eye Gaze & Dwell State ---
   final _eyeTrackingService = EyeTrackingService();
+  final _adaptiveDwellService = AdaptiveDwellService();
   StreamSubscription? _gazeSubscription;
+  StreamSubscription? _adaptationSubscription;
   double _gazeX = -100;
   double _gazeY = -100;
   bool _isCalibrated = false;
@@ -44,6 +47,64 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     // Load from Session (set at login)
     userName = Session.userName ?? "Student";
     disabilityType = Session.disabilityType ?? "Not Set";
+
+    // Initialize Adaptive Dwell Logic
+    _adaptiveDwellService.init();
+    _adaptationSubscription = _adaptiveDwellService.adaptationStream.listen((
+      event,
+    ) {
+      if (mounted) {
+        _showAdaptationFeedback(event);
+      }
+    });
+  }
+
+  void _showAdaptationFeedback(DwellAdaptationEvent event) {
+    final bool isFaster = event.direction == AdaptationDirection.decreased;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isFaster ? Icons.speed : Icons.accessibility_new,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isFaster
+                        ? "අන්තර්ක්‍රියා වේගවත් කරන ලදී"
+                        : "අන්තර්ක්‍රියා ස්ථායී කරන ලදී",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "නව කාලය: ${event.newValue.toStringAsFixed(1)}s (කලින්: ${event.oldValue.toStringAsFixed(1)}s)",
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isFaster
+            ? Colors.green.shade700
+            : Colors.blue.shade700,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: "හරි",
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
+      ),
+    );
   }
 
   void _handleInputModeChange(InputMode mode) async {
@@ -187,6 +248,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   void dispose() {
     _stopGazeTracking();
     _stopVoiceControl();
+    _adaptationSubscription?.cancel();
     super.dispose();
   }
 
