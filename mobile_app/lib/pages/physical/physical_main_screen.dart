@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/session/session.dart';
+import '../../services/interaction_status_service.dart';
 import '../../models/input_modes.dart';
 import '../../components/input_mode_switch.dart';
 import '../../components/common_header.dart';
@@ -35,10 +36,13 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   // --- Eye Gaze & Dwell State ---
   final _eyeTrackingService = EyeTrackingService();
   final _adaptiveDwellService = AdaptiveDwellService();
+  InteractionStatus? _currentInteraction;
+  StreamSubscription? _interactionSubscription;
   StreamSubscription? _gazeSubscription;
   StreamSubscription? _adaptationSubscription;
   double _gazeX = -100;
   double _gazeY = -100;
+  bool _isGazeStable = false;
   bool _isCalibrated = false;
 
   @override
@@ -55,6 +59,18 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     ) {
       if (mounted) {
         _showAdaptationFeedback(event);
+      }
+    });
+
+    _initInteractionListener();
+  }
+
+  void _initInteractionListener() {
+    _interactionSubscription = InteractionStatusService().statusStream.listen((
+      status,
+    ) {
+      if (mounted) {
+        setState(() => _currentInteraction = status);
       }
     });
   }
@@ -149,6 +165,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
         setState(() {
           _gazeX = data.x;
           _gazeY = data.y;
+          _isGazeStable = data.isStable; // Track stability
         });
       }
     });
@@ -249,6 +266,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     _stopGazeTracking();
     _stopVoiceControl();
     _adaptationSubscription?.cancel();
+    _interactionSubscription?.cancel();
     super.dispose();
   }
 
@@ -304,29 +322,75 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           ),
 
           // =====================================================
-          // EYE GAZE CURSOR OVERLAY
+          // TOP GUIDANCE / CONFIRMATION BAR
           // =====================================================
-          if (_inputMode == InputMode.eyeGaze)
+          if (_inputMode == InputMode.eyeGaze &&
+              _currentInteraction != null &&
+              _currentInteraction!.state != InteractionState.none)
             Positioned(
-              left: _gazeX - 15,
-              top: _gazeY - 15,
-              child: IgnorePointer(
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.35),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.blueAccent, width: 2),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        color: Colors.blueAccent,
-                        shape: BoxShape.circle,
-                      ),
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 15,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getGuidanceColor(),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(_getGuidanceIcon(), color: Colors.white, size: 28),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getGuidanceTitle(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              Text(
+                                _getGuidanceSubtitle(),
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 13,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_currentInteraction!.state ==
+                            InteractionState.blinkDetected)
+                          const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -350,6 +414,53 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
               onChanged: _handleInputModeChange,
             ),
           ),
+
+          // =====================================================
+          // EYE GAZE CURSOR OVERLAY (Moved to bottom for Z-Index)
+          // =====================================================
+          if (_inputMode == InputMode.eyeGaze)
+            Positioned(
+              left: _gazeX - (_isGazeStable ? 12 : 15),
+              top: _gazeY - (_isGazeStable ? 12 : 15),
+              child: IgnorePointer(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: _isGazeStable ? 24 : 30,
+                  height: _isGazeStable ? 24 : 30,
+                  decoration: BoxDecoration(
+                    color:
+                        (_isGazeStable ? Colors.greenAccent : Colors.blueAccent)
+                            .withOpacity(0.35),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _isGazeStable
+                          ? Colors.greenAccent
+                          : Colors.blueAccent,
+                      width: _isGazeStable ? 3 : 2,
+                    ),
+                    boxShadow: _isGazeStable
+                        ? [
+                            BoxShadow(
+                              color: Colors.greenAccent.withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: _isGazeStable ? Colors.green : Colors.blueAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -374,6 +485,58 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
         );
       default:
         return DashboardContent(inputMode: _inputMode);
+    }
+  }
+
+  Color _getGuidanceColor() {
+    switch (_currentInteraction?.state) {
+      case InteractionState.hovering:
+        return const Color(0xFF6E4BC6); // Purple
+      case InteractionState.waitingConfirmation:
+        return Colors.orange.shade800;
+      case InteractionState.confirmed:
+        return Colors.green.shade700;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _getGuidanceIcon() {
+    switch (_currentInteraction?.state) {
+      case InteractionState.hovering:
+        return Icons.visibility_outlined;
+      case InteractionState.waitingConfirmation:
+        return Icons.ads_click; // Feedback for first click/blink
+      case InteractionState.confirmed:
+        return Icons.check_circle_outline;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  String _getGuidanceTitle() {
+    switch (_currentInteraction?.state) {
+      case InteractionState.hovering:
+        return "තෝරා ගැනීමට ඇසිපිය හෙළන්න"; // Blink to select
+      case InteractionState.waitingConfirmation:
+        return "තහවුරු කිරීමට නැවත ඇසිපිය හෙළන්න"; // Blink again to confirm
+      case InteractionState.confirmed:
+        return "සාර්ථකව තෝරා ගන්නා ලදී"; // Successfully selected
+      default:
+        return "";
+    }
+  }
+
+  String _getGuidanceSubtitle() {
+    switch (_currentInteraction?.state) {
+      case InteractionState.hovering:
+        return "Blink once to select this item";
+      case InteractionState.waitingConfirmation:
+        return "Blink once more within 2 seconds...";
+      case InteractionState.confirmed:
+        return "Selection confirmed!";
+      default:
+        return "";
     }
   }
 }

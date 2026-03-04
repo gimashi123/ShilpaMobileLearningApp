@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/input_modes.dart';
 import '../services/eye_tracking_service.dart';
 import '../services/adaptive_dwell_service.dart';
+import '../services/interaction_status_service.dart';
 
 class InputAwareButton extends StatefulWidget {
   final Widget child;
@@ -34,13 +35,16 @@ class _InputAwareButtonState extends State<InputAwareButton>
   Offset? _touchPosition;
   StreamSubscription? _gazeSubscription;
   bool _isGazeInside = false;
+  bool _isBlinking = false;
+  bool _isWaitingForSecondBlink = false;
+  Timer? _confirmationTimeout;
 
   final _adaptiveService = AdaptiveDwellService();
+  final _interactionService = InteractionStatusService();
 
   @override
   void initState() {
     super.initState();
-    // Initialize service (async but we can start using defaults)
     _adaptiveService.init();
 
     _controller = AnimationController(
@@ -67,32 +71,90 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _gazeSubscription?.cancel();
     _gazeSubscription = null;
     _isGazeInside = false;
-    _resetDwell(isCancellation: false); // Mode change isn't a "failure"
+    _isWaitingForSecondBlink = false; // Reset on mode change
+    _confirmationTimeout?.cancel(); // Reset on mode change
+    _resetDwell(isCancellation: false);
 
     if (widget.inputMode == InputMode.eyeGaze) {
       _gazeSubscription = EyeTrackingService().gazeStream.listen((data) {
-        _checkGazeHit(data.x, data.y);
+        _checkGazeHit(data);
       });
     }
   }
 
-  void _checkGazeHit(double gazeX, double gazeY) {
+  void _checkGazeHit(GazeData data) {
     if (!mounted || widget.onTap == null) return;
 
     final RenderBox? box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
 
-    final Offset localPos = box.globalToLocal(Offset(gazeX, gazeY));
+    final Offset localPos = box.globalToLocal(Offset(data.x, data.y));
     final bool isInside = box.size.contains(localPos);
 
-    if (isInside && !_isGazeInside) {
-      _isGazeInside = true;
-      _handleDwellStart(localPos);
-    } else if (!isInside && _isGazeInside) {
-      _isGazeInside = false;
-      _resetDwell(isCancellation: true); // Look away = cancellation
-    } else if (isInside && _isGazeInside) {
-      _handleDwellUpdate(localPos);
+    if (isInside) {
+      if (!_isGazeInside) {
+        setState(() => _isGazeInside = true);
+        _interactionService.updateStatus(
+          InteractionStatus(state: InteractionState.hovering),
+        );
+      }
+
+      // Blink Detection (Probability < 0.15 indicates eyes closed)
+      if (data.blinkProbability < 0.15) {
+        if (!_isBlinking) {
+          _isBlinking = true;
+          _handleBlinkTrigger();
+        }
+      } else {
+        _isBlinking = false;
+      }
+    } else {
+      if (_isGazeInside) {
+        setState(() {
+          _isGazeInside = false;
+          _isWaitingForSecondBlink = false;
+          _confirmationTimeout?.cancel();
+          _interactionService.clear();
+          _resetDwell();
+        });
+      }
+    }
+  }
+
+  void _handleBlinkTrigger() {
+    if (!_isWaitingForSecondBlink) {
+      // FIRST BLINK: Start confirmation window
+      setState(() => _isWaitingForSecondBlink = true);
+      _interactionService.updateStatus(
+        InteractionStatus(state: InteractionState.waitingConfirmation),
+      );
+
+      // Reset if user doesn't blink again within 2.5 seconds
+      _confirmationTimeout?.cancel();
+      _confirmationTimeout = Timer(const Duration(milliseconds: 2500), () {
+        if (mounted && _isGazeInside) {
+          setState(() => _isWaitingForSecondBlink = false);
+          _interactionService.updateStatus(
+            InteractionStatus(state: InteractionState.hovering),
+          );
+        }
+      });
+    } else {
+      // SECOND BLINK: Confirmed selection!
+      _confirmationTimeout?.cancel();
+      setState(() => _isWaitingForSecondBlink = false);
+
+      _interactionService.updateStatus(
+        InteractionStatus(state: InteractionState.confirmed),
+      );
+
+      if (widget.onTap != null) widget.onTap!();
+
+      // Clear message after a short delay
+      Future.delayed(
+        const Duration(seconds: 1),
+        () => _interactionService.clear(),
+      );
     }
   }
 
@@ -101,27 +163,21 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _controller.dispose();
     _dwellTimer?.cancel();
     _gazeSubscription?.cancel();
+    _confirmationTimeout?.cancel();
     super.dispose();
   }
 
   void _handleDwellStart(Offset localPosition) {
     if (widget.onTap == null) return;
-
-    // Refresh duration from service in case it changed since last build
     _controller.duration =
         widget.dwellDuration ?? _adaptiveService.currentDuration;
-
-    setState(() {
-      _touchPosition = localPosition;
-    });
+    setState(() => _touchPosition = localPosition);
     _controller.forward(from: 0.0);
 
     _dwellTimer?.cancel();
     _dwellTimer = Timer(_controller.duration!, () {
       if (mounted) {
-        // Successful activation!
         _adaptiveService.recordSuccess();
-
         widget.onTap!();
         _resetDwell(isCancellation: false);
       }
@@ -130,26 +186,18 @@ class _InputAwareButtonState extends State<InputAwareButton>
 
   void _handleDwellUpdate(Offset localPosition) {
     if (_touchPosition != null) {
-      setState(() {
-        _touchPosition = localPosition;
-      });
+      setState(() => _touchPosition = localPosition);
     }
   }
 
-  /// Resets the dwell state.
-  /// [isCancellation] should be true if the user interrupted the progress.
   void _resetDwell({bool isCancellation = false}) {
-    // If timer was active and we reset due to cancellation (not success or mode change)
     if (isCancellation && _dwellTimer != null && _dwellTimer!.isActive) {
       _adaptiveService.recordCancellation();
     }
-
     _dwellTimer?.cancel();
     _controller.reset();
     if (mounted) {
-      setState(() {
-        _touchPosition = null;
-      });
+      setState(() => _touchPosition = null);
     }
   }
 
@@ -165,7 +213,6 @@ class _InputAwareButtonState extends State<InputAwareButton>
   }
 
   Widget _buildInteractionWrapper() {
-    // If not dwell or gaze mode, behave like a standard InkWell
     if (widget.inputMode != InputMode.dwellTouch &&
         widget.inputMode != InputMode.eyeGaze) {
       return InkWell(
@@ -200,7 +247,6 @@ class _InputAwareButtonState extends State<InputAwareButton>
       );
     }
 
-    // Dwell interaction
     return Listener(
       onPointerDown: (event) {
         setState(() => _isPressed = true);
@@ -262,16 +308,10 @@ class _DwellPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
-    final radius = 30.0;
-
-    // Draw background
+    const radius = 30.0;
     canvas.drawCircle(position, radius, bgPaint);
-
-    // Draw arc
     final rect = Rect.fromCircle(center: position, radius: radius);
     final sweepAngle = 2 * pi * progress.value;
-
-    // Rotate -90 degrees to start from top
     canvas.drawArc(rect, -pi / 2, sweepAngle, false, paint);
   }
 
