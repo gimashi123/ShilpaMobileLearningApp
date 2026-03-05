@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
-
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
 
@@ -13,16 +12,43 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   bool loading = true;
   String? errorText;
 
   Map<String, dynamic>? me;
 
+  // ✅ Fix: Use late but initialize properly
+  late AnimationController _waveController;
+  late Animation<double> _waveAnimation;
+
   @override
   void initState() {
     super.initState();
+
+    // ✅ Initialize controller first
+    _waveController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
+    // ✅ Then initialize animation using the controller
+    _waveAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _waveController, curve: Curves.easeInOut),
+    );
+
+    // ✅ Start the animation after initialization
+    _waveController.repeat(reverse: true);
+
     _loadMe();
+  }
+
+  @override
+  void dispose() {
+    // ✅ Always dispose controllers
+    _waveController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMe() async {
@@ -32,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (!mounted) return;
         setState(() {
           loading = false;
-          errorText = "Not logged in (Session.token is null/empty)";
+          errorText = "Ready to sign in?";
         });
         return;
       }
@@ -51,15 +77,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (!mounted) return;
         setState(() {
           loading = false;
-          errorText = "Failed to load profile: ${res.statusCode}\n${res.body}";
+          errorText = "Couldn't reach your profile. Let's try again!";
         });
         return;
       }
 
       final decoded = jsonDecode(res.body);
 
-      // ✅ Safe extraction (works for:
-      // { success:true, data:{...} } OR just { ... }
       Map<String, dynamic> data;
       if (decoded is Map<String, dynamic>) {
         final d = decoded["data"];
@@ -82,39 +106,195 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        errorText = e.toString();
+        errorText = "Oops! Something unexpected happened.";
       });
     }
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  }
+
+  String _getRandomEncouragement() {
+    final messages = [
+      "You're doing amazing things! 🌟",
+      "Keep shining bright! ✨",
+      "Today is your day! 💫",
+      "You're making progress! 🌱",
+      "Believe in yourself! 💝",
+      "You've got this! 💪",
+    ];
+    return messages[DateTime.now().second % messages.length];
   }
 
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color.fromARGB(255, 233, 51, 236).withOpacity(0.2),
+                const Color.fromARGB(255, 169, 24, 189).withOpacity(0.2),
+              ],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // ✅ Safe to use animation now
+                ScaleTransition(
+                  scale: _waveAnimation,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color.fromARGB(255, 10, 102, 80),
+                          Color(0xFFB6FF8F),
+                        ],
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text('✨', style: TextStyle(fontSize: 50)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text(
+                  'Warming up your profile...',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _getRandomEncouragement(),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 30),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7AF2D6)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (errorText != null) {
       return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(errorText!, textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        loading = true;
-                        errorText = null;
-                      });
-                      _loadMe();
-                    },
-                    child: const Text("Retry"),
-                  ),
-                ],
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF7AF2D6).withOpacity(0.1),
+                const Color(0xFFB6FF8F).withOpacity(0.1),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.pink.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text('😊', style: TextStyle(fontSize: 50)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Connection hiccup!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      errorText!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade700,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          loading = true;
+                          errorText = null;
+                        });
+                        _loadMe();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7AF2D6),
+                        foregroundColor: const Color(0xFF2C3E50),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 5,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Try Again ', style: TextStyle(fontSize: 16)),
+                          Text('✨', style: TextStyle(fontSize: 18)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/newlogin');
+                      },
+                      child: const Text(
+                        'Sign in instead →',
+                        style: TextStyle(
+                          color: Color(0xFF7AF2D6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -122,9 +302,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final name = (me?["name"] ?? "Student").toString();
+    final name = (me?["name"] ?? "Wonderful You").toString();
     final email = (me?["email"] ?? "").toString();
-
     final disabilityType = (me?["disabilityType"] ?? "").toString();
 
     final dynamic studentRaw = me?["student"];
@@ -135,137 +314,512 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final age = (studentObj?["age"] ?? "").toString();
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const Text(
-                "Profile",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7AF2D6), Color(0xFFB6FF8F)],
-                  ),
-                  border: Border.all(color: Colors.black, width: 3),
-                ),
-                child: const Icon(Icons.person, size: 60, color: Colors.black),
-              ),
-
-              const SizedBox(height: 16),
-
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                email,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-
-              if (disabilityType.isNotEmpty ||
-                  grade.isNotEmpty ||
-                  age.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    [
-                      if (disabilityType.isNotEmpty) "Type: $disabilityType",
-                      if (grade.isNotEmpty) "Grade: $grade",
-                      if (age.isNotEmpty) "Age: $age",
-                    ].join("  •  "),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                ),
-
-              const SizedBox(height: 30),
-
-              _ProfileItem(
-                icon: Icons.edit,
-                text: "Edit Profile",
-                onTap: () async {
-                  final changed = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
-                  );
-                },
-              ),
-              _ProfileItem(
-                icon: Icons.lock,
-                text: "Your Progress",
-                onTap: () {},
-              ),
-              // _ProfileItem(
-              //   icon: Icons.settings,
-              //   text: "Settings",
-              //   onTap: () {},
-              // ),
-              _ProfileItem(
-                icon: Icons.logout,
-                text: "Logout",
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/newlogin');
-                },
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color.fromARGB(255, 191, 29, 223).withOpacity(0),
+              const Color.fromARGB(255, 191, 29, 223).withOpacity(0),
+              const Color.fromARGB(255, 191, 29, 223).withOpacity(0),
             ],
+            stops: const [0.0, 0.3, 0.7],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Header with greeting
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _getGreeting(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            name.split(' ').first,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3E50),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF7AF2D6).withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          children: [
+                            Text('⭐', style: TextStyle(fontSize: 16)),
+                            SizedBox(width: 4),
+                            Text(
+                              'Learner',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Avatar with gentle animation
+                  ScaleTransition(
+                    scale: _waveAnimation,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF7AF2D6), Color(0xFFB6FF8F)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF7AF2D6).withOpacity(0.3),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                fontSize: 50,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.2),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 18,
+                              color: Color(0xFF7AF2D6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Name and email with style
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E50),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      email,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Stats/Info chips
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (grade.isNotEmpty)
+                        _buildInfoChip(
+                          icon: '📚',
+                          label: 'Grade $grade',
+                          color: const Color(0xFF7AF2D6).withOpacity(0.2),
+                        ),
+                      if (age.isNotEmpty)
+                        _buildInfoChip(
+                          icon: '🎂',
+                          label: '$age years',
+                          color: const Color(0xFFB6FF8F).withOpacity(0.2),
+                        ),
+                      if (disabilityType.isNotEmpty)
+                        _buildInfoChip(
+                          icon: '💝',
+                          label: disabilityType,
+                          color: Colors.pink.withOpacity(0.1),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Quote of the day
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF7AF2D6).withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7AF2D6).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text(
+                            '💭',
+                            style: TextStyle(fontSize: 24),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Quote of the day',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getRandomEncouragement(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Menu items
+                  _buildMenuItem(
+                    icon: Icons.edit_rounded,
+                    text: 'Edit Profile',
+                    subtitle: 'Update your information',
+                    onTap: () async {
+                      final changed = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfilePage(),
+                        ),
+                      );
+                      if (changed == true) {
+                        setState(() => loading = true);
+                        _loadMe();
+                      }
+                    },
+                    gradientColors: const [
+                      Color(0xFF7AF2D6),
+                      Color(0xFFB6FF8F),
+                    ],
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.timeline_rounded,
+                    text: 'Learning Journey',
+                    subtitle: 'Track your progress',
+                    onTap: () {},
+                    gradientColors: const [Colors.orange, Colors.amber],
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.emoji_events_rounded,
+                    text: 'Achievements',
+                    subtitle: '🌟 5 badges earned',
+                    onTap: () {},
+                    gradientColors: const [Colors.purple, Colors.pink],
+                  ),
+
+                  _buildMenuItem(
+                    icon: Icons.logout_rounded,
+                    text: 'Sign Out',
+                    subtitle: 'See you again soon!',
+                    onTap: () => _showLogoutDialog(),
+                    gradientColors: const [Colors.red, Colors.orange],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // App version
+                  Text(
+                    'Version 1.0.0 • Made with 💚 for you',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-class _ProfileItem extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final VoidCallback onTap;
-
-  const _ProfileItem({
-    required this.icon,
-    required this.text,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+  Widget _buildInfoChip({
+    required String icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF2C3E50),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String text,
+    required String subtitle,
+    required VoidCallback onTap,
+    required List<Color> gradientColors,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.first.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon with gradient background
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 16),
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2C3E50),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Arrow
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: gradientColors.first.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 18,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, size: 22),
-            const SizedBox(width: 12),
-            Text(
-              text,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('👋', style: TextStyle(fontSize: 40)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Ready to go?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Come back soon to continue your learning journey!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Stay'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.pushReplacementNamed(context, '/newlogin');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text('Sign Out'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

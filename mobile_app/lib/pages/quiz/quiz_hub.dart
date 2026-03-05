@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/pages/quiz.dart'; // Op enum
 import 'package:mobile_app/component/top_nav_bar.dart';
 import 'package:mobile_app/pages/subject/hearing_math.dart';
+import 'package:mobile_app/session/session.dart';
 
 class QuizHubPage extends StatelessWidget {
   const QuizHubPage({super.key});
 
   void _goToQuiz(BuildContext context, Op op) {
+    Navigator.pushNamed(context, '/quizhearing', arguments: op);
+  }
+
+  void _goToDynamicQuiz(BuildContext context, String type) {
+    final grade = Session.grade ?? "3"; // ✅ auto grade from login
+
     Navigator.pushNamed(
       context,
-      '/quizhearing',
-      arguments: op,
+      '/quizscreen',
+      arguments: {'grade': grade, 'type': type},
     );
   }
 
@@ -131,7 +138,7 @@ class QuizHubPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            onTap: () => _goToQuiz(context, Op.add),
+                            onTap: () => _goToDynamicQuiz(context, "addition"),
                           ),
                           _QuizCard(
                             symbol: "-",
@@ -141,7 +148,8 @@ class QuizHubPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            onTap: () => _goToQuiz(context, Op.sub),
+                            onTap: () =>
+                                _goToDynamicQuiz(context, "subtraction"),
                           ),
                           _QuizCard(
                             symbol: "×",
@@ -151,7 +159,8 @@ class QuizHubPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            onTap: () => _goToQuiz(context, Op.mul),
+                            onTap: () =>
+                                _goToDynamicQuiz(context, "multiplication"),
                           ),
                           _QuizCard(
                             symbol: "÷",
@@ -161,7 +170,7 @@ class QuizHubPage extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            onTap: () => _goToQuiz(context, Op.div),
+                            onTap: () => _goToDynamicQuiz(context, "division"),
                           ),
                         ],
                       ),

@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 class BraillePdfService {
   // 🔁 change if your PC IP changes
-  static const String baseUrl = "http://192.168.1.126:3000";
+  static const String baseUrl = "http://172.20.10.10:3000";
 
   static Future<void> generateAndOpenPdf({
     required String type, // "math" or "sinhala"
