@@ -8,7 +8,7 @@ class AuthApi {
   // Use localhost for iOS Simulator, Web, and Desktop
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:3000';
-    if (Platform.isAndroid) return 'http://192.168.1.126:3000';
+    if (Platform.isAndroid) return 'http://192.168.1.100:3000';
     return 'http://localhost:3000';
   }
 
@@ -104,3 +104,4 @@ class AuthApi {
     return json['data'] as Map<String, dynamic>;
   }
 }
+ 
