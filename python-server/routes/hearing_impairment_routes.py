@@ -138,11 +138,11 @@ async def predict_sign_number(request: Request, body: PredictionRequest):
 KERAS_SEQ_LEN = 30  # number of frames the keras models expect per sequence
 
 # Label-offset map: maps keras class index 0 -> actual number
-# Level 3 predicts classes 0..19 which map to numbers 21..40
-# Level 4 predicts classes 0..25 which map to numbers 45..70
+# Level 3 predicts classes which map to numbers starting at 24
+# Level 4 predicts classes which map to numbers starting at 45
 # Adjust these offsets if your training labels differ.
 KERAS_LABEL_OFFSET = {
-    3: 21,
+    3: 24,
     4: 45,
 }
 
@@ -164,7 +164,7 @@ async def predict_from_video(
     Levels:
       1 -> numbers 1-10   (sklearn .pkl)
       2 -> numbers 11-20  (sklearn .pkl)
-      3 -> numbers 21-40  (keras .keras)
+      3 -> numbers 24-70  (keras .keras)
       4 -> numbers 45-70  (keras .keras)
     """
     logger.info(
@@ -253,13 +253,26 @@ async def predict_from_video(
             logger.debug(f"[PREDICT_VIDEO] Running prediction on {len(vectors)} vectors (is_keras={is_keras})...")
 
             if is_keras:
-                # Keras model: .predict() returns probability arrays
                 input_array = np.array(vectors, dtype=np.float32)
-                probs = model.predict(input_array)          # (n_frames, n_classes)
-                raw_classes = np.argmax(probs, axis=1)      # class indices
+                seq_len = KERAS_SEQ_LEN
+                n_frames = input_array.shape[0]
+                sequences = []
+
+                # Split into sequences of 30, pad last if needed
+                for i in range(0, n_frames, seq_len):
+                    seq = input_array[i:i+seq_len]
+                    if seq.shape[0] < seq_len:
+                        # Pad with zeros at the beginning
+                        pad_width = ((seq_len - seq.shape[0], 0), (0, 0))
+                        seq = np.pad(seq, pad_width, mode='constant')
+                    sequences.append(seq)
+                sequences = np.stack(sequences)  # shape: (n_sequences, 30, 42)
+
+                probs = model.predict(sequences)  # (n_sequences, n_classes)
+                raw_classes = np.argmax(probs, axis=1)
                 offset = KERAS_LABEL_OFFSET.get(level, 0)
-                preds = raw_classes + offset                # map to actual numbers
-                logger.debug(f"[PREDICT_VIDEO] Keras raw classes: {raw_classes}, offset: {offset}, mapped preds: {preds}")
+                preds = raw_classes + offset
+
 
                 confidence = float(np.mean(np.max(probs, axis=1)))
                 logger.info(f"[PREDICT_VIDEO] Keras mean confidence: {confidence}")

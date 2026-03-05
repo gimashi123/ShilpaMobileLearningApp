@@ -4,8 +4,8 @@ import './App.css'
 const LEVELS = [
   { level: 1, range: '1–10' },
   { level: 2, range: '11–20' },
-  { level: 3, range: '21–40' },
-  { level: 4, range: '45–70' },
+  { level: 3, range: '24–70' },
+  { level: 4, range: '75-100' },
 ]
 
 const DEFAULT_API = 'http://localhost:8000'
