@@ -13,6 +13,21 @@ MODELS_DIR = os.path.join(
     "../models/hearing-impairments-models/numbers"
 )
 
+# Base directory for visual impairment models
+VISUAL_MODELS_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "../models/visual-impairements-models"
+)
+
+# Visual impairment model configuration
+VISUAL_MODEL_CONFIG = {
+    "braille_numbers": {
+        "file": "braille_number_model.keras",
+        "loader": "keras",
+        "key": "visual_impairment_braille_numbers",
+    }
+}
+
 # Model level configuration
 # Each level maps to a model file and its loader type
 MODEL_LEVELS = {
@@ -80,6 +95,27 @@ def initialize_models() -> Dict[str, Any]:
         # Backward compatibility: alias level 1 as 'hearing_impairment'
         if "hearing_impairment_level1" in models:
             models["hearing_impairment"] = models["hearing_impairment_level1"]
+
+        # Load visual impairment models
+        logger.info("[MODEL_INIT] Loading visual impairment models...")
+        for name, config in VISUAL_MODEL_CONFIG.items():
+            model_path = os.path.join(VISUAL_MODELS_DIR, config["file"])
+            key = config["key"]
+            try:
+                if not os.path.exists(model_path):
+                    logger.warning(f"[MODEL_INIT] Visual model file not found: {model_path}")
+                    continue
+                logger.info(f"[MODEL_INIT] Loading visual model '{name}' from: {model_path}")
+                from tensorflow import keras
+                model = keras.models.load_model(model_path)
+                models[key] = model
+                logger.info(f"[MODEL_INIT] Visual model '{name}' loaded successfully under key '{key}'")
+            except Exception as e:
+                logger.error(
+                    f"[MODEL_INIT] Failed to load visual model '{name}': {str(e)}",
+                    exc_info=True,
+                )
+                continue
 
         logger.info(f"[MODEL_INIT] Model initialization complete. Loaded {len(models)} model(s)")
         logger.info(f"[MODEL_INIT] Available models: {list(models.keys())}")

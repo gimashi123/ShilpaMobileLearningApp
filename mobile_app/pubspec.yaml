@@ -121,6 +121,7 @@ flutter:
     - assets/sounds/pairs/p4.mp3
     - assets/sounds/pairs/p5.mp3
     - assets/sounds/clap.mp3
+    - .env
     
     
     - assets/background.jpeg
@@ -135,7 +136,7 @@ flutter:
     - assets/images/cognitive/dog.png
     - assets/images/cognitive/cat.png
     - assets/models/lq_model.tflite
-    - .env
+    
 
   # To add assets to your application, add an assets section, like this:
   # assets:

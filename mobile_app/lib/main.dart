@@ -112,7 +112,7 @@ class MyApp extends StatelessWidget {
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
 
-        // cognitive disability games
+        // cognitive disability gamesp
         '/iq_game': (_) => const IqGame(),
         '/activity_draw': (_) => const ActivityDraw(),
         '/activity_findImage': (_) => const PuzzleApp(),

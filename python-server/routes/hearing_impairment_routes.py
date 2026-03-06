@@ -132,10 +132,25 @@ async def predict_sign_number(request: Request, body: PredictionRequest):
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 # -----------------------------------------------------------------
-# Keras sequence model config
-# These models expect input shape (batch, KERAS_SEQ_LEN, 42).
+# Keras sequence model config — per-level input shape
+#
+#   Level 3: (30, 42)  — 30 frames, 21 landmarks × (x,y)     [BiLSTM, sklearn-style normalization]
+#   Level 4: (40, 63)  — 40 frames, 21 landmarks × (x,y,z)   [LSTM with z-coordinate]
 # -----------------------------------------------------------------
-KERAS_SEQ_LEN = 30  # number of frames the keras models expect per sequence
+
+# Number of frames each Keras level expects per sequence
+KERAS_SEQ_LEN = {
+    3: 30,
+    4: 40,
+}
+
+# Number of features per frame for each Keras level
+#   42 = 21 landmarks × (x, y)      — no z, matches Level 3 training
+#   63 = 21 landmarks × (x, y, z)   — includes z, matches Level 4 training
+KERAS_FEATURE_SIZE = {
+    3: 42,
+    4: [63,1]
+}
 
 # Label-offset map: maps keras class index 0 -> actual number
 # Level 3 predicts classes which map to numbers starting at 24
@@ -223,10 +238,20 @@ async def predict_from_video(
 
         logger.info(f"[PREDICT_VIDEO] Received video: {video.filename} ({len(content)} bytes, type: {video.content_type})")
 
-        # Extract feature vectors (each length=42)
-        logger.info("[PREDICT_VIDEO] Starting video vector extraction...")
+        # Extract feature vectors — choose extractor based on per-level feature size
+        feature_size = KERAS_FEATURE_SIZE.get(level, 42) if is_keras else 42
+        seq_len = KERAS_SEQ_LEN.get(level, 30) if is_keras else None
+        include_z = feature_size == 63
+        max_frames = seq_len * 4 if seq_len else 40   # collect ~4 sequences worth of frames
+        logger.info(
+            f"[PREDICT_VIDEO] Starting video vector extraction "
+            f"(feature_size={feature_size}, seq_len={seq_len}, include_z={include_z})..."
+        )
         try:
-            vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
+            if is_keras:
+                vectors = await _extract_video_vectors(temp_video_path, max_samples=max_frames, include_z=include_z)
+            else:
+                vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
             logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
         except HTTPException:
             raise
@@ -254,25 +279,24 @@ async def predict_from_video(
 
             if is_keras:
                 input_array = np.array(vectors, dtype=np.float32)
-                seq_len = KERAS_SEQ_LEN
+                seq_len = KERAS_SEQ_LEN.get(level, 30)
                 n_frames = input_array.shape[0]
                 sequences = []
 
-                # Split into sequences of 30, pad last if needed
+                # Split frames into windows of seq_len; pad the last window if needed
                 for i in range(0, n_frames, seq_len):
                     seq = input_array[i:i+seq_len]
                     if seq.shape[0] < seq_len:
-                        # Pad with zeros at the beginning
                         pad_width = ((seq_len - seq.shape[0], 0), (0, 0))
                         seq = np.pad(seq, pad_width, mode='constant')
                     sequences.append(seq)
-                sequences = np.stack(sequences)  # shape: (n_sequences, 30, 42)
+                sequences = np.stack(sequences)  # shape: (n_sequences, seq_len, feature_size)
+                logger.debug(f"[PREDICT_VIDEO] Sequences shape: {sequences.shape}")
 
                 probs = model.predict(sequences)  # (n_sequences, n_classes)
                 raw_classes = np.argmax(probs, axis=1)
                 offset = KERAS_LABEL_OFFSET.get(level, 0)
                 preds = raw_classes + offset
-
 
                 confidence = float(np.mean(np.max(probs, axis=1)))
                 logger.info(f"[PREDICT_VIDEO] Keras mean confidence: {confidence}")
@@ -368,14 +392,50 @@ def _normalize_landmarks_42(vec42: List[float]) -> List[float]:
     return pts.reshape(-1).astype(np.float32).tolist()
 
 
+def _normalize_landmarks_63(vec63: List[float]) -> List[float]:
+    """
+    Normalize 63 floats (21 landmarks x,y,z):
+    - reshape (21,3)
+    - subtract wrist (index 0) for x,y only (z is relative depth, keep as-is)
+    - divide xy by max 2-D distance for scale
+    """
+    pts = np.asarray(vec63, dtype=np.float32).reshape(21, 3)
+    origin = pts[0].copy()
+    pts[:, :2] -= origin[:2]          # centre xy on wrist
+    max_dist = float(np.max(np.linalg.norm(pts[:, :2], axis=1)))
+    if max_dist > 0:
+        pts[:, :2] /= max_dist        # scale xy
+    return pts.reshape(-1).astype(np.float32).tolist()
+
+
+async def _extract_video_vectors_63(video_path: str, max_samples: int = 40) -> List[List[float]]:
+    """
+    Extract multiple 63-length (x,y,z) landmark vectors from a video using MediaPipe Tasks HandLandmarker.
+    Used for Keras models (levels 3 & 4) that were trained with z-coordinates.
+    """
+    return await _extract_video_vectors(video_path, max_samples=max_samples, include_z=True)
+
+
 async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> List[List[float]]:
     """
-    Extract multiple 42-length (x,y) landmark vectors from a video using MediaPipe Tasks HandLandmarker.
-    Requires: mediapipe + opencv-python
-    Also requires a hand landmarker model file: hand_landmarker.task
+    Extract multiple 42-length (x,y) landmark vectors from a video.
+    Used for sklearn models (levels 1 & 2).
     """
-    logger.info(f"[EXTRACT_VIDEO] Starting video extraction from: {video_path}")
-    
+    return await _extract_video_vectors(video_path, max_samples=max_samples, include_z=False)
+
+
+async def _extract_video_vectors(video_path: str, max_samples: int = 40, include_z: bool = False) -> List[List[float]]:
+    """
+    Core extractor. Shared implementation for both 42-feature (x,y) and 63-feature (x,y,z) variants.
+
+    Args:
+        video_path: Path to video file.
+        max_samples: Maximum number of frame vectors to extract.
+        include_z: If True, extract x,y,z (63 features); if False, extract x,y only (42 features).
+    """
+    expected_len = 63 if include_z else 42
+    logger.info(f"[EXTRACT_VIDEO] Starting video extraction from: {video_path} (include_z={include_z}, feature_size={expected_len})")
+
     try:
         import cv2
         import mediapipe as mp
@@ -389,40 +449,35 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
             detail="Backend missing dependencies: install opencv-python and mediapipe"
         ) from e
 
-    # You MUST download this model file once and place it in your backend (example path below).
-    # Try multiple possible paths for the model file
+    # Try multiple possible paths for the MediaPipe hand landmarker model file
     possible_paths = [
-        # Path 1: Relative to routes file (python-server/routes/)
         os.path.join(os.path.dirname(__file__), "../models/mediapipe/hand_landmarker.task"),
-        # Path 2: Relative to python-server root
         os.path.join(os.path.dirname(__file__), "../../python-server/models/mediapipe/hand_landmarker.task"),
-        # Path 3: Absolute path from workspace root
         os.path.join(os.path.dirname(__file__), "../../../models/mediapipe/hand_landmarker.task"),
-        # Path 4: Direct path from cwd (when running python app.py from python-server/)
         os.path.join(os.getcwd(), "models/mediapipe/hand_landmarker.task"),
     ]
-    
+
     TASK_MODEL_PATH = None
     logger.debug(f"[EXTRACT_VIDEO] Current working directory: {os.getcwd()}")
     logger.debug(f"[EXTRACT_VIDEO] Routes file directory: {os.path.dirname(__file__)}")
     logger.debug(f"[EXTRACT_VIDEO] Searching for hand_landmarker.task in multiple locations...")
-    
+
     for path in possible_paths:
         logger.debug(f"[EXTRACT_VIDEO]   Checking: {path}")
         if os.path.exists(path):
             TASK_MODEL_PATH = path
             logger.debug(f"[EXTRACT_VIDEO]   ✓ Found at: {path}")
             break
-    
+
     if TASK_MODEL_PATH is None:
-        logger.error(f"[EXTRACT_VIDEO] Model file not found in any of these locations:")
+        logger.error("[EXTRACT_VIDEO] Model file not found in any of these locations:")
         for path in possible_paths:
             logger.error(f"[EXTRACT_VIDEO]   - {path}")
         raise HTTPException(
             status_code=500,
             detail=f"Missing MediaPipe task model file: hand_landmarker.task. Searched in: {', '.join(possible_paths)}"
         )
-    
+
     logger.info(f"[EXTRACT_VIDEO] Using hand_landmarker.task from: {TASK_MODEL_PATH}")
 
     # Create landmarker
@@ -445,10 +500,9 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
         if not cap.isOpened():
             logger.error(f"[EXTRACT_VIDEO] Could not open video file: {video_path}")
             raise HTTPException(status_code=400, detail="Could not open uploaded video")
-        
+
         logger.debug("[EXTRACT_VIDEO] Video file opened successfully")
-        
-        # Get video info
+
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         logger.info(f"[EXTRACT_VIDEO] Video info - FPS: {fps}, Total frames: {total_frames}")
@@ -481,10 +535,7 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
                     continue
 
                 try:
-                    mp_image = mp.Image(
-                        image_format=mp.ImageFormat.SRGB,
-                        data=rgb
-                    )
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                     logger.debug(f"[EXTRACT_VIDEO] MediaPipe Image created for frame {frame_idx}")
                 except Exception as e:
                     logger.warning(f"[EXTRACT_VIDEO] Failed to create MediaPipe Image for frame {frame_idx}: {str(e)}")
@@ -502,19 +553,25 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
                     frames_with_hands += 1
                     logger.debug(f"[EXTRACT_VIDEO] Hand landmarks detected in frame {frame_idx}")
                     hand = result.hand_landmarks[0]  # 21 landmarks
-                    vec42: List[float] = []
+                    vec: List[float] = []
                     try:
                         for lm in hand:
-                            vec42.extend([lm.x, lm.y])  # 42 floats
-                        
-                        if len(vec42) != 42:
-                            logger.warning(f"[EXTRACT_VIDEO] Expected 42 features, got {len(vec42)} in frame {frame_idx}")
+                            if include_z:
+                                vec.extend([lm.x, lm.y, lm.z])  # 63 floats
+                            else:
+                                vec.extend([lm.x, lm.y])         # 42 floats
+
+                        if len(vec) != expected_len:
+                            logger.warning(f"[EXTRACT_VIDEO] Expected {expected_len} features, got {len(vec)} in frame {frame_idx}")
                             continue
-                        
-                        logger.debug(f"[EXTRACT_VIDEO] Raw vector for frame {frame_idx}: min={min(vec42):.4f}, max={max(vec42):.4f}")
-                        vec42 = _normalize_landmarks_42(vec42)  # same normalization
-                        logger.debug(f"[EXTRACT_VIDEO] Normalized vector for frame {frame_idx}: min={min(vec42):.4f}, max={max(vec42):.4f}")
-                        vectors.append(vec42)
+
+                        logger.debug(f"[EXTRACT_VIDEO] Raw vector for frame {frame_idx}: min={min(vec):.4f}, max={max(vec):.4f}")
+                        if include_z:
+                            vec = _normalize_landmarks_63(vec)
+                        else:
+                            vec = _normalize_landmarks_42(vec)
+                        logger.debug(f"[EXTRACT_VIDEO] Normalized vector for frame {frame_idx}: min={min(vec):.4f}, max={max(vec):.4f}")
+                        vectors.append(vec)
                     except Exception as e:
                         logger.error(f"[EXTRACT_VIDEO] Failed to process landmarks from frame {frame_idx}: {str(e)}", exc_info=True)
                         continue
@@ -534,7 +591,7 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
         raise HTTPException(status_code=500, detail=f"Video extraction failed: {str(e)}")
 
     logger.info(f"[EXTRACT_VIDEO] Extraction complete. Extracted {len(vectors)} feature vectors from {frames_with_hands} frames")
-    
+
     if not vectors:
         logger.error("[EXTRACT_VIDEO] No hand landmarks were detected in the entire video")
         raise HTTPException(status_code=400, detail="No hand landmarks detected in the video")

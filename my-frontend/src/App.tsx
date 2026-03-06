@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Register from './pages/Register';
-import Login from './pages/Login'; // <-- Import the Login page
+import Login from './pages/Login'; 
 import ParentDashboard from './pages/ParentDashboard';
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
@@ -18,7 +18,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} /> {/* Add this line to include the Login page */}
+        <Route path="/login" element={<Login />} /> 
         <Route path="/parent-dashboard" element={<ParentDashboard />} />
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
@@ -35,4 +35,4 @@ function App() {
   );
 }
 
-export default App; // <-- This is crucial!
+export default App;

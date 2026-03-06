@@ -13,6 +13,8 @@ number_sign_model_level3.keras
 number_sign_model_level4.keras
 - number from 45 to 70
 
+NOTE: PUT THESE MODELS INTO /hearing-impairements-models/numbers
+
 ## API Usage
 
 The `/api/hearing-impairment/predict-video` endpoint accepts a `level` form parameter:
