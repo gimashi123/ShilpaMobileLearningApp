@@ -5,6 +5,8 @@ import '../models/input_modes.dart';
 import '../services/eye_tracking_service.dart';
 import '../services/adaptive_dwell_service.dart';
 import '../services/interaction_status_service.dart';
+import '../services/voice_command_parser.dart';
+import '../services/performance_logger.dart';
 
 class InputAwareButton extends StatefulWidget {
   final Widget child;
@@ -34,6 +36,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
   Timer? _dwellTimer;
   Offset? _touchPosition;
   StreamSubscription? _gazeSubscription;
+  StreamSubscription? _voiceSubscription;
   bool _isGazeInside = false;
   bool _isBlinking = false;
   bool _isWaitingForSecondBlink = false;
@@ -52,6 +55,51 @@ class _InputAwareButtonState extends State<InputAwareButton>
       duration: widget.dwellDuration ?? _adaptiveService.currentDuration,
     );
     _updateGazeSubscription();
+    _initVoiceFusionListener();
+  }
+
+  void _initVoiceFusionListener() {
+    _voiceSubscription?.cancel();
+    _voiceSubscription = _interactionService.voiceStream.listen((command) {
+      _handleVoiceCommand(command);
+    });
+  }
+
+  void _handleVoiceCommand(VoiceCommand command) {
+    if (!mounted || widget.onTap == null) return;
+
+    // MULTIMODAL FUSION LOGIC:
+    // If the user is currently looking at this button (Eye Gaze)
+    // or holding it (Dwell Touch), and says "Select" or "Confirm",
+    // trigger the button immediately.
+    final bool isBeingTargeted = _isGazeInside || _touchPosition != null;
+
+    if (isBeingTargeted &&
+        (command == VoiceCommand.select || command == VoiceCommand.confirm)) {
+      debugPrint("Multimodal Fusion Triggered: Gaze/Dwell + Voice ($command)");
+
+      // Research Performance Logging
+      PerformanceLogger().logEvent(
+        event: "MULTIMODAL_FUSION",
+        details:
+            "Targeted by ${_isGazeInside ? 'Gaze' : 'Dwell'} and triggered by Voice ($command)",
+      );
+
+      _interactionService.updateStatus(
+        InteractionStatus(state: InteractionState.confirmed),
+      );
+
+      if (widget.onTap != null) {
+        widget.onTap!();
+      }
+
+      _resetDwell(isCancellation: false);
+
+      // Brief confirmation feedback
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) _interactionService.clear();
+      });
+    }
   }
 
   @override
@@ -75,7 +123,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _confirmationTimeout?.cancel(); // Reset on mode change
     _resetDwell(isCancellation: false);
 
-    if (widget.inputMode == InputMode.eyeGaze) {
+    if (widget.inputMode == InputMode.eyeGaze ||
+        widget.inputMode == InputMode.hybrid) {
       _gazeSubscription = EyeTrackingService().gazeStream.listen((data) {
         _checkGazeHit(data);
       });
@@ -163,6 +212,7 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _controller.dispose();
     _dwellTimer?.cancel();
     _gazeSubscription?.cancel();
+    _voiceSubscription?.cancel();
     _confirmationTimeout?.cancel();
     super.dispose();
   }
@@ -214,7 +264,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
 
   Widget _buildInteractionWrapper() {
     if (widget.inputMode != InputMode.dwellTouch &&
-        widget.inputMode != InputMode.eyeGaze) {
+        widget.inputMode != InputMode.eyeGaze &&
+        widget.inputMode != InputMode.hybrid) {
       return InkWell(
         onTap: widget.onTap,
         onTapDown: (_) => setState(() => _isPressed = true),
@@ -225,7 +276,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
       );
     }
 
-    if (widget.inputMode == InputMode.eyeGaze) {
+    if (widget.inputMode == InputMode.eyeGaze ||
+        widget.inputMode == InputMode.hybrid) {
       return Stack(
         clipBehavior: Clip.antiAlias,
         fit: StackFit.passthrough,

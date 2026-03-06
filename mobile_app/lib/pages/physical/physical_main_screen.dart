@@ -128,8 +128,11 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     _stopGazeTracking();
     _stopVoiceControl();
 
-    // If switching TO Eye Gaze and not calibrated, go to calibration
-    if (mode == InputMode.eyeGaze && !_isCalibrated) {
+    final bool needsGaze =
+        (mode == InputMode.eyeGaze || mode == InputMode.hybrid);
+
+    // If switching TO a Gaze-based mode and not calibrated, go to calibration
+    if (needsGaze && !_isCalibrated) {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const CalibrationScreen()),
@@ -141,19 +144,22 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           _inputMode = mode;
         });
         _startGazeTracking();
+        if (mode == InputMode.hybrid) _startVoiceControl();
       } else {
-        // User cancelled or failed calibration, revert mode
+        // User cancelled or failed calibration
         return;
       }
-    } else if (mode == InputMode.eyeGaze && _isCalibrated) {
-      setState(() => _inputMode = mode);
-      _startGazeTracking();
-    } else if (mode == InputMode.voiceControl) {
-      setState(() => _inputMode = mode);
-      _startVoiceControl();
     } else {
-      // Switching to standard or dwell
       setState(() => _inputMode = mode);
+
+      if (mode == InputMode.eyeGaze) {
+        _startGazeTracking();
+      } else if (mode == InputMode.voiceControl) {
+        _startVoiceControl();
+      } else if (mode == InputMode.hybrid) {
+        _startGazeTracking();
+        _startVoiceControl();
+      }
     }
   }
 
@@ -194,7 +200,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   }
 
   void _stopVoiceControl() {
-    if (_inputMode == InputMode.voiceControl) {
+    if (_inputMode == InputMode.voiceControl ||
+        _inputMode == InputMode.hybrid) {
       SpeechService.instance.stopListening();
     }
   }
@@ -202,6 +209,11 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   void _processVoiceCommand(String text) {
     print("Voice Heard: $text");
     final command = VoiceCommandParser.parse(text);
+
+    // Broadcast the command to the global interaction bus
+    // This allows components (like InputAwareButton) to react to "Select"
+    // while being hovered by gaze.
+    InteractionStatusService().emitVoiceCommand(command);
 
     setState(() {
       switch (command) {
@@ -228,6 +240,13 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           }
           break;
 
+        // --- Interaction Fusion Commands ---
+        case VoiceCommand.select:
+        case VoiceCommand.confirm:
+          // These are primarily handled by focused components via the stream.
+          // We can provide a brief global confirmation feedback here.
+          break;
+
         // --- Input Mode Switching ---
         case VoiceCommand.setModeStandard:
           _handleInputModeChange(InputMode.standard);
@@ -248,8 +267,10 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
       }
     });
 
-    // Show feedback snackbar
-    if (command != VoiceCommand.unknown) {
+    // Show feedback snackbar for navigation/mode commands
+    if (command != VoiceCommand.unknown &&
+        command != VoiceCommand.select &&
+        command != VoiceCommand.confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("හඳුනාගත් විධානය: $text"),
@@ -324,7 +345,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           // =====================================================
           // TOP GUIDANCE / CONFIRMATION BAR
           // =====================================================
-          if (_inputMode == InputMode.eyeGaze &&
+          if ((_inputMode == InputMode.eyeGaze ||
+                  _inputMode == InputMode.hybrid) &&
               _currentInteraction != null &&
               _currentInteraction!.state != InteractionState.none)
             Positioned(
@@ -400,7 +422,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           // =====================================================
           // VOICE CONTROL INDICATOR OVERLAY
           // =====================================================
-          if (_inputMode == InputMode.voiceControl)
+          if (_inputMode == InputMode.voiceControl ||
+              _inputMode == InputMode.hybrid)
             const Positioned(bottom: 100, right: 30, child: VoiceIndicator()),
 
           // =====================================================
@@ -418,7 +441,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           // =====================================================
           // EYE GAZE CURSOR OVERLAY (Moved to bottom for Z-Index)
           // =====================================================
-          if (_inputMode == InputMode.eyeGaze)
+          if (_inputMode == InputMode.eyeGaze || _inputMode == InputMode.hybrid)
             Positioned(
               left: _gazeX - (_isGazeStable ? 12 : 15),
               top: _gazeY - (_isGazeStable ? 12 : 15),
@@ -517,11 +540,13 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   String _getGuidanceTitle() {
     switch (_currentInteraction?.state) {
       case InteractionState.hovering:
-        return "තෝරා ගැනීමට ඇසිපිය හෙළන්න"; // Blink to select
+        return _inputMode == InputMode.hybrid
+            ? "තෝරා ගැනීමට කියන්න හෝ ඇසිපිය හෙළන්න" // Say or Blink to select
+            : "තෝරා ගැනීමට ඇසිපිය හෙළන්න";
       case InteractionState.waitingConfirmation:
-        return "තහවුරු කිරීමට නැවත ඇසිපිය හෙළන්න"; // Blink again to confirm
+        return "තහවුරු කිරීමට නැවත ඇසිපිය හෙළන්න";
       case InteractionState.confirmed:
-        return "සාර්ථකව තෝරා ගන්නා ලදී"; // Successfully selected
+        return "සාර්ථකව තෝරා ගන්නා ලදී";
       default:
         return "";
     }
@@ -530,7 +555,9 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   String _getGuidanceSubtitle() {
     switch (_currentInteraction?.state) {
       case InteractionState.hovering:
-        return "Blink once to select this item";
+        return _inputMode == InputMode.hybrid
+            ? "Say 'Select' or Blink to confirm this item"
+            : "Blink once to select this item";
       case InteractionState.waitingConfirmation:
         return "Blink once more within 2 seconds...";
       case InteractionState.confirmed:

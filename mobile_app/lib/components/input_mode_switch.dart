@@ -71,6 +71,8 @@ class _InputModeSwitchState extends State<InputModeSwitch>
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
+              _buildOption(InputMode.hybrid, "Hybrid"),
+              const SizedBox(height: 12),
               _buildOption(InputMode.voiceControl, "Voice"),
               const SizedBox(height: 12),
               _buildOption(InputMode.eyeGaze, "Eye Gaze"),
@@ -188,6 +190,8 @@ class _InputModeSwitchState extends State<InputModeSwitch>
         return Icons.visibility_rounded;
       case InputMode.voiceControl:
         return Icons.mic_rounded;
+      case InputMode.hybrid:
+        return Icons.stream_rounded;
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'voice_command_parser.dart';
 
 enum InteractionState {
   none,
@@ -16,11 +17,20 @@ class InteractionStatusService {
   factory InteractionStatusService() => _instance;
   InteractionStatusService._internal();
 
+  // Status controller for visual states (Hover, Confirm)
   final _statusController = StreamController<InteractionStatus>.broadcast();
   Stream<InteractionStatus> get statusStream => _statusController.statusStream;
 
+  // Voice command controller for multimodal fusion
+  final _voiceController = StreamController<VoiceCommand>.broadcast();
+  Stream<VoiceCommand> get voiceStream => _voiceController.stream;
+
   void updateStatus(InteractionStatus status) {
     _statusController.add(status);
+  }
+
+  void emitVoiceCommand(VoiceCommand command) {
+    _voiceController.add(command);
   }
 
   void clear() {

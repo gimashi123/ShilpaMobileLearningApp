@@ -1,1 +1,1 @@
-enum InputMode { standard, dwellTouch, eyeGaze, voiceControl }
+enum InputMode { standard, dwellTouch, eyeGaze, voiceControl, hybrid }
