@@ -303,14 +303,30 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    // Check if this specific bin is currently "selected" or "hitting"
+    final bool isSelected = _selectedCategory == label;
+
     return InputAwareButton(
       onTap: onTap,
       inputMode: widget.inputMode,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: isSelected ? color.withOpacity(0.3) : color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: color, width: 3),
+          border: Border.all(
+            color: isSelected ? Colors.yellow : color,
+            width: isSelected ? 5 : 3,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.5),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
