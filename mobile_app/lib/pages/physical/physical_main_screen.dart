@@ -15,6 +15,7 @@ import '../../services/speech_service.dart';
 import '../../services/voice_command_parser.dart';
 import '../../components/voice_indicator.dart';
 import '../../services/adaptive_dwell_service.dart';
+import 'package:mobile_app/components/gaze_cursor.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -40,10 +41,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   StreamSubscription? _interactionSubscription;
   StreamSubscription? _gazeSubscription;
   StreamSubscription? _adaptationSubscription;
-  double _gazeX = -100;
-  double _gazeY = -100;
-  bool _isGazeStable = false;
   bool _isCalibrated = false;
+  OverlayEntry? _interactionOverlay;
 
   @override
   void initState() {
@@ -166,27 +165,37 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   void _startGazeTracking() async {
     await _eyeTrackingService.startTracking();
     _gazeSubscription?.cancel();
-    _gazeSubscription = _eyeTrackingService.gazeStream.listen((data) {
-      if (mounted) {
-        setState(() {
-          _gazeX = data.x;
-          _gazeY = data.y;
-          _isGazeStable = data.isStable; // Track stability
-        });
-      }
-    });
+    _gazeSubscription = _eyeTrackingService.gazeStream.listen((data) {});
+
+    // Show Global Interaction Overlay (Cursor + Voice indicator)
+    _showInteractionOverlay();
+  }
+
+  void _showInteractionOverlay() {
+    _hideInteractionOverlay();
+    _interactionOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          const GazeCursor(),
+          if (_inputMode == InputMode.voiceControl ||
+              _inputMode == InputMode.hybrid)
+            const Positioned(bottom: 100, right: 30, child: VoiceIndicator()),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_interactionOverlay!);
+  }
+
+  void _hideInteractionOverlay() {
+    _interactionOverlay?.remove();
+    _interactionOverlay = null;
   }
 
   void _stopGazeTracking() async {
+    _hideInteractionOverlay();
     _gazeSubscription?.cancel();
     _gazeSubscription = null;
     await _eyeTrackingService.stopTracking();
-    if (mounted) {
-      setState(() {
-        _gazeX = -100;
-        _gazeY = -100;
-      });
-    }
   }
 
   // --- Voice Control Logic ---
@@ -422,9 +431,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           // =====================================================
           // VOICE CONTROL INDICATOR OVERLAY
           // =====================================================
-          if (_inputMode == InputMode.voiceControl ||
-              _inputMode == InputMode.hybrid)
-            const Positioned(bottom: 100, right: 30, child: VoiceIndicator()),
+          // Handled by _interactionOverlay (OverlayEntry)
 
           // =====================================================
           // INPUT MODE SWITCH FAB (Floating Action Button style)
@@ -441,49 +448,8 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           // =====================================================
           // EYE GAZE CURSOR OVERLAY (Moved to bottom for Z-Index)
           // =====================================================
-          if (_inputMode == InputMode.eyeGaze || _inputMode == InputMode.hybrid)
-            Positioned(
-              left: _gazeX - (_isGazeStable ? 12 : 15),
-              top: _gazeY - (_isGazeStable ? 12 : 15),
-              child: IgnorePointer(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: _isGazeStable ? 24 : 30,
-                  height: _isGazeStable ? 24 : 30,
-                  decoration: BoxDecoration(
-                    color:
-                        (_isGazeStable ? Colors.greenAccent : Colors.blueAccent)
-                            .withOpacity(0.35),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _isGazeStable
-                          ? Colors.greenAccent
-                          : Colors.blueAccent,
-                      width: _isGazeStable ? 3 : 2,
-                    ),
-                    boxShadow: _isGazeStable
-                        ? [
-                            BoxShadow(
-                              color: Colors.greenAccent.withOpacity(0.5),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: _isGazeStable ? Colors.green : Colors.blueAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          // Cursor is now handled by _cursorOverlay (OverlayEntry)
+          // ensuring it stays visible on top of any pushed routes.
         ],
       ),
     );

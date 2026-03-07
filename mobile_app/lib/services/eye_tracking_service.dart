@@ -57,6 +57,12 @@ class EyeTrackingService {
       StreamController<GazeData>.broadcast();
   Stream<GazeData> get gazeStream => _gazeController.stream;
 
+  // Optimized ValueNotifiers for global UI overlays (e.g. Cursor)
+  final ValueNotifier<Offset> currentGaze = ValueNotifier(
+    const Offset(-100, -100),
+  );
+  final ValueNotifier<bool> isStableNotifier = ValueNotifier(false);
+
   bool get isInitialized => _isInitialized;
 
   // --- CALIBRATION & FILTERING DATA ---
@@ -361,6 +367,10 @@ class EyeTrackingService {
     final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
     final blinkProb = (leftEyeOpen + rightEyeOpen) / 2.0;
 
+    // Update global ValueNotifiers
+    currentGaze.value = smoothedPos;
+    isStableNotifier.value = isStable;
+
     _gazeController.add(
       GazeData(
         x: smoothedPos.dx,
@@ -465,6 +475,7 @@ class EyeTrackingService {
 
   Future<void> stopTracking() async {
     _isTracking = false;
+    currentGaze.value = const Offset(-100, -100);
     if (_cameraController?.value.isStreamingImages ?? false) {
       await _cameraController?.stopImageStream();
     }
