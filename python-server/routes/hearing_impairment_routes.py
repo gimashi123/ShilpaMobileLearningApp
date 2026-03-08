@@ -149,7 +149,7 @@ KERAS_SEQ_LEN = {
 #   63 = 21 landmarks × (x, y, z)   — includes z, matches Level 4 training
 KERAS_FEATURE_SIZE = {
     3: 42,
-    4: [63,1]
+    4: 63
 }
 
 # Label-offset map: maps keras class index 0 -> actual number
@@ -249,7 +249,7 @@ async def predict_from_video(
         )
         try:
             if is_keras:
-                vectors = await _extract_video_vectors(temp_video_path, max_samples=max_frames, include_z=include_z)
+                vectors = await _extract_video_vectors(temp_video_path, max_samples=max_frames, include_z=include_z, normalize=not include_z)
             else:
                 vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
             logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
@@ -424,7 +424,7 @@ async def _extract_video_vectors_42(video_path: str, max_samples: int = 40) -> L
     return await _extract_video_vectors(video_path, max_samples=max_samples, include_z=False)
 
 
-async def _extract_video_vectors(video_path: str, max_samples: int = 40, include_z: bool = False) -> List[List[float]]:
+async def _extract_video_vectors(video_path: str, max_samples: int = 40, include_z: bool = False, normalize: bool = True) -> List[List[float]]:
     """
     Core extractor. Shared implementation for both 42-feature (x,y) and 63-feature (x,y,z) variants.
 
@@ -520,9 +520,8 @@ async def _extract_video_vectors(video_path: str, max_samples: int = 40, include
                     break
 
                 frame_idx += 1
-                # Sample every 2nd frame to reduce CPU
-                if frame_idx % 2 != 0:
-                    continue
+                # NOTE: Removed frame skipping (`frame_idx % 2 != 0`)
+                # To capture correct motion sequence without doubling the speed.
 
                 processed_frames += 1
                 logger.debug(f"[EXTRACT_VIDEO] Processing frame {frame_idx}")
@@ -566,11 +565,12 @@ async def _extract_video_vectors(video_path: str, max_samples: int = 40, include
                             continue
 
                         logger.debug(f"[EXTRACT_VIDEO] Raw vector for frame {frame_idx}: min={min(vec):.4f}, max={max(vec):.4f}")
-                        if include_z:
-                            vec = _normalize_landmarks_63(vec)
-                        else:
-                            vec = _normalize_landmarks_42(vec)
-                        logger.debug(f"[EXTRACT_VIDEO] Normalized vector for frame {frame_idx}: min={min(vec):.4f}, max={max(vec):.4f}")
+                        if normalize:
+                            if include_z:
+                                vec = _normalize_landmarks_63(vec)
+                            else:
+                                vec = _normalize_landmarks_42(vec)
+                            logger.debug(f"[EXTRACT_VIDEO] Normalized vector for frame {frame_idx}: min={min(vec):.4f}, max={max(vec):.4f}")
                         vectors.append(vec)
                     except Exception as e:
                         logger.error(f"[EXTRACT_VIDEO] Failed to process landmarks from frame {frame_idx}: {str(e)}", exc_info=True)
