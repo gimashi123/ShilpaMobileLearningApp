@@ -4,9 +4,15 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
+import 'package:mobile_app/models/input_modes.dart';
+import 'package:mobile_app/services/adaptive_dwell_service.dart';
+import 'package:mobile_app/components/input_aware_button.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final InputMode?
+  inputMode; // Added to support physical disability interaction settings
+
+  const ProfileScreen({super.key, this.inputMode});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -607,6 +613,28 @@ class _ProfileScreenState extends State<ProfileScreen>
                     gradientColors: const [Colors.purple, Colors.pink],
                   ),
 
+                  if (disabilityType.toLowerCase() == 'physical')
+                    _buildMenuItem(
+                      icon: Icons.refresh_rounded,
+                      text: 'Reset Interaction Speed',
+                      subtitle: 'ප්‍රතිචාර කාලය මුල් තත්වයට පත් කරයි',
+                      onTap: () async {
+                        await AdaptiveDwellService().resetToDefault();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Interaction settings reset to default',
+                              ),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      gradientColors: const [Colors.orange, Colors.red],
+                      useInputAware: true,
+                    ),
+
                   _buildMenuItem(
                     icon: Icons.logout_rounded,
                     text: 'Sign Out',
@@ -667,7 +695,77 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String subtitle,
     required VoidCallback onTap,
     required List<Color> gradientColors,
+    bool useInputAware = false, // Added to support gaze interaction reset
   }) {
+    final body = Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icon with gradient background
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              // Text content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: gradientColors.first.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -680,74 +778,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon with gradient background
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 16),
-                // Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        text,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Arrow
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: gradientColors.first.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 18,
-                    color: Color(0xFF2C3E50),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: useInputAware
+          ? InputAwareButton(
+              inputMode: widget.inputMode ?? InputMode.standard,
+              onTap: onTap,
+              child: body,
+            )
+          : body,
     );
   }
 
