@@ -7,6 +7,7 @@ import '../services/adaptive_dwell_service.dart';
 import '../services/interaction_status_service.dart';
 import '../services/voice_command_parser.dart';
 import '../services/performance_logger.dart';
+import '../services/voice_focus_service.dart';
 
 class InputAwareButton extends StatefulWidget {
   final Widget child;
@@ -15,6 +16,8 @@ class InputAwareButton extends StatefulWidget {
   final Duration? dwellDuration; // Optional override
   final Color progressColor;
   final BorderRadius? borderRadius;
+  final String? voiceLabel; // Added for semantic matching
+  final bool showVoiceIndex;
 
   const InputAwareButton({
     super.key,
@@ -24,6 +27,8 @@ class InputAwareButton extends StatefulWidget {
     this.dwellDuration,
     this.progressColor = const Color(0xFF6E4BC6),
     this.borderRadius,
+    this.voiceLabel,
+    this.showVoiceIndex = true,
   });
 
   @override
@@ -41,6 +46,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
   bool _isBlinking = false;
   bool _isWaitingForSecondBlink = false;
   Timer? _confirmationTimeout;
+  int? _voiceId; // Numeric ID for voice indexing
+  StreamSubscription? _focusRefreshSubscription;
 
   final _adaptiveService = AdaptiveDwellService();
   final _interactionService = InteractionStatusService();
@@ -56,6 +63,17 @@ class _InputAwareButtonState extends State<InputAwareButton>
     );
     _updateGazeSubscription();
     _initVoiceFusionListener();
+
+    // Register for voice indexing
+    if (widget.onTap != null) {
+      _voiceId = VoiceFocusService().register(
+        widget.onTap!,
+        label: widget.voiceLabel,
+      );
+      _focusRefreshSubscription = VoiceFocusService().refreshStream.listen((_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   void _initVoiceFusionListener() {
@@ -213,7 +231,8 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _dwellTimer?.cancel();
     _gazeSubscription?.cancel();
     _voiceSubscription?.cancel();
-    _confirmationTimeout?.cancel();
+    _focusRefreshSubscription?.cancel();
+    if (_voiceId != null) VoiceFocusService().unregister(_voiceId!);
     super.dispose();
   }
 
@@ -255,10 +274,54 @@ class _InputAwareButtonState extends State<InputAwareButton>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _isPressed ? 0.96 : 1.0,
-      duration: const Duration(milliseconds: 100),
-      child: _buildInteractionWrapper(),
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.passthrough,
+      children: [
+        AnimatedScale(
+          scale: _isPressed ? 0.96 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          child: _buildInteractionWrapper(),
+        ),
+        // VOICE INDEX TAG (Premium Badge Style)
+        if ((widget.inputMode == InputMode.voiceControl ||
+                widget.inputMode == InputMode.hybrid) &&
+            _voiceId != null &&
+            widget.showVoiceIndex)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: IgnorePointer(
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6A1B9A),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    "$_voiceId",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Roboto', // Reliable font
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

@@ -8,6 +8,9 @@ enum VoiceCommand {
   // Interaction Commands (Confirmation)
   select,
   confirm,
+  // Specific Item Selection (Fusion / Voice-Only)
+  selectById,
+  selectByLabel,
   // Input Mode Commands
   setModeStandard,
   setModeDwell,
@@ -21,9 +24,43 @@ class VoiceCommandParser {
   // 0.8 means 80% similarity required
   static const double _fuzzyThreshold = 0.75;
 
+  /// Holds the parsed identifier (ID or Label) for selection commands
+  static dynamic lastParsedData;
+
   static VoiceCommand parse(String text) {
     text = text.toLowerCase().trim();
     if (text.isEmpty) return VoiceCommand.unknown;
+    lastParsedData = null;
+
+    // 1. Check for Numeric IDs (High Priority)
+    // Supports English digits and common Sinhala number sounds
+    final idMatch = RegExp(r'(\d+)').firstMatch(text);
+    if (idMatch != null) {
+      lastParsedData = int.tryParse(idMatch.group(1)!);
+      if (lastParsedData != null) return VoiceCommand.selectById;
+    }
+
+    // Sinhala phonetic numbers (1-5)
+    if (text.contains('එක') || text.contains('eka')) {
+      lastParsedData = 1;
+      return VoiceCommand.selectById;
+    }
+    if (text.contains('දෙක') || text.contains('deka')) {
+      lastParsedData = 2;
+      return VoiceCommand.selectById;
+    }
+    if (text.contains('තුන') || text.contains('thuna')) {
+      lastParsedData = 3;
+      return VoiceCommand.selectById;
+    }
+    if (text.contains('හතර') || text.contains('hathara')) {
+      lastParsedData = 4;
+      return VoiceCommand.selectById;
+    }
+    if (text.contains('පහ') || text.contains('paha')) {
+      lastParsedData = 5;
+      return VoiceCommand.selectById;
+    }
 
     // --- Input Mode Commands ---
     if (_matches(text, [
@@ -161,7 +198,10 @@ class VoiceCommandParser {
       return VoiceCommand.confirm;
     }
 
-    return VoiceCommand.unknown;
+    // --- Fallback: Semantic Label Matching ---
+    // If it's not a known command, it might be the name of a button
+    lastParsedData = text;
+    return VoiceCommand.selectByLabel;
   }
 
   /// Combined Exact + Fuzzy matcher

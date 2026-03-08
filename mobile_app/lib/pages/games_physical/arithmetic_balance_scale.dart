@@ -86,12 +86,23 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
     _rotationController.animateTo(1.0);
   }
 
-  void _handleOptionSelection(int value) {
+  void _handleOptionSelection(int value, {bool isVoice = false}) {
     if (_isSuccess) return;
     setState(() {
       _selectedValue = value;
     });
-    // Feedback: Selected number might scale up or glow
+
+    // AUTO-SLOTTING: If selected via voice, automatically try to place it
+    // because the user wants to "fill the gap" specifically.
+    if (isVoice ||
+        widget.inputMode == InputMode.voiceControl ||
+        widget.inputMode == InputMode.hybrid) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted && _selectedValue == value) {
+          _handlePlaceValue();
+        }
+      });
+    }
   }
 
   void _handlePlaceValue() {
@@ -170,6 +181,7 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
                 _generateLevel();
               },
               inputMode: widget.inputMode,
+              voiceLabel: "ඊළඟ",
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
@@ -411,6 +423,7 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
     return InputAwareButton(
       onTap: _handlePlaceValue,
       inputMode: widget.inputMode,
+      showVoiceIndex: false,
       child: Container(
         width: 50,
         height: 50,
@@ -463,6 +476,7 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
     return InputAwareButton(
       onTap: () => _handleOptionSelection(value),
       inputMode: widget.inputMode,
+      voiceLabel: value.toString(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 70,

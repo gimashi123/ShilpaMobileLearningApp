@@ -13,6 +13,7 @@ import 'calibration_screen.dart';
 import '../../services/eye_tracking_service.dart';
 import '../../services/speech_service.dart';
 import '../../services/voice_command_parser.dart';
+import '../../services/voice_focus_service.dart';
 import '../../components/voice_indicator.dart';
 import '../../services/adaptive_dwell_service.dart';
 import 'package:mobile_app/components/gaze_cursor.dart';
@@ -270,6 +271,16 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
           _handleInputModeChange(InputMode.voiceControl);
           break;
 
+        case VoiceCommand.selectById:
+          final id = VoiceCommandParser.lastParsedData;
+          if (id is int) VoiceFocusService().triggerById(id);
+          break;
+
+        case VoiceCommand.selectByLabel:
+          final label = VoiceCommandParser.lastParsedData;
+          if (label is String) VoiceFocusService().triggerByLabel(label);
+          break;
+
         case VoiceCommand.unknown:
           // maybe show a "Didn't catch that" toast
           break;
@@ -335,6 +346,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
                       onTabChanged: (index) {
                         setState(() {
                           _selectedTab = index;
+                          VoiceFocusService().clear();
                         });
                       },
                     ),
@@ -404,7 +416,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
                                 _getGuidanceSubtitle(),
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.9),
-                                  fontSize: 13,
+                                  fontSize: 13, // Restored
                                   fontFamily: 'Inter',
                                 ),
                               ),

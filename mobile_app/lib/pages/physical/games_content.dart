@@ -70,6 +70,8 @@ class _GamesContentState extends State<GamesContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Sinhala'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "සිංහල",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -117,6 +119,8 @@ class _GamesContentState extends State<GamesContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Maths'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "ගණිතය",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -216,6 +220,7 @@ class _GamesContentState extends State<GamesContent> {
                                   leading: InputAwareButton(
                                     onTap: () => Navigator.pop(context),
                                     inputMode: widget.inputMode,
+                                    showVoiceIndex: false,
                                     child: const Icon(
                                       Icons.arrow_back_ios_new,
                                       color: Color(0xFF4527A0),
@@ -247,6 +252,7 @@ class _GamesContentState extends State<GamesContent> {
                                   leading: InputAwareButton(
                                     onTap: () => Navigator.pop(context),
                                     inputMode: widget.inputMode,
+                                    showVoiceIndex: false,
                                     child: const Icon(
                                       Icons.arrow_back_ios_new,
                                       color: Color(0xFF4527A0),
@@ -309,6 +315,7 @@ class _GameCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(25),
       onTap: onTap,
       inputMode: inputMode,
+      voiceLabel: title,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,

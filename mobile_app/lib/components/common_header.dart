@@ -186,45 +186,47 @@ class _NavTab extends StatelessWidget {
     final double iconSize = isMobile ? 24 : 28;
     final double fontSize = isMobile ? 11 : 14;
 
-    Widget content = Container(
-      padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF6A1B9A).withOpacity(0.4),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? Colors.white : const Color(0xFF4527A0),
-            size: iconSize,
-          ),
-          // Hide label on very small screens if needed, or just scale it
-          if (!isMobile || isSelected) ...[
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF4527A0),
-              ),
+    Widget content = SizedBox(
+      height: isMobile ? 65 : 80,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF6A1B9A) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF6A1B9A).withOpacity(0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : const Color(0xFF4527A0),
+              size: iconSize,
             ),
+            if (!isMobile || isSelected) ...[
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF4527A0),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
 
@@ -232,6 +234,7 @@ class _NavTab extends StatelessWidget {
       child: InputAwareButton(
         onTap: onTap,
         inputMode: inputMode,
+        showVoiceIndex: false,
         child: content,
       ),
     );

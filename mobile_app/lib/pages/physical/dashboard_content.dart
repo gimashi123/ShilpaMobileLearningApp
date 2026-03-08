@@ -154,6 +154,7 @@ class _BigVerticalCard extends StatelessWidget {
       child: InputAwareButton(
         onTap: onTap,
         inputMode: inputMode,
+        voiceLabel: label,
         borderRadius: BorderRadius.circular(35),
         child: Container(
           decoration: BoxDecoration(
@@ -171,24 +172,30 @@ class _BigVerticalCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(Responsive.isMobile(context) ? 14 : 20),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 50, color: Colors.white),
+                child: Icon(
+                  icon,
+                  size: Responsive.isMobile(context) ? 36 : 50,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(height: 25),
+              SizedBox(height: Responsive.isMobile(context) ? 12 : 25),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: Responsive.isMobile(context) ? 18 : 24,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
-                    letterSpacing: 1.2,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),

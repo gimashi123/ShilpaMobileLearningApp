@@ -89,6 +89,7 @@ class _InputModeSwitchState extends State<InputModeSwitch>
         InputAwareButton(
           inputMode: widget.selectedMode,
           onTap: _toggleMenu,
+          showVoiceIndex: false,
           borderRadius: BorderRadius.circular(30), // Fully rounded circle
           child: Container(
             width: 60,
@@ -131,6 +132,7 @@ class _InputModeSwitchState extends State<InputModeSwitch>
     return InputAwareButton(
       inputMode: widget.selectedMode,
       onTap: () => _selectMode(mode), // Clicking option selects it
+      showVoiceIndex: false,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

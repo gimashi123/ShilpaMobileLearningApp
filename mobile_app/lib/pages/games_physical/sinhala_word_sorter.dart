@@ -134,6 +134,7 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
                 _generateNewWord();
               },
               inputMode: widget.inputMode,
+              voiceLabel: "ඊළඟ", // Next word command
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
@@ -309,6 +310,7 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
     return InputAwareButton(
       onTap: onTap,
       inputMode: widget.inputMode,
+      voiceLabel: label,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
