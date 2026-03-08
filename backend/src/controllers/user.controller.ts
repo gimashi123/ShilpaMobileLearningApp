@@ -87,3 +87,57 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     return errorResponse(res, "Server error", HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 };
+
+class ExpressRequest {
+}
+
+export const getAllStudents = async (
+    _req: ExpressRequest,
+    res: Response
+) => {
+  try {
+    const students = await User.find({ role: "student" })
+        .select("name email student disabilityType createdAt")
+        .sort({ createdAt: -1 });
+
+    res.json({
+      total: students.length,
+      students,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+import { RequestHandler } from "express";
+
+
+export const getAllTeachers: RequestHandler = async (req, res) => {
+  try {
+    const teachers = await User.find({ role: "teacher" })
+        .select("name email createdAt")
+        .sort({ createdAt: -1 });
+
+    res.json({
+      total: teachers.length,
+      teachers,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAllParents: RequestHandler = async (req, res) => {
+  try {
+    const parents = await User.find({ role: "parent" })
+        .select("name email createdAt")
+        .sort({ createdAt: -1 });
+
+    res.json({
+      total: parents.length,
+      parents,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -37,6 +37,7 @@ import 'package:mobile_app/pages/physical/physical_main_screen.dart';
 
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
+import 'package:mobile_app/pages/quiz/quiz_screen.dart';
 
 // ✅ Global cameras list
 late final List<CameraDescription> cameras;
@@ -111,7 +112,7 @@ class MyApp extends StatelessWidget {
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
 
-        // cognitive disability games
+        // cognitive disability gamesp
         '/iq_game': (_) => const IqGame(),
         '/activity_draw': (_) => const ActivityDraw(),
         '/activity_findImage': (_) => const PuzzleApp(),
@@ -131,23 +132,36 @@ class MyApp extends StatelessWidget {
         // ✅ FIXED: pass real cameras list (NOT [])
         '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),
       },
+      // onGenerateRoute: (settings) {
+      //   if (settings.name == '/quizhearing') {
+      //     final op = settings.arguments as Op;
+      //     return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
+      //   }
+      //   if (settings.name == '/result') {
+      //     final args = settings.arguments as ResultArgs;
+      //     return MaterialPageRoute(
+      //       builder: (_) => ResultPage(
+      //         op: args.op,
+      //         correctCount: args.correctCount,
+      //         score: args.score,
+      //       ),
+      //     );
+      //   }
+      //   return null;
+      // },
       onGenerateRoute: (settings) {
-        if (settings.name == '/quizhearing') {
-          final op = settings.arguments as Op;
-          return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
-        }
-        if (settings.name == '/result') {
-          final args = settings.arguments as ResultArgs;
-          return MaterialPageRoute(
-            builder: (_) => ResultPage(
-              op: args.op,
-              correctCount: args.correctCount,
-              score: args.score,
-            ),
-          );
-        }
-        return null;
-      },
+  if (settings.name == '/quizscreen') {
+    final args = settings.arguments as Map<String, String>?;
+
+    return MaterialPageRoute(
+      builder: (_) => QuizScreen(
+        grade: args?['grade'] ?? '3',
+        type: args?['type'] ?? 'addition',
+      ),
+    );
+  }
+  return null;
+},
     );
   }
 }
