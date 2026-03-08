@@ -3,6 +3,8 @@ import 'package:mobile_app/pages/physical/lesson_detail_screen.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 import '../../components/responsive_layout.dart';
+import '../../services/lessons_api.dart';
+import '../../session/session.dart';
 
 /// Learn content (Learn tab)
 class LearnContent extends StatefulWidget {
@@ -17,61 +19,40 @@ class LearnContent extends StatefulWidget {
 class _LearnContentState extends State<LearnContent> {
   String _selectedSubject = 'Sinhala'; // Default
 
-  // Mock Data
-  final List<Map<String, dynamic>> _allLessons = [
-    {
-      'title': 'Sinhala Letters',
-      'subject': 'Sinhala',
-      'grade': 'Grade 3',
-      'index': 0,
-    },
-    {
-      'title': 'Basic Addition',
-      'subject': 'Maths',
-      'grade': 'Grade 3',
-      'index': 1,
-    },
-    {
-      'title': 'Sinhala Words',
-      'subject': 'Sinhala',
-      'grade': 'Grade 4',
-      'index': 2,
-    },
-    {
-      'title': 'Subtraction',
-      'subject': 'Maths',
-      'grade': 'Grade 4',
-      'index': 3,
-    },
-    {
-      'title': 'Sinhala Reading',
-      'subject': 'Sinhala',
-      'grade': 'Grade 5',
-      'index': 4,
-    },
-    {
-      'title': 'Multiplication',
-      'subject': 'Maths',
-      'grade': 'Grade 5',
-      'index': 5,
-    },
-    {'title': 'Vowels', 'subject': 'Sinhala', 'grade': 'Grade 3', 'index': 6},
-    {'title': 'Shapes', 'subject': 'Maths', 'grade': 'Grade 3', 'index': 7},
-    {
-      'title': 'Essay Writing',
-      'subject': 'Sinhala',
-      'grade': 'Grade 5',
-      'index': 8,
-    },
-    {'title': 'Division', 'subject': 'Maths', 'grade': 'Grade 5', 'index': 9},
-    {
-      'title': 'Colors (Sin)',
-      'subject': 'Sinhala',
-      'grade': 'Grade 3',
-      'index': 10,
-    },
-    {'title': 'Counting', 'subject': 'Maths', 'grade': 'Grade 3', 'index': 11},
-  ];
+  List<dynamic> _backendLessons = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLessons();
+  }
+
+  Future<void> _fetchLessons() async {
+    try {
+      if (Session.token == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Session token is missing. Please log in.';
+        });
+        return;
+      }
+      final data = await LessonApi.fetchMyLessons(Session.token!);
+      setState(() {
+        _backendLessons = data;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load lessons: $e';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +62,9 @@ class _LearnContentState extends State<LearnContent> {
     final int crossAxisCount = isMobile ? 2 : (isTablet ? 3 : 4);
 
     // Filter Logic
-    final filteredLessons = _allLessons.where((lesson) {
-      return lesson['subject'] == _selectedSubject;
+    final filteredLessons = _backendLessons.where((lesson) {
+      return (lesson['subject']?.toString() ?? '').toLowerCase() ==
+          _selectedSubject.toLowerCase();
     }).toList();
 
     return Column(
@@ -205,7 +187,20 @@ class _LearnContentState extends State<LearnContent> {
 
         // ===== CONTENT GRID =====
         Expanded(
-          child: filteredLessons.isEmpty
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                  ),
+                )
+              : filteredLessons.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -241,10 +236,10 @@ class _LearnContentState extends State<LearnContent> {
                   itemBuilder: (context, index) {
                     final lesson = filteredLessons[index];
                     return _LearnCard(
-                      index: lesson['index'] as int,
-                      title: lesson['title'] as String,
-                      grade: lesson['grade'] as String,
-                      subject: lesson['subject'] as String,
+                      index: index,
+                      title: lesson['title']?.toString() ?? 'No Title',
+                      grade: 'Grade ${lesson['grade']?.toString() ?? '-'}',
+                      subject: lesson['subject']?.toString() ?? '',
                       inputMode: widget.inputMode,
                       onTap: () {
                         final themeColor = lesson['subject'] == 'Maths'
@@ -254,9 +249,12 @@ class _LearnContentState extends State<LearnContent> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => LessonDetailScreen(
-                              title: lesson['title'] as String,
-                              subject: lesson['subject'] as String,
-                              grade: lesson['grade'] as String,
+                              title: lesson['title']?.toString() ?? 'No Title',
+                              subject: lesson['subject']?.toString() ?? '',
+                              grade:
+                                  'Grade ${lesson['grade']?.toString() ?? '-'}',
+                              description: lesson['description']?.toString(),
+                              videoUrl: lesson['videoUrl']?.toString(),
                               inputMode: widget.inputMode,
                               themeColor: themeColor,
                             ),

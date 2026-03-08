@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
+import '../../services/auth_api.dart';
+import '../video_player_page.dart';
 import 'games_content.dart';
 
 class LessonDetailScreen extends StatelessWidget {
   final String title;
   final String subject;
   final String grade;
+  final String? description;
+  final String? videoUrl;
   final Color themeColor;
   final InputMode inputMode;
 
@@ -15,6 +19,8 @@ class LessonDetailScreen extends StatelessWidget {
     required this.title,
     required this.subject,
     required this.grade,
+    this.description,
+    this.videoUrl,
     required this.inputMode,
     this.themeColor = const Color(0xFF6C63FF),
   });
@@ -36,20 +42,16 @@ class LessonDetailScreen extends StatelessWidget {
                     inputMode: inputMode,
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
-                      width: 48,
-                      height: 48,
-                      alignment: Alignment.center,
-                      child: IgnorePointer(
-                        child: IconButton(
-                          onPressed: () {}, // Handled by InputAwareButton
-                          icon: const Icon(Icons.arrow_back_ios_rounded),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.grey[100],
-                            padding: const EdgeInsets.only(
-                              left: 8,
-                            ), // Visual center usually needs offset for back arrow
-                          ),
-                        ),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
@@ -77,40 +79,66 @@ class LessonDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. VIDEO PLAYER (Placeholder)
-                    Container(
-                      height: 220,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: themeColor.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                    // 1. VIDEO PLAYER
+                    InputAwareButton(
+                      onTap: () {
+                        if (videoUrl != null && videoUrl!.isNotEmpty) {
+                          final fullUrl = '${AuthApi.baseUrl}$videoUrl';
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VideoPlayerPage(
+                                videoUrl: fullUrl,
+                                title: title,
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No video available for this lesson',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      inputMode: inputMode,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        height: 220,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: themeColor.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                          image: const DecorationImage(
+                            image: AssetImage(
+                              'assets/physical.png',
+                            ), // Placeholder image
+                            fit: BoxFit.cover,
+                            opacity: 0.6,
                           ),
-                        ],
-                        image: const DecorationImage(
-                          image: AssetImage(
-                            'assets/physical.png',
-                          ), // Placeholder image
-                          fit: BoxFit.cover,
-                          opacity: 0.6,
                         ),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.play_arrow_rounded,
-                            size: 40,
-                            color: themeColor,
+                        child: Center(
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.play_arrow_rounded,
+                              size: 40,
+                              color: themeColor,
+                            ),
                           ),
                         ),
                       ),
@@ -143,12 +171,6 @@ class LessonDetailScreen extends StatelessWidget {
                           grade,
                           Colors.orange,
                         ),
-                        const SizedBox(width: 12),
-                        _buildMetaTag(
-                          Icons.timer_rounded,
-                          "15 Mins",
-                          Colors.purple,
-                        ),
                       ],
                     ),
 
@@ -165,9 +187,9 @@ class LessonDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "In this interactive lesson, we will explore the fundamentals of $title. "
-                      "Designed for $grade students, this session covers key concepts "
-                      "through engaging visual examples and easy-to-follow explanations.",
+                      description != null && description!.isNotEmpty
+                          ? description!
+                          : "No description available for this lesson.",
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.6,
@@ -177,206 +199,147 @@ class LessonDetailScreen extends StatelessWidget {
 
                     const SizedBox(height: 32),
 
-                    // 4. ACTION BUTTONS (Enroll & Quiz)
+                    // 4. INTERACTIVE ASSESSMENTS & GAMES
+                    const Text(
+                      "Practice & Play",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Responsive row of specific action cards
                     Row(
                       children: [
+                        // QUIZ BUTTON
                         Expanded(
-                          child: InputAwareButton(
+                          child: _buildActionCard(
+                            context: context,
+                            title: "Attempt Quiz",
+                            subtitle: "Test your $subject knowledge",
+                            icon: Icons.quiz_rounded,
+                            color: themeColor,
                             onTap: () {
-                              // Enroll Action
-                            },
-                            inputMode: inputMode,
-                            borderRadius: BorderRadius.circular(16),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: IgnorePointer(
-                                child: ElevatedButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: themeColor,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    elevation: 4,
-                                    shadowColor: themeColor.withOpacity(0.4),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                              // TODO: Navigate to Subject-Specific Quiz Screen here
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Quiz module for $title coming soon!',
                                   ),
-                                  child: const Text(
-                                    "Enroll Now",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  behavior: SnackBarBehavior.floating,
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: 16),
+                        // GAMES BUTTON
                         Expanded(
-                          child: InputAwareButton(
+                          child: _buildActionCard(
+                            context: context,
+                            title: "Play Games",
+                            subtitle: "Interactive $subject games",
+                            icon: Icons.games_rounded,
+                            color: Colors.orange,
                             onTap: () {
-                              // Quiz Action
-                            },
-                            inputMode: inputMode,
-                            borderRadius: BorderRadius.circular(16),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: IgnorePointer(
-                                child: OutlinedButton(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    side: BorderSide(
-                                      color: themeColor,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.quiz_rounded,
-                                        color: themeColor,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        "Attempt Quiz",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: themeColor,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Scaffold(
+                                    appBar: AppBar(
+                                      title: Text("$subject Games"),
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black,
+                                      elevation: 0,
+                                      leading: IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_back_ios_new_rounded,
                                         ),
+                                        onPressed: () => Navigator.pop(context),
                                       ),
-                                    ],
+                                    ),
+                                    body: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: GamesContent(inputMode: inputMode),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // 5. RELATED GAMES BUTTON
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.orange.shade100,
-                            Colors.orange.shade50,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.orange.shade200),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.games_rounded, color: Colors.orange),
-                              SizedBox(width: 8),
-                              Text(
-                                "Gamified Learning",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            "Master this topic by playing related educational games!",
-                            style: TextStyle(color: Colors.black54),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: InputAwareButton(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Scaffold(
-                                      appBar: AppBar(
-                                        title: const Text("Related Games"),
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: Colors.black,
-                                        elevation: 0,
-                                        leading: IconButton(
-                                          icon: const Icon(
-                                            Icons.arrow_back_ios_new_rounded,
-                                          ),
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                        ),
-                                      ),
-                                      body: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: GamesContent(
-                                          inputMode: inputMode,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                              inputMode: inputMode,
-                              borderRadius: BorderRadius.circular(12),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: IgnorePointer(
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "Play Related Games",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
 
                     // Bottom Padding
                     const SizedBox(height: 40),
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Reusable action card builder for Quiz and Games buttons
+  Widget _buildActionCard({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InputAwareButton(
+      onTap: onTap,
+      inputMode: inputMode,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height:
+            140, // Fixed height to maintain visual balance alongside each other
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const Spacer(),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: color.withOpacity(0.9),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+                height: 1.2,
               ),
             ),
           ],
