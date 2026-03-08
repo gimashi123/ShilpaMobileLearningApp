@@ -108,7 +108,7 @@ class _QuizScreenState extends State<QuizScreen>
         ),
         content: const Text(
           'We couldn\'t find any quizzes right now.\n'
-          'Don\'t worry, let\'s try again together! ✨',
+              'Don\'t worry, let\'s try again together! ✨',
           style: TextStyle(fontSize: 16, height: 1.5),
         ),
         actions: [
@@ -795,43 +795,43 @@ class _QuizScreenState extends State<QuizScreen>
                             ),
                             child: isProcessing
                                 ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Checking...',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white.withOpacity(0.9),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        currentIndex == quizzes.length - 1
-                                            ? '🎯 Finish Quiz'
-                                            : '✨ Next Question',
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Icon(Icons.arrow_forward),
-                                    ],
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
                                   ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Checking...',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withOpacity(0.9),
+                                  ),
+                                ),
+                              ],
+                            )
+                                : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  currentIndex == quizzes.length - 1
+                                      ? '🎯 Finish Quiz'
+                                      : '✨ Next Question',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward),
+                              ],
+                            ),
                           ),
                         ),
                       ],

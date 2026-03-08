@@ -72,6 +72,7 @@ router.get('/grade/:grade', async (req: Request, res: Response) => {
 });
 router.get("/random", async (req: Request, res: Response) => {
     try {
+
         const grade = String(req.query.grade || "");
         const type = String(req.query.type || "").toLowerCase();
 
@@ -84,26 +85,20 @@ router.get("/random", async (req: Request, res: Response) => {
         const quizzes = await Quiz.aggregate([
             {
                 $match: {
-                    grade,
-                    type,
+                    grade: grade,
+                    type: type,
                 },
             },
-            { $sample: { size: 10 } },
-            {
-                $project: {
-                    question: 1,
-                    grade: 1,
-                    type: 1,
-                    subject: 1,
-                    // 🔐 hide answer from frontend
-                },
-            },
+            { $sample: { size: 10 } }
         ]);
+
+        console.log("Matched quizzes:", quizzes.length);
 
         res.json({
             total: quizzes.length,
             quizzes,
         });
+
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
