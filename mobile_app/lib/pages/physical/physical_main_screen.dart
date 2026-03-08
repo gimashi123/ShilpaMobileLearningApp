@@ -17,6 +17,7 @@ import '../../services/voice_focus_service.dart';
 import '../../components/voice_indicator.dart';
 import '../../services/adaptive_dwell_service.dart';
 import 'package:mobile_app/components/gaze_cursor.dart';
+import 'package:mobile_app/components/face_loss_warning.dart';
 import 'dart:async';
 
 /// Main screen that holds the navigation bar and switches between content pages
@@ -177,6 +178,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
     _interactionOverlay = OverlayEntry(
       builder: (context) => Stack(
         children: [
+          const FaceLossWarning(),
           const GazeCursor(),
           if (_inputMode == InputMode.voiceControl ||
               _inputMode == InputMode.hybrid)

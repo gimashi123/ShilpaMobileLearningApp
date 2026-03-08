@@ -62,6 +62,7 @@ class EyeTrackingService {
     const Offset(-100, -100),
   );
   final ValueNotifier<bool> isStableNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> isFaceDetectedNotifier = ValueNotifier(true);
 
   bool get isInitialized => _isInitialized;
 
@@ -160,12 +161,14 @@ class EyeTrackingService {
         final faces = await _faceDetector?.processImage(inputImage);
 
         if (faces != null && faces.isNotEmpty && _isTracking) {
+          isFaceDetectedNotifier.value = true;
           _processFace(
             faces.first,
             image.width.toDouble(),
             image.height.toDouble(),
           );
         } else {
+          isFaceDetectedNotifier.value = false;
           // Send 0 confidence to indicate no face detected
           _gazeController.add(
             GazeData(x: -1, y: -1, confidence: 0, timestamp: DateTime.now()),
