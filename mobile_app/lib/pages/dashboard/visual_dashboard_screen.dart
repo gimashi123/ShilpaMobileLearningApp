@@ -43,7 +43,6 @@ class _VisualDashboardScreenState extends State<VisualDashboardScreen> {
       // Sinhala voice not available -> ignore
     }
   }
-  
 
   @override
   void dispose() {

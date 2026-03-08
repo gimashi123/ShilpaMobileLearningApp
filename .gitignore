@@ -81,6 +81,7 @@ yarn-error.log
 *.h5
 *.pkl
 *.model
+*.keras
 /ml/data_raw/**/*.jpg
 /ml/data_raw/**/*.png
 /ml/data_raw/**/*.jpeg

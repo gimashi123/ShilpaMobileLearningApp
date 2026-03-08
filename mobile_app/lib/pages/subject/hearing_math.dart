@@ -148,6 +148,10 @@ class QuizApi {
     }
     return SubmitQuizResponse.fromJson(jsonDecode(res.body));
   }
+
+  static Future fetchRandomQuizzes({required String grade, required String type}) async {}
+
+  static Future checkAnswer({required String quizId, required String userAnswer}) async {}
 }
 
 /// ====== APP ENTRY WIDGET ======

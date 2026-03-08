@@ -15,6 +15,8 @@ import meRoutes from './routes/user.routes';
 import modelRoutes from './routes/model.routes';
 import { spawn } from 'child_process';
 import cogvitive from './routes/cognitive/routes';
+import quizRoutes from "@routes/quiz.routes";
+import answerValidation from "./routes/answerValidation.routes";
 
 
 
@@ -164,3 +166,9 @@ app.use("/api", sttRoutes);
 app.use("/api", meRoutes);
 // Cognitive routes
 app.use("/api/cognitive", cogvitive);
+
+app.use('/api/quizzes', quizRoutes);
+
+
+
+app.use("/api", answerValidation);

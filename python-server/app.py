@@ -7,6 +7,7 @@ import logging
 import logging.handlers
 from dotenv import load_dotenv
 import sys
+from routes.visual_impairment_routes import router as visual_impairment_router
 
 # Load environment variables
 load_dotenv()
@@ -56,6 +57,7 @@ logger = setup_logging()
 # Import routes
 from routes.hearing_impairment_routes import router as hearing_impairment_router
 from services.model_loader import initialize_models
+from routes.visual_impairment_routes import router as visual_impairment_router
 
 # Store models in app state
 lifespan_models = {}
@@ -156,7 +158,14 @@ app.add_middleware(LoggingMiddleware)
 # Include routers
 app.include_router(hearing_impairment_router, prefix="/api/hearing-impairment", tags=["hearing-impairment"])
 logger.info("Hearing impairment router registered")
+app.include_router(visual_impairment_router, prefix="/api/visual-impairment", tags=["visual-impairment"])
+logger.info("Visual impairment router registered")
 
+app.include_router(
+    visual_impairment_router,
+    prefix="/api/visual-impairment",
+    tags=["visual-impairment"]
+)
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

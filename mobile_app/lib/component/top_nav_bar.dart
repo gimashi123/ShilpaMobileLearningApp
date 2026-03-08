@@ -68,7 +68,8 @@ class TopNavBar extends StatelessWidget {
     final items = _buildItems();
     final safeSelected = selectedTab.clamp(0, items.length - 1);
 
-    final userName = (Session.userName == null || Session.userName!.trim().isEmpty)
+    final userName =
+        (Session.userName == null || Session.userName!.trim().isEmpty)
         ? "Student"
         : Session.userName!.trim();
 
@@ -112,7 +113,11 @@ class TopNavBar extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: const Icon(Icons.person, color: Colors.white, size: 26),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -164,14 +169,10 @@ class TopNavBar extends StatelessWidget {
                 child: Row(
                   children: List.generate(items.length, (i) {
                     final item = items[i];
-                    return _TabBtn(
-                      item.label,
-                      i == safeSelected,
-                      () {
-                        if (i == safeSelected) return;
-                        _navigate(context, item.route);
-                      },
-                    );
+                    return _TabBtn(item.label, i == safeSelected, () {
+                      if (i == safeSelected) return;
+                      _navigate(context, item.route);
+                    });
                   }),
                 ),
               ),

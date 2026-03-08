@@ -43,10 +43,12 @@ class _LoginPageState extends State<LoginPage> {
       Session.userId = user?['id']?.toString();
       Session.userName = user?['name']?.toString();
       Session.email = user?['email']?.toString();
+      Session.grade = user?['grade']?.toString();
       Session.disabilityType = user?['disabilityType']?.toString();
 
       print('JWT token set: ${Session.token}');
       print('Session.userName = ${Session.userName}');
+      print('Session.grade = ${Session.grade}');
       print('Session.disabilityType = ${Session.disabilityType}');
 
       // 3️⃣ Decide which route to open based on disabilityType
