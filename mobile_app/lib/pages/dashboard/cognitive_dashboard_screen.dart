@@ -660,6 +660,11 @@ class _CognitiveDashboardScreenState extends State<CognitiveDashboardScreen> {
   }
 
   void _openCognitiveRoute(String title, String route) {
+    if (route == '/activity_iqScore') {
+      Navigator.pushNamed(context, route);
+      return;
+    }
+
     final isGameRoute =
         route == '/iq_game' ||
         (route.startsWith('/activity_') && route != '/activity_iqScore');
