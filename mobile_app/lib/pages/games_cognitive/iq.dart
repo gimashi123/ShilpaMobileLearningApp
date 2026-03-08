@@ -12,12 +12,13 @@ import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'dart:typed_data';
 import 'package:mobile_app/session/session.dart';
-import 'package:mobile_app/services/cognitive.dart'; 
+import 'package:mobile_app/services/cognitive.dart';
 
 void main() {
   runApp(const IqGame());
@@ -58,12 +59,12 @@ class Sfx {
 
   static Future<void> correct(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/correct.mp3');
+    await _playAsset('sounds/cognitive/correct.mp3');
   }
 
   static Future<void> wrong(bool enabled) async {
     if (!enabled) return;
-    await _playAsset('sounds/wrong.mp3');
+    await _playAsset('sounds/cognitive/wrong.mp3');
   }
 }
 
@@ -380,9 +381,7 @@ class IqGame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Menu(
-     
-    );
+    return Menu();
   }
 }
 
@@ -449,7 +448,13 @@ class Menu extends StatelessWidget {
                             color: Colors.blue,
                             height: btnH,
                             onTap: () {
-                              Navigator.pushNamed(context, '/home_cognitive');
+                              Navigator.of(
+                                context,
+                                rootNavigator: true,
+                              ).pushNamedAndRemoveUntil(
+                                '/home_cognitive',
+                                (route) => false,
+                              );
                             },
                           ),
                         ],
@@ -523,6 +528,11 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
   final popMetrics = GameMetrics();
 
   Interpreter? _interpreter;
+
+ 
+
+  
+
   double _safeDiv(num a, num b) {
     const eps = 1e-6;
     return a.toDouble() / (b.toDouble() + eps);
@@ -761,6 +771,10 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
   @override
   void initState() {
     super.initState();
+     SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     studentId = Session.userId ?? 'Student';
     _loadTflite(); // ✅ TFLITE ADDED
     games = [
@@ -824,30 +838,36 @@ class _SequentialGameFlowState extends State<SequentialGameFlow> {
 
   @override
   void dispose() {
+     SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     // ✅ TFLITE ADDED
     _interpreter?.close();
     super.dispose();
   }
 
-
-Future<void> _saveResultToBackend(
-  Map<String, dynamic> payload,
-  Map<String, dynamic> result,
-) async {
-  await saveLdResultToBackend(
-    // baseUrl: apiBaseUrl,
-    studentId: studentId,
-    features: payload,  // ✅ Pass your model payload map here
-    shapeGameScore: shapeGameScore,  // Fixed: Removed quotes, used correct syntax
-    colorGameScore: colorGameScore,
-    bubbleGameScore: popGameScore,  // Note: Using popGameScore as the value (assuming it's the variable name in iq.dart)
-    totalScore: totalScore,
-    probs: List<double>.from(result['probs']),
-    predLabel: result['predLabel'] as String,
-    predScore: (result['predScore'] as num).toDouble(),
-  );
-}
-
+  Future<void> _saveResultToBackend(
+    Map<String, dynamic> payload,
+    Map<String, dynamic> result,
+  ) async {
+    await saveLdResultToBackend(
+      // baseUrl: apiBaseUrl,
+      studentId: studentId,
+      features: payload, // ✅ Pass your model payload map here
+      shapeGameScore:
+          shapeGameScore, // Fixed: Removed quotes, used correct syntax
+      colorGameScore: colorGameScore,
+      bubbleGameScore:
+          popGameScore, // Note: Using popGameScore as the value (assuming it's the variable name in iq.dart)
+      totalScore: totalScore,
+      probs: List<double>.from(result['probs']),
+      predLabel: result['predLabel'] as String,
+      predScore: (result['predScore'] as num).toDouble(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1101,6 +1121,9 @@ class ShapeMatchGame extends StatefulWidget {
 }
 
 class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
+  final FlutterTts _tts = FlutterTts();
+  late final Future<void> _ttsReady;
+
   @override
   GameMetrics get metrics => widget.metrics;
 
@@ -1118,6 +1141,12 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
 
   @override
   void onGameComplete(int finalScore) => widget.onGameComplete(finalScore);
+
+  @override
+  void initState() {
+    super.initState();
+    _ttsReady = _configureTts();
+  }
 
   String? selectedShape;
   final List<String> shapes = ['circle', 'square', 'triangle', 'rectangle'];
@@ -1153,7 +1182,7 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
 
   @override
   void startFirstRound() {
-    generateNewTarget();
+    generateNewTarget(includeGameTitleAnnouncement: true);
   }
 
   @override
@@ -1164,11 +1193,64 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
   @override
   void disposeGameSpecific() {
     hintBlinkTimer?.cancel();
+    _tts.stop();
+  }
+
+  Future<void> _configureTts() async {
+    try {
+      await _tts.setLanguage('si-LK');
+    } catch (_) {}
+    try {
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      await _tts.setVolume(1.0);
+      await _tts.awaitSpeakCompletion(true);
+    } catch (_) {}
+  }
+
+  String _shapeInstruction(String shape) {
+    switch (shape) {
+      case 'circle':
+        return 'රවුම තෝරමු';
+      case 'square':
+        return 'චතුරස්‍රය තෝරමු';
+      case 'triangle':
+        return 'ත්‍රිකෝණය තෝරමු';
+      case 'rectangle':
+        return 'සෘජුකෝණාස්‍රය තෝරමු';
+      default:
+        return 'හැඩය තෝරමු';
+    }
+  }
+
+  Future<void> _announceTarget({bool includeGameTitle = false}) async {
+    if (!soundOn || targetShape.isEmpty || !mounted || isGameOver || !gameActive) {
+      return;
+    }
+
+    await _ttsReady;
+
+    try {
+      await _tts.stop();
+    } catch (_) {}
+
+    if (includeGameTitle) {
+      try {
+        await _tts.speak('හැඩ ගලපමු');
+      } catch (_) {}
+    }
+
+    if (!mounted || isGameOver || !gameActive) return;
+
+    try {
+      await _tts.speak(_shapeInstruction(targetShape));
+    } catch (_) {}
   }
 
   @override
   void endGame() {
     hintBlinkTimer?.cancel();
+    _tts.stop();
     super.endGame();
   }
 
@@ -1213,7 +1295,7 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
     });
   }
 
-  void generateNewTarget() {
+  void generateNewTarget({bool includeGameTitleAnnouncement = false}) {
     if (!mounted || isGameOver || !gameActive) return;
 
     final rnd = Random();
@@ -1240,6 +1322,9 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
 
     metrics.currentRoundStartedAt = DateTime.now();
     HapticFeedback.selectionClick();
+    unawaited(
+      _announceTarget(includeGameTitle: includeGameTitleAnnouncement),
+    );
   }
 
   Future<void> checkMatch(String shape) async {
@@ -1524,6 +1609,9 @@ class ColorMatchGame extends StatefulWidget {
 }
 
 class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
+  final FlutterTts _tts = FlutterTts();
+  late final Future<void> _ttsReady;
+
   @override
   GameMetrics get metrics => widget.metrics;
 
@@ -1542,11 +1630,17 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
   @override
   void onGameComplete(int finalScore) => widget.onGameComplete(finalScore);
 
+  @override
+  void initState() {
+    super.initState();
+    _ttsReady = _configureTts();
+  }
+
   Color? selectedColor;
 
   final Map<String, Color> colorOptions = {
     'රතු': const Color(0xFFDC143C),
-    'ලා නිල්': const Color(0xFF87CEEB),
+    'නිල්': const Color(0xFF87CEEB),
     'කොල': const Color(0xFF00FF00),
     'කහ': const Color(0xFFFFFF00),
   };
@@ -1583,7 +1677,7 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
 
   @override
   void startFirstRound() {
-    generateNewTarget();
+    generateNewTarget(includeGameTitleAnnouncement: true);
   }
 
   @override
@@ -1594,11 +1688,51 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
   @override
   void disposeGameSpecific() {
     hintBlinkTimer?.cancel();
+    _tts.stop();
+  }
+
+  Future<void> _configureTts() async {
+    try {
+      await _tts.setLanguage('si-LK');
+    } catch (_) {}
+    try {
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      await _tts.setVolume(1.0);
+      await _tts.awaitSpeakCompletion(true);
+    } catch (_) {}
+  }
+
+  String _colorInstruction(String colorName) => '$colorName පාට තෝරමු';
+
+  Future<void> _announceTarget({bool includeGameTitle = false}) async {
+    if (!soundOn || targetColorName.isEmpty || !mounted || isGameOver || !gameActive) {
+      return;
+    }
+
+    await _ttsReady;
+
+    try {
+      await _tts.stop();
+    } catch (_) {}
+
+    if (includeGameTitle) {
+      try {
+        await _tts.speak('පාට ගලපමු');
+      } catch (_) {}
+    }
+
+    if (!mounted || isGameOver || !gameActive) return;
+
+    try {
+      await _tts.speak(_colorInstruction(targetColorName));
+    } catch (_) {}
   }
 
   @override
   void endGame() {
     hintBlinkTimer?.cancel();
+    _tts.stop();
     super.endGame();
   }
 
@@ -1644,7 +1778,7 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
     });
   }
 
-  void generateNewTarget() {
+  void generateNewTarget({bool includeGameTitleAnnouncement = false}) {
     if (!mounted || isGameOver || !gameActive) return;
 
     final rnd = Random();
@@ -1673,6 +1807,9 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
 
     metrics.currentRoundStartedAt = DateTime.now();
     HapticFeedback.selectionClick();
+    unawaited(
+      _announceTarget(includeGameTitle: includeGameTitleAnnouncement),
+    );
   }
 
   Future<void> checkMatch(String colorName, Color color) async {
@@ -1931,6 +2068,9 @@ class Bubble {
 
 class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
     with SingleTickerProviderStateMixin {
+  final FlutterTts _tts = FlutterTts();
+  late final Future<void> _ttsReady;
+
   @override
   GameMetrics get metrics => widget.metrics;
 
@@ -1974,8 +2114,37 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
       vsync: this,
       duration: const Duration(milliseconds: 32),
     )..addListener(updateBubbles);
+    _ttsReady = _configureTts();
 
     super.initState();
+  }
+
+  Future<void> _configureTts() async {
+    try {
+      await _tts.setLanguage('si-LK');
+    } catch (_) {}
+    try {
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(1.0);
+      await _tts.setVolume(1.0);
+      await _tts.awaitSpeakCompletion(true);
+    } catch (_) {}
+  }
+
+  Future<void> _announceGameStart() async {
+    if (!soundOn || !mounted || isGameOver || !gameActive) return;
+
+    await _ttsReady;
+
+    try {
+      await _tts.stop();
+    } catch (_) {}
+
+    if (!mounted || isGameOver || !gameActive) return;
+
+    try {
+      await _tts.speak('බෝල පුපුරවමු');
+    } catch (_) {}
   }
 
   @override
@@ -1996,6 +2165,8 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
       if (!mounted || isGameOver || !gameActive) return;
       spawnBubble();
     });
+
+    unawaited(_announceGameStart());
   }
 
   @override
@@ -2010,6 +2181,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
   void disposeGameSpecific() {
     spawnTimer?.cancel();
     hintBlinkTimer?.cancel();
+    _tts.stop();
     anim.removeListener(updateBubbles);
     anim.dispose();
   }
@@ -2019,6 +2191,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
     spawnTimer?.cancel();
     hintBlinkTimer?.cancel();
     anim.stop();
+    _tts.stop();
     super.endGame();
   }
 

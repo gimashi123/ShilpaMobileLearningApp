@@ -7,7 +7,7 @@ import 'package:mobile_app/lesson_dashboard/hearing_lesson.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_screen.dart';
 import 'package:mobile_app/pages/auth/login_screen.dart';
-import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/cognitive_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
@@ -21,6 +21,10 @@ import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_iqScore.dart';
 import 'package:mobile_app/pages/games_cognitive/iq.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchSound.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchPattern.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchNumbers.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchImage.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
@@ -31,13 +35,12 @@ import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
 import 'package:mobile_app/session/session.dart';
-
 import 'package:mobile_app/pages/games/more_or_less_game.dart';
 import 'package:mobile_app/pages/physical/physical_main_screen.dart';
-
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
 import 'package:mobile_app/pages/quiz/quiz_screen.dart';
+
 
 // ✅ Global cameras list
 late final List<CameraDescription> cameras;
@@ -121,6 +124,10 @@ class MyApp extends StatelessWidget {
           final studentId = Session.userId ?? '';
           return ProgressHistoryScreen(studentId: studentId);
         },
+        '/activity_matchSound': (_) => const SoundPictureMatchApp(),
+        '/activity_matchPattern': (_) => const PatternGameApp(),
+        '/activity_matchNumbers': (_) => const NumberMatchingGameApp(),
+        '/activity_matchImage': (_) => const MatchImageGameApp(),
 
         '/visual_game_dashboard': (_) => const VisualGameDashboard(),
         '/visual_math_gamecard': (_) => const AvailableGamesPage(),

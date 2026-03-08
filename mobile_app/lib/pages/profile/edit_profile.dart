@@ -138,7 +138,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         "name": name,
         "disabilityType": _disabilityType,
         "student": {
-          "grade": _grade,
+          "grade": _disabilityType?.toLowerCase() == "cognitive" ? null : _grade,
           "age": _ageCtrl.text.trim().isEmpty ? null : int.tryParse(_ageCtrl.text.trim()),
         }
       };
@@ -178,6 +178,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isCognitive = _disabilityType?.toLowerCase() == "cognitive";
     if (loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -259,7 +260,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 items: _disabilityOptions
                     .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                     .toList(),
-                onChanged: (v) => setState(() => _disabilityType = v),
+                onChanged: (v) => setState(() {
+                  _disabilityType = v;
+                  if (v?.toLowerCase() == "cognitive") {
+                    _grade = null;
+                  }
+                }),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: "Select type",
@@ -267,21 +273,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 14),
 
-              _fieldLabel("Grade"),
-              DropdownButtonFormField<int>(
-                value: _grade,
-                items: const [
-                  DropdownMenuItem(value: 3, child: Text("3")),
-                  DropdownMenuItem(value: 4, child: Text("4")),
-                  DropdownMenuItem(value: 5, child: Text("5")),
-                ],
-                onChanged: (v) => setState(() => _grade = v),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: "Select grade",
+              if (!isCognitive) ...[
+                _fieldLabel("Grade"),
+                DropdownButtonFormField<int>(
+                  value: _grade,
+                  items: const [
+                    DropdownMenuItem(value: 3, child: Text("3")),
+                    DropdownMenuItem(value: 4, child: Text("4")),
+                    DropdownMenuItem(value: 5, child: Text("5")),
+                  ],
+                  onChanged: (v) => setState(() => _grade = v),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: "Select grade",
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
 
               _fieldLabel("Age"),
               TextField(

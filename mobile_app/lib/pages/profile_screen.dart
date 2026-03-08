@@ -305,6 +305,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final name = (me?["name"] ?? "Wonderful You").toString();
     final email = (me?["email"] ?? "").toString();
     final disabilityType = (me?["disabilityType"] ?? "").toString();
+    final isCognitive = disabilityType.toLowerCase() == "cognitive";
 
     final dynamic studentRaw = me?["student"];
     final Map<String, dynamic>? studentObj =

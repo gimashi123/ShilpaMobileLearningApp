@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/session/session.dart';
 import 'package:mobile_app/pages/models/cognitive.dart';
+import 'package:mobile_app/services/auth_api.dart';
 
-String baseUrl = 'http://192.168.1.126:3000'; // Update with your backend URL
+String get baseUrl => AuthApi.baseUrl;
 
 Future<void> saveLdResultToBackend({
   required String studentId,
