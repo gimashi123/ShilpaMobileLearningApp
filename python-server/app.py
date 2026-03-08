@@ -7,6 +7,7 @@ import logging
 import logging.handlers
 from dotenv import load_dotenv
 import sys
+from routes.visual_impairment_routes import router as visual_impairment_router
 
 # Load environment variables
 load_dotenv()
@@ -160,6 +161,11 @@ logger.info("Hearing impairment router registered")
 app.include_router(visual_impairment_router, prefix="/api/visual-impairment", tags=["visual-impairment"])
 logger.info("Visual impairment router registered")
 
+app.include_router(
+    visual_impairment_router,
+    prefix="/api/visual-impairment",
+    tags=["visual-impairment"]
+)
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

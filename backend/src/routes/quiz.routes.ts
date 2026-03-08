@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Quiz from '../models/Quiz';
+import { generateBraillePdf } from "../controllers/braillePDF.controller";
+import GeneratedQuiz from "@models/GeneratedQuiz";
 
 const router = Router();
 
@@ -106,5 +108,92 @@ router.get("/random", async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+router.get("/by-type", async (req: Request, res: Response) => {
+    try {
+        const grade = String(req.query.grade || "3");
+        const type = String(req.query.type || "").toLowerCase();
+
+        if (!type) {
+            return res.status(400).json({
+                message: "type query required"
+            });
+        }
+
+        const quizzes = await Quiz.aggregate([
+            {
+                $match: {
+                    grade,
+                    type
+                }
+            },
+            { $sample: { size: 10 } }
+        ]);
+
+        res.json({
+            type,
+            total: quizzes.length,
+            quizzes
+        });
+
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post("/generate-braille-pdf", generateBraillePdf);
+
+router.get("/random-save", async (req: Request, res: Response) => {
+    try {
+        const { grade, subject, type } = req.query;
+
+        if (!grade || !subject || !type) {
+            return res.status(400).json({
+                message: "grade, subject, and type are required",
+            });
+        }
+
+        const quizzes = await Quiz.aggregate([
+            {
+                $match: {
+                    grade: String(grade),
+                    subject: String(subject),
+                    type: String(type),
+                },
+            },
+            { $sample: { size: 10 } },
+        ]);
+
+        if (!quizzes.length) {
+            return res.status(404).json({
+                message: "No quizzes found",
+            });
+        }
+
+        const generatedQuiz = await GeneratedQuiz.create({
+            grade: String(grade),
+            subject: String(subject),
+            type: String(type),
+            questions: quizzes.map((q) => ({
+                questionId: q._id,
+                question: q.question,
+                answer: q.answer,
+            })),
+        });
+
+        return res.status(200).json({
+            message: "Generated quiz saved successfully",
+            quizId: generatedQuiz._id,
+            quizzes,
+        });
+    } catch (error) {
+        console.error("Error generating quiz:", error);
+        return res.status(500).json({
+            message: "Server error while generating quiz",
+        });
+    }
+});
+
+
 
 export default router;

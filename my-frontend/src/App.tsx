@@ -11,6 +11,7 @@ import TeacherPage from "./pages/TeacherPage.tsx";
 import ParentsPage from "./pages/ParentsPage.tsx";
 import CreatePaper from './pages/paper/CreatePaper.tsx';
 import ChooseLesson from './pages/paper/ChooseLesson.tsx';
+import TeacherPaperBuilder from "./pages/paper/PaperBuilder.tsx";
 
 function App() {
   return (
@@ -28,7 +29,8 @@ function App() {
         <Route path= "/parent-details" element={<ParentsPage/>} />
 
         <Route path="/paper-create" element={<CreatePaper />} />
-        <Route path="/teacher/create-paper/:subjectId" element={<ChooseLesson />} />
+        <Route path="/teacher/create-paper/:subject" element={<ChooseLesson />} />
+        <Route path="/teacher/create-paper/:subject/:type" element={<TeacherPaperBuilder />} />
         {/* Add more routes as needed */}
       </Routes>
     </Router>
