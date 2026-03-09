@@ -41,6 +41,11 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
   ];
 
   // Game State
+  int _currentLevel = 1;
+  static const int _totalLevels = 5;
+  int _correctAttempts = 0;
+  int _totalAttempts = 0;
+
   late Map<String, String> _currentWord;
   String? _selectedCategory; // User's selection (for picked word)
   bool _isSuccess = false;
@@ -65,95 +70,129 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
     if (_isSuccess) return;
 
     setState(() {
+      _totalAttempts++;
       _selectedCategory = category;
       if (category == _currentWord['type']) {
         _isSuccess = true;
+        _correctAttempts++;
         _score += 10;
-        _showSuccessDialog();
+        _showLevelResultDialog(true);
       } else {
-        // Wrong answer feedback
-        _showFailureFeedback();
+        // Wrong answer: move to next level
+        _isSuccess = true;
+        _showLevelResultDialog(false);
       }
     });
   }
 
-  void _showFailureFeedback() {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          "නැවත උත්සාහ කරන්න! (Try Again!)",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.redAccent,
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        margin: const EdgeInsets.only(bottom: 100, left: 50, right: 50),
-      ),
-    );
-  }
-
-  void _showSuccessDialog() async {
+  void _showLevelResultDialog(bool isCorrect) async {
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
+
+    bool isGameFinished = _currentLevel >= _totalLevels;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: const Color(0xFFF1F8E9),
+        backgroundColor: isCorrect
+            ? const Color(0xFFF1F8E9)
+            : const Color(0xFFFFF3E0),
         title: Center(
           child: Column(
             children: [
-              const Icon(Icons.stars, size: 70, color: Colors.amber),
+              Icon(
+                isCorrect
+                    ? (isGameFinished ? Icons.emoji_events : Icons.stars)
+                    : Icons.info_outline,
+                size: 70,
+                color: isCorrect ? Colors.amber : Colors.orange,
+              ),
               const SizedBox(height: 10),
               Text(
-                "'${_currentWord['word']}' යනු ${_currentWord['type']}කි", // word is a type
-                style: const TextStyle(
+                isCorrect
+                    ? (isGameFinished
+                          ? "අභියෝගය අවසන්! (Finished!)"
+                          : "ඉතා හොඳයි! (Well Done!)")
+                    : "නැවත උත්සාහ කරමු! (Nice Try!)",
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
-                  color: Colors.green,
+                  color: isCorrect ? Colors.green : Colors.orange.shade800,
                 ),
               ),
             ],
           ),
         ),
-        content: const Text(
-          "ඉතා හොඳයි! ඔබ නිවැරදිව තෝරා ගත්තා.", // Very good! You chose correctly.
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isCorrect
+                  ? "'${_currentWord['word']}' යනු ${_currentWord['type']}කි"
+                  : "'${_currentWord['word']}' යනු ${_currentWord['type']}කි",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              isCorrect
+                  ? "ඔබ නිවැරදිව තෝරා ගත්තා."
+                  : "මෙය නිවැරදි වර්ගීකරණයයි.",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14),
+            ),
+            if (!isGameFinished)
+              Padding(
+                padding: const EdgeInsets.only(top: 15),
+                child: Text(
+                  "මට්ටම: $_currentLevel / $_totalLevels",
+                  style: const TextStyle(
+                    color: Colors.blueGrey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
         ),
         actions: [
           Center(
             child: InputAwareButton(
               onTap: () {
                 Navigator.pop(context);
-                _generateNewWord();
+                if (isGameFinished) {
+                  _showProgressReport();
+                } else {
+                  setState(() {
+                    _currentLevel++;
+                  });
+                  _generateNewWord();
+                }
               },
               inputMode: widget.inputMode,
-              voiceLabel: "ඊළඟ", // Next word command
+              voiceLabel: isGameFinished ? "අවසන්" : "ඊළඟ",
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 15,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: isGameFinished
+                      ? Colors.blue
+                      : (isCorrect ? Colors.green : Colors.orange),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.green.withOpacity(0.3),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const Text(
-                  "ඊළඟ වචනය", // Next word
-                  style: TextStyle(
+                child: Text(
+                  isGameFinished ? "ප්‍රගති වාර්තාව බලන්න" : "ඊළඟ වචනය",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -162,6 +201,93 @@ class _SinhalaWordSorterState extends State<SinhalaWordSorter> {
             ),
           ),
           const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+
+  void _showProgressReport() {
+    double accuracy = (_totalAttempts > 0)
+        ? (_correctAttempts / _totalAttempts) * 100
+        : 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "ක්‍රීඩා ප්‍රගතිය", // Game Progress
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF6A1B9A),
+              ),
+            ),
+            const Divider(),
+            const SizedBox(height: 20),
+            _buildStatRow("ලකුණු", "$_score", Colors.purple),
+            _buildStatRow(
+              "නිවැරදි තේරීම්",
+              "$_correctAttempts / $_totalLevels",
+              Colors.green,
+            ),
+            _buildStatRow("මුළු උත්සාහයන්", "$_totalAttempts", Colors.orange),
+            _buildStatRow(
+              "නිවැරදි ප්‍රතිශතය",
+              "${accuracy.toStringAsFixed(1)}%",
+              Colors.blue,
+            ),
+            const SizedBox(height: 30),
+            InputAwareButton(
+              onTap: () => Navigator.pop(context),
+              inputMode: widget.inputMode,
+              voiceLabel: "ඉවත් වන්න",
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 15,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6A1B9A),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Text(
+                  "අහවරයි", // Finished
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) => Navigator.pop(context)); // Return to menu
+  }
+
+  Widget _buildStatRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
