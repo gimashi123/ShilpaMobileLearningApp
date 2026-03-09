@@ -31,13 +31,27 @@ class ChatService {
 
   static String get backendUrl {
     if (_chatBackendUrlFromEnv.trim().isNotEmpty) {
-      return _chatBackendUrlFromEnv.trim();
+      return _normalizeChatUrl(_chatBackendUrlFromEnv.trim());
     }
     if (kIsWeb) return 'http://localhost:8000/chat';
-    if (Platform.isAndroid) return AppConfig.apiBaseUrl;
+    if (Platform.isAndroid) {
+      return _normalizeChatUrl(AppConfig.pythonBackendUrl);
+    }
     // if (Platform.isAndroid) return 'http://127.0.0.1:8000/chat';
 
     return 'http://127.0.0.1:8000/chat';
+  }
+
+  static String _normalizeChatUrl(String rawUrl) {
+    final uri = Uri.parse(rawUrl.trim());
+    final path = uri.path;
+    if (path == '/chat' || path.endsWith('/chat')) {
+      return uri.toString();
+    }
+    final normalizedPath = path.endsWith('/')
+        ? '${path}chat'
+        : '$path/chat';
+    return uri.replace(path: normalizedPath).toString();
   }
 
   LlmProvider createProvider({
