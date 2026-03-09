@@ -93,6 +93,16 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     const { description, level } = req.body;   // ✅ also read level
 
     const ext = path.extname(req.file.originalname);
+
+    console.log("\n==========================================================");
+    console.log("   EXPRESS: NEW VIDEO PREDICTION REQUEST RECEIVED       ");
+    console.log("==========================================================");
+    console.log(`Filename        : ${req.file.filename} (ext: ${ext})`);
+    console.log(`Expected Answer : ${req.body.expected || "NOT PROVIDED"}`);
+    console.log(`Requested Level : ${level}   <--- THIS IS WHAT THE MOBILE APP SENT`);
+    console.log(`Description     : ${description}`);
+    console.log("==========================================================\n");
+
     logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext}, level: ${level})`);
 
     // Create FormData to send video to Python server

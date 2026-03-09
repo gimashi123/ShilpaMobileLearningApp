@@ -188,8 +188,13 @@ async def predict_from_video(
       4 -> numbers 45-70  (keras .keras)
     """
     logger.info(
-        f"[PREDICT_VIDEO] Starting video prediction request. "
-        f"Filename: {video.filename}, Level: {level}, Description: {description}"
+        f"==========================================================\n"
+        f"     NEW VIDEO PREDICTION REQUEST RECEIVED\n"
+        f"==========================================================\n"
+        f"Filename        : {video.filename}\n"
+        f"Requested Level : {level}   <--- THIS IS WHAT THE MOBILE APP REQUESTED\n"
+        f"Description     : {description}\n"
+        f"=========================================================="
     )
 
     # --- Validate level ---

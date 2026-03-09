@@ -133,7 +133,8 @@ class MathGameDeaf extends StatefulWidget {
 }
 
 class _MathGameDeafState extends State<MathGameDeaf> {
-  final List<MathQuestion> _questions = QuestionBank.buildLevel(10);
+  List<MathQuestion> _questions = QuestionBank.buildLevel(10);
+  final List<MathQuestion> _wrongQuestions = [];
 
   bool _started = false;
   int _index = 0;
@@ -157,6 +158,8 @@ class _MathGameDeafState extends State<MathGameDeaf> {
 
   void _startLevel() {
     setState(() {
+      _questions = QuestionBank.buildLevel(10);
+      _wrongQuestions.clear();
       _started = true;
       _index = 0;
       _resetForNextQuestion();
@@ -164,7 +167,15 @@ class _MathGameDeafState extends State<MathGameDeaf> {
   }
 
   void _goNext() {
-    if (!_checked || !_isCorrect) return;
+    if (!_checked) return;
+    
+    // If wrong, save it for the summary screen
+    if (!_isCorrect) {
+      if (!_wrongQuestions.contains(_currentQ)) {
+        _wrongQuestions.add(_currentQ);
+      }
+    }
+    
     setState(() {
       _index++;
       if (!_levelFinished) _resetForNextQuestion();
@@ -493,13 +504,43 @@ class _MathGameDeafState extends State<MathGameDeaf> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "ප්‍රශ්න ${_questions.length}ක්ම නිවැරදියි",
+                    "ප්‍රශ්න ${_questions.length}න් ${_questions.length - _wrongQuestions.length}ක් නිවැරදියි",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF4CAF50),
                     ),
                   ),
+                  if (_wrongQuestions.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    const Text(
+                      "වැරදි පිළිතුරු:",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: _wrongQuestions.map((q) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              q.text.replaceAll('?', q.answer.toString()),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2D1B69),
+                              ),
+                            ),
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -519,13 +560,7 @@ class _MathGameDeafState extends State<MathGameDeaf> {
                           color: Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _questions.clear();
-                                _questions.addAll(QuestionBank.buildLevel(10));
-                                _started = false;
-                              });
-                            },
+                            onTap: _startLevel,
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -903,16 +938,20 @@ class _MathGameDeafState extends State<MathGameDeaf> {
                         color: Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                         child: InkWell(
-                          onTap: (_checked && _isCorrect) ? _goNext : null,
+                          onTap: _checked ? _goNext : null,
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 32, vertical: 18),
                             decoration: BoxDecoration(
-                              gradient: (_checked && _isCorrect)
-                                  ? const LinearGradient(
-                                      colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-                                    )
+                              gradient: _checked
+                                  ? (_isCorrect
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                        )
+                                      : const LinearGradient(
+                                          colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                        ))
                                   : LinearGradient(
                                       colors: [
                                         Colors.grey.shade400,
@@ -951,11 +990,11 @@ class _MathGameDeafState extends State<MathGameDeaf> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (!_checked || !_isCorrect)
+                if (!_checked)
                   Text(
-                    "නිවැරදි පිළිතුරක් අවශ්‍යයි",
+                    "පිළිතුර සඳහා සංඥාව ලබා දෙන්න",
                     style: TextStyle(
-                      color: Colors.red.withOpacity(0.8),
+                      color: Colors.blue.withOpacity(0.8),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
