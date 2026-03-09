@@ -1,9 +1,10 @@
 // lib/services/lessons_api.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/config/AppConfig.dart';
 
 class LessonApi {
-  static const String baseUrl = 'http://192.168.1.101:3000';
+  static final String baseUrl = AppConfig.apiBaseUrl;
 
   static Future<List<dynamic>> fetchMyLessons(String token) async {
     final url = Uri.parse('$baseUrl/api/lessons/my');

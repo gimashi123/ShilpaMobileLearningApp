@@ -8,7 +8,7 @@ import 'dashboard_content.dart';
 import 'learn_content.dart';
 import 'games_content.dart';
 import 'question_content.dart';
-import 'profile_content.dart';
+import '../profile_screen.dart';
 import 'calibration_screen.dart';
 import '../../services/eye_tracking_service.dart';
 import '../../services/speech_service.dart';
@@ -481,11 +481,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
       case 3:
         return QuestionContent(inputMode: _inputMode);
       case 4:
-        return ProfileContent(
-          userName: userName,
-          disabilityType: disabilityType,
-          inputMode: _inputMode,
-        );
+        return ProfileScreen(inputMode: _inputMode);
       default:
         return DashboardContent(inputMode: _inputMode);
     }

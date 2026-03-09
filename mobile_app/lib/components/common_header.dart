@@ -45,23 +45,28 @@ class CommonHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: Responsive.isMobile(context) ? 50 : 64,
-                height: Responsive.isMobile(context) ? 50 : 64,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.person,
-                  color: const Color(0xFF6A1B9A),
-                  size: Responsive.isMobile(context) ? 30 : 40,
+              InputAwareButton(
+                inputMode: inputMode,
+                onTap: () => onTabChanged(4),
+                showVoiceIndex: false,
+                child: Container(
+                  width: Responsive.isMobile(context) ? 50 : 64,
+                  height: Responsive.isMobile(context) ? 50 : 64,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.person,
+                    color: const Color(0xFF6A1B9A),
+                    size: Responsive.isMobile(context) ? 30 : 40,
+                  ),
                 ),
               ),
               SizedBox(width: Responsive.isMobile(context) ? 12 : 20),
