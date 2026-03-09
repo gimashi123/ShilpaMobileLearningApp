@@ -73,10 +73,14 @@ class EyeTrackingService {
 
   // Smoothing & Stability Model Variables
   final List<Offset> _history = [];
-  static const int _historyLimit = 15; // N frames for moving average
+  static const int _historyLimit = 15; // N frames for variance calculation
   static const double _spikeThreshold = 150.0; // Max pixels jump allowed
   double _stabilityVarianceThreshold =
       25.0; // Pixels variance (Personalized later)
+
+  // EMA Variables
+  Offset? _smoothedPosition;
+  static const double _emaAlpha = 0.25; // Smoothing factor (0.0 to 1.0)
 
   Offset? _lastRawPosition;
 
@@ -337,15 +341,24 @@ class EyeTrackingService {
     }
     _lastRawPosition = currentRawPosition;
 
-    // Step 2: Moving Average Smoothing
+    // Step 2: Exponential Moving Average (EMA) Smoothing
+    // This provides better responsiveness while aggressively suppressing noise.
+    if (_smoothedPosition == null) {
+      _smoothedPosition = currentRawPosition;
+    } else {
+      _smoothedPosition = Offset(
+        _smoothedPosition!.dx +
+            _emaAlpha * (currentRawPosition.dx - _smoothedPosition!.dx),
+        _smoothedPosition!.dy +
+            _emaAlpha * (currentRawPosition.dy - _smoothedPosition!.dy),
+      );
+    }
+
+    // Still track history for variance/stability calculation
     _history.add(currentRawPosition);
     if (_history.length > _historyLimit) _history.removeAt(0);
 
-    double avgX =
-        _history.map((e) => e.dx).reduce((a, b) => a + b) / _history.length;
-    double avgY =
-        _history.map((e) => e.dy).reduce((a, b) => a + b) / _history.length;
-    Offset smoothedPos = Offset(avgX, avgY);
+    Offset smoothedPos = _smoothedPosition!;
 
     // Step 4: Stability Window Logic
     bool isStable = false;
@@ -404,6 +417,7 @@ class EyeTrackingService {
     _calibrationSamples.clear();
     _gazeOffset = Offset.zero;
     _history.clear();
+    _smoothedPosition = null;
     _calculatedAccuracy = 0.0;
     _lastRawPosition = null;
   }
