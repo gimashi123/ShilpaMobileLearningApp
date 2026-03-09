@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/config/AppConfig.dart';
 import 'package:mobile_app/models/quiz.dart';
 
+
+
 class QuizApi {
-  static const String baseUrl = "http://192.168.1.102:3000/api/quizzes";
+  static final String baseUrl = AppConfig.apiBaseUrl;
 
   static Future<List<Quiz>> fetchRandomQuizzes({
     required String grade,
     required String type,
   }) async {
-    final uri = Uri.parse("$baseUrl/random?grade=$grade&type=$type");
+    final uri = Uri.parse("$baseUrl/api/quizzes/random?grade=$grade&type=$type");
 
     final response = await http.get(uri);
 
