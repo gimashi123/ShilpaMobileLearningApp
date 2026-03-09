@@ -1,0 +1,150 @@
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 13
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 13: min=0.2053, max=0.9639
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 13: min=-0.9893, max=0.2511
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 14
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 14 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 14
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 14
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 14
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 14
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 14: min=0.2053, max=0.9643
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 14: min=-0.9932, max=0.2072
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 15
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 15 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 15
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 15
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 15
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 15
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 15: min=0.2015, max=0.9550
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 15: min=-0.9957, max=0.1838
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 16
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 16 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 16
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 16
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 16
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 16
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 16: min=0.1916, max=0.9492
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 16: min=-0.9936, max=0.2015
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 17
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 17 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 17
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 17
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 17
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 17
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 17: min=0.1878, max=0.9523
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 17: min=-0.9949, max=0.1956
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 18
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 18 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 18
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 18
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 18
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 18
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 18: min=0.1845, max=0.9486
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 18: min=-0.9955, max=0.1883
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 19
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 19 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 19
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 19
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 19
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 19
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 19: min=0.1821, max=0.9636
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 19: min=-0.9951, max=0.1767
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 20
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 20 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 20
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 20
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 20
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 20
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 20: min=0.1847, max=0.9682
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 20: min=-0.9967, max=0.1626
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 21
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 21 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 21
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 21
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 21
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 21
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 21: min=0.1878, max=0.9468
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 21: min=-0.9973, max=0.1665
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 22
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 22 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 22
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 22
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 22
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 22
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 22: min=0.1905, max=0.9584
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 22: min=-0.9969, max=0.1638
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 23
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 23 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 23
+2026-03-08 19:03:39 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 23
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 23
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 23
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 23: min=0.1963, max=0.9381
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 23: min=-0.9997, max=0.1266
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 24
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 24 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 24
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 24
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 24
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 24
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 24: min=0.1884, max=0.9773
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 24: min=-0.9948, max=0.1823
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 25
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 25 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 25
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 25
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 25
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 25
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 25: min=0.1967, max=0.9707
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 25: min=-0.9970, max=0.1597
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 26
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 26 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 26
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 26
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 26
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 26
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 26: min=0.1931, max=0.9687
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 26: min=-0.9970, max=0.1563
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 27
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 27 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 27
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 27
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 27
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 27
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 27: min=0.1898, max=1.0150
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 27: min=-0.9960, max=0.1744
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 28
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 28 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 28
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 28
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 28
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 28
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 28: min=0.1942, max=0.9914
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 28: min=-0.9979, max=0.1988
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 29
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 29 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 29
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 29
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 29
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 29
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 29: min=0.2108, max=0.9820
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 29: min=-0.9978, max=0.2416
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:537] - [EXTRACT_VIDEO] Processing frame 30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:541] - [EXTRACT_VIDEO] Frame 30 converted to RGB, shape: (480, 640, 3)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:548] - [EXTRACT_VIDEO] MediaPipe Image created for frame 30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:554] - [EXTRACT_VIDEO] Running landmarker detection on frame 30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:556] - [EXTRACT_VIDEO] Landmarker detection completed for frame 30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:563] - [EXTRACT_VIDEO] Hand landmarks detected in frame 30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:577] - [EXTRACT_VIDEO] Raw vector for frame 30: min=0.2190, max=0.9732
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:583] - [EXTRACT_VIDEO] Normalized vector for frame 30: min=-0.9971, max=0.2325
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:593] - [EXTRACT_VIDEO] Video capture released. Processed 30 frames, 30 with hands detected
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:595] - [EXTRACT_VIDEO] Landmarker closed
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:603] - [EXTRACT_VIDEO] Extraction complete. Extracted 30 feature vectors from 30 frames
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:281] - [PREDICT_VIDEO] Successfully extracted 30 vectors from video
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:290] - [PREDICT_VIDEO] Running prediction on 30 vectors (is_keras=True)...
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:304] - [PREDICT_VIDEO] Sequences shape: (1, 30, 42)
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:312] - [PREDICT_VIDEO] Keras mean confidence: 0.743845522403717
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:330] - [PREDICT_VIDEO] Predictions from 30 vectors: final prediction=30
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - INFO - [hearing_impairment_routes.py:335] - [PREDICT_VIDEO] Video prediction completed successfully: sign=30, confidence=0.743845522403717
+2026-03-08 19:03:40 - routes.hearing_impairment_routes - DEBUG - [hearing_impairment_routes.py:354] - [PREDICT_VIDEO] Cleaned up temp video file: C:\Users\User\AppData\Local\Temp\tmpaqol22ff.webm
+2026-03-08 19:03:40 - root - DEBUG - [app.py:149] - [RESPONSE] Status: 200 | Time: 3.465s

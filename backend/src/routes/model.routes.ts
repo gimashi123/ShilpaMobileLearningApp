@@ -8,19 +8,33 @@ import path from 'path';
 const router = Router();
 
 // Configure multer for video uploads
+
+const storage = multer.diskStorage({
+  destination: 'uploads/videos/',
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);   // ✅ get real extension
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueName + ext);                    // ✅ keep extension
+  }
+});
+
+
 const videoUpload = multer({
-  dest: 'uploads/videos/',
+  storage,
   limits: {
-    fileSize: 500 * 1024 * 1024 // 500MB limit for videos
+    fileSize: 500 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
-    // Accept only video files
-    const allowedMimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only video files are allowed'));
-    }
+    const allowedMimes = [
+      'video/mp4',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/x-matroska',
+      'video/webm'
+    ];
+
+    if (allowedMimes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only video files are allowed'));
   }
 });
 
@@ -35,7 +49,7 @@ router.get('/hearing-impairment/health', async (req: Request, res: Response) => 
     const response = await axios.get(`${PYTHON_SERVER_URL}/api/hearing-impairment/health`, {
       timeout: 5000
     });
-    
+
     res.json({
       status: 'healthy',
       python_server: response.data,
@@ -44,7 +58,7 @@ router.get('/hearing-impairment/health', async (req: Request, res: Response) => 
   } catch (error) {
     const axiosError = error as AxiosError;
     logger.error('Python server health check failed:', axiosError.message);
-    
+
     res.status(503).json({
       status: 'unhealthy',
       python_server: axiosError.message,
@@ -76,16 +90,37 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     }
 
     videoPath = req.file.path;
-    const { description } = req.body;
+    const { description, level } = req.body;   // ✅ also read level
 
-    logger.info(`Processing video for prediction: ${req.file.filename}`);
+    const ext = path.extname(req.file.originalname);
+
+    console.log("\n==========================================================");
+    console.log("   EXPRESS: NEW VIDEO PREDICTION REQUEST RECEIVED       ");
+    console.log("==========================================================");
+    console.log(`Filename        : ${req.file.filename} (ext: ${ext})`);
+    console.log(`Expected Answer : ${req.body.expected || "NOT PROVIDED"}`);
+    console.log(`Requested Level : ${level}   <--- THIS IS WHAT THE MOBILE APP SENT`);
+    console.log(`Description     : ${description}`);
+    console.log("==========================================================\n");
+
+    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext}, level: ${level})`);
 
     // Create FormData to send video to Python server
     const FormData = require('form-data');
     const form = new FormData();
-    form.append('video', fs.createReadStream(videoPath));
+
+    form.append('video', fs.createReadStream(videoPath), {
+      filename: req.file.originalname,   // ✅ important
+      contentType: req.file.mimetype     // ✅ important
+    });
+
     if (description) {
       form.append('description', description);
+    }
+
+    // ✅ Forward level to Python so the correct model is selected
+    if (level !== undefined && level !== null && level !== '') {
+      form.append('level', String(level));
     }
 
     // Call Python API with video
@@ -108,7 +143,7 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
 
   } catch (error) {
     const axiosError = error as AxiosError;
-    
+
     logger.error('Video prediction failed:', {
       error: axiosError.message,
       status: axiosError.status,

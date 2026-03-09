@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-// Add this import assuming the dashboard screen is in the same lib directory
-import '../dashboard/cognative_dashboard_screen.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'find_image_hand_hint_overlay.dart';
 
 /* =========================
    APP ROOT
@@ -12,10 +15,7 @@ class PuzzleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: PuzzleScreen(),
-    );
+    return const PuzzleScreen();
   }
 }
 
@@ -45,16 +45,61 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   /* ---- PIECES ---- */
   List<_Piece> pieces = [];
+  late final ConfettiController _confettiController;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
+  bool _rewardPlayed = false;
+  bool _autoAdvancing = false;
+  Timer? _inactivityTimer;
+  Timer? _hintVisibleTimer;
+  bool _showHandHint = false;
+
+  // Attempt metrics
+  DateTime? _attemptStartedAt;
+  DateTime? _attemptCompletedAt;
+  DateTime? _lastTapAt;
+  int _totalTaps = 0;
+  int _piecesRemovedCount = 0;
+  Duration _sumInterTapTime = Duration.zero;
+  int _interTapCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 900),
+    );
     _reshuffle();
+    _resetHintInactivityTimer();
+  }
+
+  @override
+  void dispose() {
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    _sfxPlayer.dispose();
+    _confettiController.dispose();
+    super.dispose();
   }
 
   void _reshuffle() {
     _playlist = List<String>.from(imagePool)..shuffle();
     _index = 0;
+  }
+
+  void _resetHintInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    if (_showHandHint) {
+      setState(() => _showHandHint = false);
+    }
+    _inactivityTimer = Timer(const Duration(seconds: 15), () {
+      if (!mounted || _autoAdvancing) return;
+      setState(() => _showHandHint = true);
+      _hintVisibleTimer = Timer(const Duration(seconds: 15), () {
+        if (!mounted) return;
+        setState(() => _showHandHint = false);
+      });
+    });
   }
 
   void _buildPieces(Size size) {
@@ -64,24 +109,73 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       seed: DateTime.now().millisecondsSinceEpoch,
     );
     pieces = paths.map((p) => _Piece(path: p)).toList();
+    _resetAttemptMetrics();
+  }
+
+  void _resetAttemptMetrics() {
+    _attemptStartedAt = DateTime.now();
+    _attemptCompletedAt = null;
+    _lastTapAt = null;
+    _totalTaps = 0;
+    _piecesRemovedCount = 0;
+    _sumInterTapTime = Duration.zero;
+    _interTapCount = 0;
+  }
+
+  void _printAttemptStatsToTerminal({required String event}) {
+    final completionMs =
+        (_attemptStartedAt != null && _attemptCompletedAt != null)
+        ? _attemptCompletedAt!.difference(_attemptStartedAt!).inMilliseconds
+        : -1;
+    final usefulTapRate = _totalTaps == 0
+        ? 0.0
+        : _piecesRemovedCount / _totalTaps;
+    final avgInterTapMs = _interTapCount == 0
+        ? 0
+        : (_sumInterTapTime.inMilliseconds / _interTapCount).round();
+
+    debugPrint(
+      "[FIND_IMAGE_SCORE] event=$event completion_ms=$completionMs total_taps=$_totalTaps pieces_removed=$_piecesRemovedCount useful_tap_rate=${usefulTapRate.toStringAsFixed(3)} avg_inter_tap_ms=$avgInterTapMs",
+    );
   }
 
   void _nextImage() {
+    _printAttemptStatsToTerminal(event: 'next_image_before_reset');
+    unawaited(_sfxPlayer.stop());
     setState(() {
       _index++;
       if (_index >= _playlist.length) {
         _reshuffle();
       }
       pieces.clear();
+      _rewardPlayed = false;
+      _autoAdvancing = false;
     });
+    _confettiController.stop();
+    _resetHintInactivityTimer();
   }
 
   void _onTap(Offset pos) {
+    _resetHintInactivityTimer();
+    final tapTime = DateTime.now();
+    _totalTaps++;
+    if (_lastTapAt != null) {
+      _sumInterTapTime += tapTime.difference(_lastTapAt!);
+      _interTapCount++;
+    }
+    _lastTapAt = tapTime;
+
     for (int i = pieces.length - 1; i >= 0; i--) {
       if (!pieces[i].removed && pieces[i].path.contains(pos)) {
         setState(() {
           pieces[i].removed = true;
+          _piecesRemovedCount++;
         });
+        if (completed) {
+          _attemptCompletedAt = tapTime;
+          _printAttemptStatsToTerminal(event: 'attempt_completed');
+          _playRewardAnimation();
+        }
         break;
       }
     }
@@ -89,103 +183,164 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   bool get completed => pieces.isNotEmpty && pieces.every((p) => p.removed);
 
+  Offset? get _hintTargetPosition {
+    for (final piece in pieces) {
+      if (!piece.removed) {
+        return piece.path.getBounds().center;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _goDashboard() async {
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    _printAttemptStatsToTerminal(event: 'back_to_home');
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     const green = Color(0xFF2EAA3A);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: green,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+    return Listener(
+      onPointerDown: (_) => _resetHintInactivityTimer(),
+      onPointerMove: (_) => _resetHintInactivityTimer(),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: green,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            onPressed: _goDashboard,
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            tooltip: "Back",
           ),
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          tooltip: "Back",
-        ),
-        title: const Text(
-          "රූපය හොයමු",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+          title: const Text(
+            "රූපය හොයමු",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
           ),
+          // actions: [
+          //   IconButton(
+          //     onPressed: () => _printAttemptStatsToTerminal(event: 'manual_view'),
+          //     icon: const Icon(Icons.terminal, color: Colors.black),
+          //     tooltip: "Terminal score",
+          //   ),
+          // ],
         ),
-        // same right-side spacing like your first code (SizedBox width 48)
-        actions: const [SizedBox(width: 48)],
-      ),
-      body: LayoutBuilder(
-        builder: (context, c) {
-          final size = Size(c.maxWidth, c.maxHeight);
+        body: LayoutBuilder(
+          builder: (context, c) {
+            final size = Size(c.maxWidth, c.maxHeight);
 
-          if (pieces.isEmpty) {
-            _buildPieces(size);
-          }
+            if (pieces.isEmpty) {
+              _buildPieces(size);
+            }
 
-          return Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(currentImage, fit: BoxFit.cover),
-                    GestureDetector(
-                      onTapDown: (d) => _onTap(d.localPosition),
-                      child: CustomPaint(painter: PiecePainter(pieces)),
-                    ),
-                    if (completed)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: const [
-                              BoxShadow(
-                                blurRadius: 12,
-                                offset: Offset(0, 6),
-                                color: Colors.black26,
+            return Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(currentImage, fit: BoxFit.cover),
+                      GestureDetector(
+                        onTapDown: _autoAdvancing
+                            ? null
+                            : (d) => _onTap(d.localPosition),
+                        child: CustomPaint(painter: PiecePainter(pieces)),
+                      ),
+                      FindImageHandHintOverlay(
+                        isVisible: _showHandHint,
+                        targetPosition: _hintTargetPosition,
+                      ),
+                      if (completed) ...[
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                  color: Colors.black26,
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              "⭐\n🎉 නියමයි! 🎉",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
-                          child: const Text(
-                            "🎉 නියමයි! 🎉 ",
-                            style: TextStyle(
-                              fontSize: 28,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: ConfettiWidget(
+                            confettiController: _confettiController,
+                            blastDirectionality: BlastDirectionality.explosive,
+                            numberOfParticles: 16,
+                            emissionFrequency: 0.12,
+                            maxBlastForce: 18,
+                            minBlastForce: 10,
+                            gravity: 0.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                color: green,
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _btn("අලුත්", () {
-                      setState(() => pieces.clear());
-                    }),
-                    _btn("ඉදිරියට", _nextImage),
-                  ],
+                Container(
+                  color: green,
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // _btn("අලුත්", _autoAdvancing ? null : () {
+                      //   _printAttemptStatsToTerminal(
+                      //     event: 'new_round_before_reset',
+                      //   );
+                      //   unawaited(_sfxPlayer.stop());
+                      //   setState(() {
+                      //     pieces.clear();
+                      //     _rewardPlayed = false;
+                      //     _autoAdvancing = false;
+                      //   });
+                      //   _confettiController.stop();
+                      // }),
+                      _btn("Home", _goDashboard),
+                      _btn("ඉදිරියට", _autoAdvancing ? null : _nextImage),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _btn(String text, VoidCallback onTap) {
+  Widget _btn(String text, VoidCallback? onTap) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
@@ -195,6 +350,33 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       ),
       child: Text(text),
     );
+  }
+
+  Future<void> _playRewardAnimation() async {
+    if (_rewardPlayed || _autoAdvancing) return;
+    _rewardPlayed = true;
+    _autoAdvancing = true;
+    _inactivityTimer?.cancel();
+    _hintVisibleTimer?.cancel();
+    if (_showHandHint) {
+      setState(() => _showHandHint = false);
+    }
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+    _confettiController.play();
+    await Future.delayed(const Duration(milliseconds: 4500));
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'රූප හොයමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 4),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _nextImage();
   }
 }
 

@@ -71,6 +71,8 @@ class _InputModeSwitchState extends State<InputModeSwitch>
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
+              _buildOption(InputMode.hybrid, "Hybrid"),
+              const SizedBox(height: 12),
               _buildOption(InputMode.voiceControl, "Voice"),
               const SizedBox(height: 12),
               _buildOption(InputMode.eyeGaze, "Eye Gaze"),
@@ -87,6 +89,7 @@ class _InputModeSwitchState extends State<InputModeSwitch>
         InputAwareButton(
           inputMode: widget.selectedMode,
           onTap: _toggleMenu,
+          showVoiceIndex: false,
           borderRadius: BorderRadius.circular(30), // Fully rounded circle
           child: Container(
             width: 60,
@@ -129,6 +132,7 @@ class _InputModeSwitchState extends State<InputModeSwitch>
     return InputAwareButton(
       inputMode: widget.selectedMode,
       onTap: () => _selectMode(mode), // Clicking option selects it
+      showVoiceIndex: false,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -188,6 +192,8 @@ class _InputModeSwitchState extends State<InputModeSwitch>
         return Icons.visibility_rounded;
       case InputMode.voiceControl:
         return Icons.mic_rounded;
+      case InputMode.hybrid:
+        return Icons.stream_rounded;
     }
   }
 }

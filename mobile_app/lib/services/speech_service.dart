@@ -102,11 +102,20 @@ class SpeechService {
       await _speech.listen(
         localeId: _localeId,
         onResult: (result) {
+          double confidence = result.confidence;
           print(
-            'Heard: ${result.recognizedWords} (Final: ${result.finalResult})',
+            'Heard: ${result.recognizedWords} (Final: ${result.finalResult}, Conf: ${confidence.toStringAsFixed(2)})',
           );
+
+          // Acoustic Confidence Threshold Filter
+          // If confidence is too low (< 0.5), we ignore to prevent false activations
           if (result.finalResult && _onCommandRecognized != null) {
-            _onCommandRecognized!(result.recognizedWords);
+            if (confidence > 0.5 || confidence == 0) {
+              // 0 sometimes means not reported
+              _onCommandRecognized!(result.recognizedWords);
+            } else {
+              print('Ignored low confidence recognition: $confidence');
+            }
           }
         },
         listenFor: const Duration(seconds: 30),

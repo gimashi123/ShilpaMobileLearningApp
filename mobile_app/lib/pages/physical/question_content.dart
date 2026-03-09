@@ -85,6 +85,7 @@ class _QuestionCard extends StatelessWidget {
     return InputAwareButton(
       onTap: onTap,
       inputMode: inputMode,
+      voiceLabel: label,
       borderRadius: BorderRadius.circular(30),
       child: Container(
         decoration: BoxDecoration(
@@ -130,7 +131,7 @@ class _QuestionCard extends StatelessWidget {
             Text(
               "ප්‍රශ්න පත්‍ර ආරම්භ කරන්න",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: isMobile ? 12 : 14,
                 color: Colors.white.withOpacity(0.8),
                 fontWeight: FontWeight.w600,
               ),

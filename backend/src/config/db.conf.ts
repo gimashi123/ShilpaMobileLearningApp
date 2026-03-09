@@ -5,8 +5,6 @@ const connectDB = async (): Promise<void> => {
   const MONGODB_URI = process.env.MONGODB_URI || '';
 
   try {
-    // Use a shorter serverSelectionTimeoutMS in dev so failures are reported quickly
-    console.log("MONGO_URL =", process.env.MONGO_URL);
 
     await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 } as any);
     logger.info('MongoDB connected successfully');

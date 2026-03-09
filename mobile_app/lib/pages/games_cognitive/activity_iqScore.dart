@@ -26,6 +26,11 @@ class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // ❌ Student ID නැතිනම්
     if (widget.studentId.trim().isEmpty) {

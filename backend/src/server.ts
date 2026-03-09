@@ -15,6 +15,8 @@ import meRoutes from './routes/user.routes';
 import modelRoutes from './routes/model.routes';
 import { spawn } from 'child_process';
 import cogvitive from './routes/cognitive/routes';
+import quizRoutes from "@routes/quiz.routes";
+import answerValidation from "./routes/answerValidation.routes";
 
 
 
@@ -45,7 +47,13 @@ const port = process.env.PORT || 3000;
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Middleware
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  logger.info(`[${req.method}] ${req.originalUrl} from ${req.ip}`);
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -100,9 +108,9 @@ app.post(
     const videoPath = req.file.path;
 
     // Call Python script
-   const pyScript = path.join(__dirname, "predict_video.py"); // ✅ because server.ts is in src
+     const pyScript = path.join(__dirname, "predict_video.py"); // ✅ because server.ts is in src
 
-const py = spawn("python", [pyScript, videoPath]);
+    const py = spawn("python", [pyScript, videoPath]);
 
 
     let output = "";
@@ -158,3 +166,11 @@ app.use("/api", sttRoutes);
 app.use("/api", meRoutes);
 // Cognitive routes
 app.use("/api/cognitive", cogvitive);
+
+app.use('/api/quizzes', quizRoutes);
+
+
+
+app.use("/api", answerValidation);
+
+app.use("/api/quizzes", quizRoutes);

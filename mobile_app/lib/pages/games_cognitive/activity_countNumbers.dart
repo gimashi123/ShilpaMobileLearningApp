@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import '../dashboard/cognative_dashboard_screen.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class SinhalaNumberGame extends StatefulWidget {
   const SinhalaNumberGame({super.key});
@@ -72,7 +72,6 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   @override
   void initState() {
     super.initState();
-
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -208,6 +207,10 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
 
       // move to next number
       if (_index < _numbers.length - 1) {
+        await _tts.stop();
+        _setHighlight(false);
+        await _showLoadingScreen();
+        if (!mounted || myToken != _runToken) return;
         setState(() {
           _index++;
           _revealed = 0;
@@ -216,6 +219,18 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
         return;
       }
     }
+  }
+
+  Future<void> _showLoadingScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'ගණන් කරමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
   }
 
   void _restartFromIndex(int newIndex) {
@@ -254,9 +269,11 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true)
+                            .pushNamedAndRemoveUntil(
+                      '/home_cognitive',
+                      (route) => false,
                     ),
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
                   ),
@@ -323,6 +340,14 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
                   _BottomButton(
                     label: "අවසාන",
                     onTap: () => _restartFromIndex(_index - 1),
+                  ),
+                  _BottomButton(
+                    label: "Home",
+                    onTap: () =>Navigator.of(context, rootNavigator: true)
+                            .pushNamedAndRemoveUntil(
+                      '/home_cognitive',
+                      (route) => false,
+                    ),
                   ),
                   _BottomButton(
                     label: "ඊළඟ",

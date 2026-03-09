@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/services/auth_api.dart';
+import 'package:mobile_app/session/session.dart';
 
 class RegisterPage extends StatefulWidget {
   final String disabilityType; // visual / hearing / physical / cognitive
@@ -28,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final FlutterTts _tts = FlutterTts();
   static const String _welcomeText =
       'ශිෂ්‍ය ගිණුමක් නිර්මාණය කරන්න. '
-      'ඔබගේ නම, ඊමේල් ලිපිනය, සංකේත පදය, ශ්‍රේණිය සහ භූමිකාව තෝරන්න.';
+      'ඔබගේ නම, ඊමේල් ලිපිනය, සංකේත පදය, ශ්‍රේණිය තෝරන්න.';
 
   // helper: cognitive student => hide grade + force grade=5
   bool get _isCognitiveStudent {
@@ -65,6 +66,30 @@ class _RegisterPageState extends State<RegisterPage> {
 
     await _tts.stop();
     await _tts.speak(text);
+  }
+
+  // Navigate to appropriate dashboard based on disability type
+  void _navigateToDashboard() {
+    final disabilityType = widget.disabilityType.toLowerCase();
+    
+    switch (disabilityType) {
+      case 'visual':
+        Navigator.pushReplacementNamed(context, '/home_visual');
+        break;
+      case 'hearing':
+        Navigator.pushReplacementNamed(context, '/home_hearing');
+        break;
+      case 'physical':
+        Navigator.pushReplacementNamed(context, '/home_physical');
+        break;
+      case 'cognitive':
+        Navigator.pushReplacementNamed(context, '/home_cognitive');
+        break;
+      default:
+        // Default to visual if unknown
+        Navigator.pushReplacementNamed(context, '/home_visual');
+        break;
+    }
   }
 
   // --------- helpers ---------
@@ -169,7 +194,8 @@ class _RegisterPageState extends State<RegisterPage> {
           "DEBUG: Registering with $email, role=$role, disability=$disabilityToUse type=${widget.disabilityType}",
         );
 
-        await AuthApi.register(
+        // Register the user
+        final response = await AuthApi.register(
           name: name,
           email: email,
           password: password,
@@ -178,6 +204,41 @@ class _RegisterPageState extends State<RegisterPage> {
           grade: gradeToSend,
         );
 
+        // After successful registration, automatically log the user in
+        // You might need to implement a login method in AuthApi
+        // For now, we'll assume the registration also returns a token
+        // or we need to login separately
+
+        // Option 1: If register returns token, store it
+        // Session.token = response['token'];
+
+        // Option 2: Auto-login with the same credentials
+        try {
+          final loginResponse = await AuthApi.login(
+            email: email,
+            password: password,
+          );
+          
+          // Store the token in session
+          Session.token = loginResponse['token'];
+          
+          print("DEBUG: Auto-login successful, token stored");
+        } catch (loginError) {
+          print("DEBUG: Auto-login failed: $loginError");
+          // If auto-login fails, still show success but navigate to login
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Registration successful! Please login manually."),
+            ),
+          );
+          
+          await _speak('ලියාපදිංචිය සාර්ථකයි. කරුණාකර ඇතුල් වන්න.');
+          
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/newlogin');
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Successfully Registered")),
         );
@@ -185,12 +246,12 @@ class _RegisterPageState extends State<RegisterPage> {
         await _speak('ඔබ ${_roleLabel(role)} ලෙස සාර්ථකව ලියාපදිංචි විය.');
 
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/newlogin');
+        
+        // Navigate to appropriate dashboard based on disability type
+        _navigateToDashboard();
+        
       } catch (e) {
         print("DEBUG: Registration error: $e");
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Register failed: $e")));
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Register failed: $e")));
@@ -529,7 +590,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Back to login
+                  // Back to login (optional - users might still want this)
                   TextButton(
                     onPressed: () {
                       _goNewLogin(
@@ -537,7 +598,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       );
                     },
                     child: const Text(
-                      "ඇතුල් වීමේ පිටුවට යන්න",
+                      "දැනටමත් ගිණුමක් තිබේද? ඇතුල් වන්න",
                       style: TextStyle(
                         color: Color(0xFF5E35B1),
                         fontWeight: FontWeight.w600,

@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:confetti/confetti.dart';
+import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 import 'dart:math' as Math;
-import '../dashboard/cognative_dashboard_screen.dart';
-
+import 'dino_hint_overlay.dart';
+import 'package:flutter/services.dart';
 
 class ActivityDraw extends StatefulWidget {
   const ActivityDraw({Key? key}) : super(key: key);
@@ -18,6 +22,13 @@ class _ActivityDrawState extends State<ActivityDraw> {
   String _notificationTitle = '';
   String _notificationEmoji = '';
   Color _notificationColor = Colors.green;
+  late final ConfettiController _confettiController;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
+
+  // --- HINT LOGIC VARIABLES ---
+  Timer? _inactivityTimer;
+  Timer? _hintVisibleTimer;
+  bool _showHintDino = false;
 
   final List<TracePath> tracePaths = [
     TracePath(name: 'Straight Line', type: PathType.straight),
@@ -29,19 +40,57 @@ class _ActivityDrawState extends State<ActivityDraw> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
     _pageController = PageController();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 900),
+    );
     for (int i = 0; i < tracePaths.length; i++) {
       _canvasKeys[i] = GlobalKey<_TracingCanvasState>();
     }
+
+    // Start the initial 15s countdown
+    _resetInactivityTimer();
+  }
+
+  // --- HINT TIMER LOGIC ---
+  void _resetInactivityTimer() {
+    _hintVisibleTimer?.cancel();
+    if (_showHintDino) {
+      setState(() => _showHintDino = false);
+    }
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer(const Duration(seconds: 15), () {
+      if (mounted && !_showNotification) {
+        setState(() => _showHintDino = true);
+        _hintVisibleTimer = Timer(const Duration(seconds: 15), () {
+          if (!mounted) return;
+          setState(() => _showHintDino = false);
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+    _inactivityTimer?.cancel(); // Clean up timer
+    _hintVisibleTimer?.cancel();
+    _sfxPlayer.dispose();
+    _confettiController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  // ✅ Sinhala title changes by current activity
+  // (Unchanged logic functions)
   String _getSinhalaTitle(PathType type) {
     switch (type) {
       case PathType.straight:
@@ -74,31 +123,50 @@ class _ActivityDrawState extends State<ActivityDraw> {
   }
 
   void _resetCurrentTrace() {
+    _resetInactivityTimer();
     _canvasKeys[_currentTraceIndex]?.currentState?.clearCanvas();
   }
 
-  void _onLevelCompleted(int index) {
+  Future<void> _onLevelCompleted(int index) async {
+    _inactivityTimer?.cancel(); // Stop timer during success
+    _hintVisibleTimer?.cancel();
+    await _sfxPlayer.stop();
+    await _sfxPlayer.play(AssetSource("sounds/cognitive/cheers.mp3"));
+
     setState(() {
       _showNotification = true;
       _notificationTitle = 'පුදුමයි!\nඔයා ඒක කළා!';
       _notificationEmoji = '🌟';
       _notificationColor = Colors.green.shade400;
+      _showHintDino = false;
     });
+    _confettiController.play();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      setState(() => _showNotification = false);
+    await Future.delayed(const Duration(milliseconds: 4500));
+    if (!mounted) return;
+    setState(() => _showNotification = false);
 
-      if (index < tracePaths.length - 1) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          if (_currentTraceIndex == index) _nextTrace();
-        });
-      }
-    });
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CognitiveGameLoadingScreen(
+          gameTitle: 'ඉරි අඳිමු',
+          autoNavigate: false,
+          duration: Duration(seconds: 3),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (index < tracePaths.length - 1 && _currentTraceIndex == index) {
+      _nextTrace();
+      _resetInactivityTimer();
+    } else {
+      await _goDashboard();
+    }
   }
 
   void _onLevelFailed(int index) {
+    _resetInactivityTimer();
     setState(() {
       _showNotification = true;
       _notificationTitle = 'හොඳ උත්සාහයක්!\nඅපි නැවත පුහුණු වෙමු!';
@@ -116,152 +184,183 @@ class _ActivityDrawState extends State<ActivityDraw> {
   Widget build(BuildContext context) {
     final currentTitle = _getSinhalaTitle(tracePaths[_currentTraceIndex].type);
 
-    return Scaffold(
-      appBar: AppBar(
-        // ✅ Back arrow to dashboard
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const CognitiveDashboardScreen()),  // Assuming the class name is CognitiveDashboardScreen
+    return Listener(
+      // ✅ Resets the timer on ANY screen touch
+      onPointerDown: (_) => _resetInactivityTimer(),
+      onPointerMove: (_) => _resetInactivityTimer(),
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _goDashboard,
           ),
-        ),
-        title: Text(
-          "✨ $currentTitle ✨",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade300, Colors.purple.shade300],
+          title: Text(
+            "✨ $currentTitle ✨",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade300, Colors.purple.shade300],
+              ),
             ),
           ),
         ),
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) {
-                    setState(() => _currentTraceIndex = index);
-                  },
-                  itemCount: tracePaths.length,
-                  itemBuilder: (context, index) {
-                    return TracingCanvas(
-                      key: _canvasKeys[index],
-                      tracePath: tracePaths[index],
-                      onCompleted: () => _onLevelCompleted(index),
-                      onFailed: () => _onLevelFailed(index),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      'Level ${_currentTraceIndex + 1} of ${tracePaths.length}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _currentTraceIndex > 0
-                              ? _previousTrace
-                              : null,
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('පෙර'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _resetCurrentTrace,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('මකන්න'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _currentTraceIndex < tracePaths.length - 1
-                              ? _nextTrace
-                              : null,
-                          icon: const Icon(Icons.arrow_forward),
-                          label: const Text('ඉදිරියට'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // ✅ Big notification card overlay
-          if (_showNotification)
-            Center(
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.elasticOut,
-                builder: (context, value, child) {
-                  return Transform.scale(scale: value, child: child);
-                },
-                child: Card(
-                  elevation: 20,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (index) {
+                      setState(() => _currentTraceIndex = index);
+                      _resetInactivityTimer();
+                    },
+                    itemCount: tracePaths.length,
+                    itemBuilder: (context, index) {
+                      return TracingCanvas(
+                        key: _canvasKeys[index],
+                        tracePath: tracePaths[index],
+                        onCompleted: () => _onLevelCompleted(index),
+                        onFailed: () => _onLevelFailed(index),
+                      );
+                    },
                   ),
-                  child: Container(
-                    width: 320,
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          _notificationColor,
-                          _notificationColor.withOpacity(0.8),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Level ${_currentTraceIndex + 1} of ${tracePaths.length}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _currentTraceIndex > 0
+                                ? _previousTrace
+                                : null,
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text('පෙර'),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _resetCurrentTrace,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('මකන්න'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed:
+                                _currentTraceIndex < tracePaths.length - 1
+                                ? _nextTrace
+                                : null,
+                            icon: const Icon(Icons.arrow_forward),
+                            label: const Text('ඉදිරියට'),
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _notificationEmoji,
-                          style: const TextStyle(fontSize: 80),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          _notificationTitle,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
-              ),
+              ],
             ),
-        ],
+
+            // ✅ RUNNING DINO HINT OVERLAY
+            DinoHintOverlay(
+              pathType: tracePaths[_currentTraceIndex].type,
+              isVisible: _showHintDino,
+            ),
+
+            // Notifications & Confetti
+            if (_showNotification) _buildNotificationCard(),
+            if (_showNotification) _buildConfetti(),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildNotificationCard() {
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) =>
+            Transform.scale(scale: value, child: child),
+        child: Card(
+          elevation: 20,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _notificationColor,
+                  _notificationColor.withOpacity(0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_notificationEmoji, style: const TextStyle(fontSize: 80)),
+                const SizedBox(height: 20),
+                Text(
+                  _notificationTitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfetti() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            numberOfParticles: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _goDashboard() async {
+    await _sfxPlayer.stop();
+    if (!mounted) return;
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/home_cognitive', (route) => false);
   }
 }
 
@@ -281,8 +380,6 @@ class SamplePoint {
   SamplePoint({required this.position, this.isCovered = false});
 }
 
-enum PathType { straight, wave, curve, zigzag }
-
 class TracePath {
   final String name;
   final PathType type;
@@ -292,9 +389,9 @@ class TracePath {
   double pathLength;
 
   TracePath({required this.name, required this.type})
-      : dots = [],
-        samples = [],
-        pathLength = 0.0;
+    : dots = [],
+      samples = [],
+      pathLength = 0.0;
 }
 
 // ---------------- TRACING CANVAS ----------------
@@ -319,12 +416,16 @@ class _TracingCanvasState extends State<TracingCanvas> {
   final List<List<Offset>> strokes = [];
   List<Offset> currentStroke = [];
   bool _alreadyCompleted = false;
+  DateTime? _firstPanStartAt;
+  DateTime? _completedAt;
 
   void clearCanvas() {
     setState(() {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       for (final d in widget.tracePath.dots) {
         d.isTraced = false;
       }
@@ -367,6 +468,67 @@ class _TracingCanvasState extends State<TracingCanvas> {
       }
     }
     return total;
+  }
+
+  _TraceMetrics _computeMetrics() {
+    final samples = widget.tracePath.samples;
+    final coveredSamples = samples.where((s) => s.isCovered).length;
+    final totalSamples = samples.length;
+
+    // Coverage ratio is the fraction of hidden path samples the user covered.
+    final coverageRatio = totalSamples == 0
+        ? 0.0
+        : coveredSamples / totalSamples;
+
+    final allPoints = <Offset>[];
+    for (final stroke in strokes) {
+      allPoints.addAll(stroke);
+    }
+    allPoints.addAll(currentStroke);
+
+    const offPathLimit = 25.0;
+    int offPathPoints = 0;
+
+    for (final p in allPoints) {
+      double minDist = double.infinity;
+      for (final s in samples) {
+        final d = (p - s.position).distance;
+        if (d < minDist) minDist = d;
+      }
+      if (minDist > offPathLimit) offPathPoints++;
+    }
+
+    // Off-path ratio reflects precision: lower means more accurate tracing.
+    final totalStrokePoints = allPoints.length;
+    final offPathRatio = totalStrokePoints == 0
+        ? 0.0
+        : offPathPoints / totalStrokePoints;
+
+    final userStrokeLength = _totalStrokeLength();
+    final idealPathLength = widget.tracePath.pathLength;
+
+    // Stroke ratio compares user path length against the ideal guide length.
+    final strokeRatio = idealPathLength <= 0
+        ? 0.0
+        : userStrokeLength / idealPathLength;
+
+    final completionMs = (_firstPanStartAt != null && _completedAt != null)
+        ? _completedAt!.difference(_firstPanStartAt!).inMilliseconds
+        : -1;
+
+    return _TraceMetrics(
+      completionMs: completionMs,
+      coverageRatio: coverageRatio,
+      offPathRatio: offPathRatio,
+      strokeRatio: strokeRatio,
+    );
+  }
+
+  void printMetricsToTerminal({required String reason}) {
+    final m = _computeMetrics();
+    debugPrint(
+      "[DRAW_TRACE_METRICS] reason=$reason completion_ms=${m.completionMs} coverage_ratio=${m.coverageRatio.toStringAsFixed(3)} off_path_ratio=${m.offPathRatio.toStringAsFixed(3)} stroke_ratio=${m.strokeRatio.toStringAsFixed(3)}",
+    );
   }
 
   bool _isTraceComplete() {
@@ -432,6 +594,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
 
     if (ok) {
       _alreadyCompleted = true;
+      _completedAt = DateTime.now();
+      printMetricsToTerminal(reason: 'success');
       widget.onCompleted?.call();
     } else {
       final strokeLength = _totalStrokeLength();
@@ -449,6 +613,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
       strokes.clear();
       currentStroke.clear();
       _alreadyCompleted = false;
+      _firstPanStartAt = null;
+      _completedAt = null;
       widget.tracePath.dots.clear();
       widget.tracePath.samples.clear();
       widget.tracePath.pathLength = 0.0;
@@ -478,6 +644,8 @@ class _TracingCanvasState extends State<TracingCanvas> {
           GestureDetector(
             onPanStart: (details) {
               final p = details.localPosition;
+              // Timer starts at the first touch of a fresh attempt.
+              _firstPanStartAt ??= DateTime.now();
               setState(() {
                 currentStroke = [p];
                 _handlePoint(p);
@@ -511,6 +679,20 @@ class _TracingCanvasState extends State<TracingCanvas> {
       ),
     );
   }
+}
+
+class _TraceMetrics {
+  final int completionMs;
+  final double coverageRatio;
+  final double offPathRatio;
+  final double strokeRatio;
+
+  const _TraceMetrics({
+    required this.completionMs,
+    required this.coverageRatio,
+    required this.offPathRatio,
+    required this.strokeRatio,
+  });
 }
 
 // ---------------- GUIDE LINE PAINTER ----------------
@@ -584,7 +766,8 @@ class GuideLinePainter extends CustomPainter {
   void _ensurePathData(Path path) {
     if (tracePath.pathLength > 0 &&
         tracePath.samples.isNotEmpty &&
-        tracePath.dots.isNotEmpty) return;
+        tracePath.dots.isNotEmpty)
+      return;
 
     tracePath.pathLength = 0.0;
     tracePath.dots.clear();
@@ -673,17 +856,59 @@ class GuideLinePainter extends CustomPainter {
 
     const double arrowLength = 18.0;
     const double arrowWidth = 10.0;
+    const double dotRadius = 20.0;
+    const double dotPadding = 6.0;
 
     for (int i = 0; i < tracePath.dots.length - 1; i++) {
       final from = tracePath.dots[i].position;
       final to = tracePath.dots[i + 1].position;
 
-      final dir = to - from;
-      final angle = Math.atan2(dir.dy, dir.dx);
+      final midpoint = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
 
-      final tip = to;
+      int? bestIndex;
+      Offset? samplePos;
+      if (tracePath.samples.length >= 2) {
+        int localBestIndex = 0;
+        double bestDist = double.infinity;
+        for (int s = 0; s < tracePath.samples.length; s++) {
+          final d = (tracePath.samples[s].position - midpoint).distance;
+          if (d < bestDist) {
+            bestDist = d;
+            localBestIndex = s;
+          }
+        }
+        bestIndex = localBestIndex;
+        samplePos = tracePath.samples[localBestIndex].position;
+      }
 
-      final back = tip -
+      Offset dir = to - from;
+      if (bestIndex != null) {
+        final prevIndex = bestIndex == 0 ? 0 : bestIndex - 1;
+        final nextIndex = bestIndex == tracePath.samples.length - 1
+            ? tracePath.samples.length - 1
+            : bestIndex + 1;
+        final prev = tracePath.samples[prevIndex].position;
+        final next = tracePath.samples[nextIndex].position;
+        if (next != prev) {
+          dir = next - prev;
+        }
+      }
+
+      final dirLen = dir.distance;
+      if (dirLen == 0) continue;
+      final dirNorm = dir / dirLen;
+      final angle = Math.atan2(dirNorm.dy, dirNorm.dx);
+
+      Offset tip = samplePos ?? midpoint;
+      if ((tip - from).distance < dotRadius + dotPadding) {
+        tip = from + dirNorm * (dotRadius + dotPadding);
+      }
+      if ((tip - to).distance < dotRadius + dotPadding) {
+        tip = to - dirNorm * (dotRadius + dotPadding);
+      }
+
+      final back =
+          tip -
           Offset(Math.cos(angle) * arrowLength, Math.sin(angle) * arrowLength);
 
       final ortho = Offset(-Math.sin(angle), Math.cos(angle));

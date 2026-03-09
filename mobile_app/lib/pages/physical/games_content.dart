@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 import '../../components/responsive_layout.dart';
+import '../games_physical/arithmetic_balance_scale.dart';
+import '../games_physical/sinhala_word_sorter.dart';
 
 /// Games content (Games tab)
 class GamesContent extends StatefulWidget {
@@ -18,7 +20,10 @@ class _GamesContentState extends State<GamesContent> {
 
   // Mock Data for Games
   final List<Map<String, dynamic>> _allGames = [
+    {'title': 'Noun vs Verb Sorting', 'subject': 'Sinhala', 'id': 102},
     {'title': 'Sinhala Word Puzzle', 'subject': 'Sinhala', 'id': 1},
+
+    {'title': 'Arithmetic Balance Scale', 'subject': 'Maths', 'id': 101},
     {'title': 'Maths Addition Quest', 'subject': 'Maths', 'id': 2},
     {'title': 'Sinhala Letter Match', 'subject': 'Sinhala', 'id': 3},
     {'title': 'Maths Shapes Adventure', 'subject': 'Maths', 'id': 4},
@@ -65,6 +70,8 @@ class _GamesContentState extends State<GamesContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Sinhala'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "සිංහල",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -112,6 +119,8 @@ class _GamesContentState extends State<GamesContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Maths'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "ගණිතය",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -200,7 +209,71 @@ class _GamesContentState extends State<GamesContent> {
                       subject: game['subject'] as String,
                       inputMode: widget.inputMode,
                       onTap: () {
-                        // TODO: Start game logic
+                        if (game['id'] == 101) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Scaffold(
+                                appBar: AppBar(
+                                  backgroundColor: Colors.transparent,
+                                  elevation: 0,
+                                  leading: InputAwareButton(
+                                    onTap: () => Navigator.pop(context),
+                                    inputMode: widget.inputMode,
+                                    showVoiceIndex: false,
+                                    child: const Icon(
+                                      Icons.arrow_back_ios_new,
+                                      color: Color(0xFF4527A0),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    game['title'] as String,
+                                    style: const TextStyle(
+                                      color: Color(0xFF4527A0),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                body: ArithmeticBalanceScale(
+                                  inputMode: widget.inputMode,
+                                ),
+                                extendBodyBehindAppBar: true,
+                              ),
+                            ),
+                          );
+                        } else if (game['id'] == 102) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Scaffold(
+                                appBar: AppBar(
+                                  backgroundColor: Colors.transparent,
+                                  elevation: 0,
+                                  leading: InputAwareButton(
+                                    onTap: () => Navigator.pop(context),
+                                    inputMode: widget.inputMode,
+                                    showVoiceIndex: false,
+                                    child: const Icon(
+                                      Icons.arrow_back_ios_new,
+                                      color: Color(0xFF4527A0),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    game['title'] as String,
+                                    style: const TextStyle(
+                                      color: Color(0xFF4527A0),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                body: SinhalaWordSorter(
+                                  inputMode: widget.inputMode,
+                                ),
+                                extendBodyBehindAppBar: true,
+                              ),
+                            ),
+                          );
+                        }
                       },
                     );
                   },
@@ -242,6 +315,7 @@ class _GameCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(25),
       onTap: onTap,
       inputMode: inputMode,
+      voiceLabel: title,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,

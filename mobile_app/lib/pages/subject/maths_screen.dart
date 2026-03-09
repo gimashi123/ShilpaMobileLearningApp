@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-
 import 'package:mobile_app/component/top_nav_bar.dart';
 import 'package:mobile_app/pages/video_player_page.dart';
 import 'package:mobile_app/services/auth_api.dart';
@@ -19,107 +17,69 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
   bool loading = true;
   String? errorText;
 
-  // 🔊 TTS
-  final FlutterTts _tts = FlutterTts();
-  bool _ttsReady = false;
-  bool _ttsBusy = false;
-
   @override
   void initState() {
     super.initState();
-    _initTts();
     _loadLessons();
-  }
-
-  Future<void> _initTts() async {
-    try {
-      await _tts.setLanguage("si-LK");
-      await _tts.setSpeechRate(0.45);
-      await _tts.setPitch(1.0);
-      await _tts.setVolume(1.0);
-      await _tts.awaitSpeakCompletion(true);
-
-      _tts.setStartHandler(() {
-        if (!mounted) return;
-        setState(() => _ttsBusy = true);
-      });
-      _tts.setCompletionHandler(() {
-        if (!mounted) return;
-        setState(() => _ttsBusy = false);
-      });
-      _tts.setErrorHandler((_) {
-        if (!mounted) return;
-        setState(() => _ttsBusy = false);
-      });
-
-      _ttsReady = true;
-    } catch (_) {
-      _ttsReady = false;
-    }
-  }
-
-  Future<void> _speak(String text) async {
-    if (!_ttsReady) return;
-    try {
-      await _tts.stop();
-    } catch (_) {}
-    try {
-      await _tts.speak(text);
-    } catch (_) {}
-  }
-
-  Future<void> _stopSpeak() async {
-    if (!_ttsReady) return;
-    try {
-      await _tts.stop();
-    } catch (_) {}
   }
 
   String _titleOf(dynamic lesson) => (lesson['title'] ?? 'No title').toString();
   String _subjectOf(dynamic lesson) => (lesson['subject'] ?? '').toString();
   String _gradeOf(dynamic lesson) => (lesson['grade'] ?? '').toString();
+  String _descriptionOf(dynamic lesson) => (lesson['description'] ?? 'No description available').toString();
 
-  String _descForTts(dynamic lesson) {
-    final title = _titleOf(lesson);
-    final subject = _subjectOf(lesson);
-    final grade = _gradeOf(lesson);
-
-    final parts = <String>[];
-    parts.add("පාඩම: $title");
-    if (subject.trim().isNotEmpty) parts.add("විෂය: $subject");
-    if (grade.trim().isNotEmpty) parts.add("ශ්‍රේණිය: $grade");
-    parts.add("වීඩියෝ බලන්න දකුණට ස්වයිප් කරන්න.");
-    parts.add("විස්තර නැවත අහන්න දෙපාරක් ටැප් කරන්න.");
-    return parts.join(". ");
+  // Get a random color for card based on subject
+  Color _getSubjectColor(String subject) {
+    switch (subject.toLowerCase()) {
+      case 'mathematics':
+      case 'maths':
+      case 'ගණිතය':
+        return Colors.blue;
+      case 'science':
+      case 'විද්‍යාව':
+        return Colors.green;
+      case 'sinhala':
+      case 'සිංහල':
+        return Colors.orange;
+      case 'english':
+      case 'ඉංග්‍රීසි':
+        return Colors.purple;
+      case 'history':
+      case 'ඉතිහාසය':
+        return Colors.brown;
+      case 'buddhism':
+      case 'බුද්ධ ධර්මය':
+        return Colors.amber;
+      default:
+        return Colors.teal;
+    }
   }
 
-  String _buildLessonsListForTts(List<dynamic> list) {
-    if (list.isEmpty) {
-      return "ඔබට ඉගෙන ගැනීමට හැකි පාඩම් නැහැ.";
+  // Get icon for subject
+  IconData _getSubjectIcon(String subject) {
+    switch (subject.toLowerCase()) {
+      case 'mathematics':
+      case 'maths':
+      case 'ගණිතය':
+        return Icons.calculate;
+      case 'science':
+      case 'විද්‍යාව':
+        return Icons.science;
+      case 'sinhala':
+      case 'සිංහල':
+        return Icons.translate;
+      case 'english':
+      case 'ඉංග්‍රීසි':
+        return Icons.language;
+      case 'history':
+      case 'ඉතිහාසය':
+        return Icons.history;
+      case 'buddhism':
+      case 'බුද්ධ ධර්මය':
+        return Icons.temple_buddhist;
+      default:
+        return Icons.menu_book;
     }
-
-    // read max 10 titles (avoid too long)
-    const maxRead = 10;
-    final toRead = list.take(maxRead).toList();
-    final remaining = list.length - toRead.length;
-
-    final buffer = StringBuffer();
-    buffer.writeln("ඔබට ඉගෙන ගැනීමට හැකි පාඩම් මෙන්න.");
-
-    for (int i = 0; i < toRead.length; i++) {
-      final t = _titleOf(toRead[i]);
-      buffer.writeln("${i + 1}. $t.");
-    }
-
-    if (remaining > 0) {
-      buffer.writeln("තවත් පාඩම් $remainingක් තිබෙනවා.");
-    }
-
-    buffer.writeln("පාඩමක විස්තර අහන්න එක පාර ටැප් කරන්න.");
-    buffer.writeln("විස්තර නැවත අහන්න දෙපාරක් ටැප් කරන්න.");
-    buffer.writeln("වීඩියෝ බලන්න දකුණට ස්වයිප් කරන්න.");
-
-    return buffer.toString();
   }
 
   Future<void> _loadLessons() async {
@@ -135,22 +95,20 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
       final data = await LessonApi.fetchMyLessons(Session.token!);
 
       if (!mounted) return;
+
       setState(() {
         lessons = data;
         loading = false;
         errorText = null;
       });
-
-      // 🎧 voice: title + list down lessons
-      await _speak(_buildLessonsListForTts(lessons));
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         loading = false;
         errorText = e.toString();
       });
-      await _speak("පාඩම් ලබාගැනීම අසාර්ථකයි.");
-      // ignore: avoid_print
+
       print('Error fetching lessons: $e');
     }
   }
@@ -172,15 +130,15 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
   }
 
   @override
-  void dispose() {
-    _stopSpeak();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
     final isTab = w >= 600;
+    
+    // Calculate grid columns based on screen width
+    int crossAxisCount = 1;
+    if (isTab) {
+      crossAxisCount = w >= 1200 ? 4 : 3;
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -188,68 +146,247 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
-              // ✅ TOP NAV BAR (Lessons tab selected)
               TopNavBar(selectedTab: 1),
               const SizedBox(height: 12),
 
-              // ✅ Page title row (replacement for AppBar)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "ඔබට ඉගෙන ගැනීමට හැකි පාඩම්",
-                  style: TextStyle(
-                    fontSize: isTab ? 26 : 22,
-                    fontWeight: FontWeight.bold,
+              // Header with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.school_rounded,
+                      color: Color(0xFF7C4DFF),
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "ඔබට ඉගෙන ගැනීමට හැකි පාඩම්",
+                          style: TextStyle(
+                            fontSize: isTab ? 26 : 22,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2C3E50),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "ඔබගේ පාඨමාලා සඳහා පහත පාඩම් තෝරන්න",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Stats row
+              if (!loading && errorText == null && lessons.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.video_library, size: 16, color: Colors.blue),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${lessons.length} පාඩම්',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.auto_stories, size: 16, color: Colors.green),
+                            SizedBox(width: 6),
+                            Text(
+                              'ඉගෙනීම දිගටම කරන්න',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
 
-              // ✅ Content
+              const SizedBox(height: 16),
+
+              // Lessons grid/list
               Expanded(
                 child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : errorText != null
-                    ? Center(child: Text(errorText!))
-                    : lessons.isEmpty
-                    ? const Center(child: Text('No lessons available'))
-                    : ListView.builder(
-                        itemCount: lessons.length,
-                        itemBuilder: (ctx, i) {
-                          final lesson = lessons[i];
-                          return ListTile(
-                            title: Text(lesson['title'] ?? 'No title'),
-                            subtitle: Text(
-                              "${lesson['subject'] ?? ''} | Grade ${lesson['grade']}",
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF7C4DFF),
+                              ),
                             ),
-                            onTap: () {
-                              final raw = lesson['videoUrl'] as String? ?? '';
-
-                              print('RAW videoUrl from API: $raw');
-
-                              if (raw.isEmpty) {
-                                print('No videoUrl in lesson');
-                                return;
-                              }
-
-                              final apiBase = AuthApi.baseUrl;
-                              final fullUrl = '$apiBase$raw';
-
-                              print('FULL video URL: $fullUrl');
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => VideoPlayerPage(
-                                    videoUrl: fullUrl,
-                                    title: lesson['title'] ?? 'Lesson video',
+                            const SizedBox(height: 16),
+                            Text(
+                              'පාඩම් පූරණය වේ...',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : errorText != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 64,
+                                  color: Colors.red.shade300,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'දෝෂයක් සිදු විය',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700,
                                   ),
                                 ),
-                              );
-                            },
-                          );
-                        },
-                      ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  errorText!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  onPressed: _loadLessons,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('නැවත උත්සහ කරන්න'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7C4DFF),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : lessons.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.video_library_outlined,
+                                      size: 80,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'පාඩම් නොමැත',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'ඔබ සඳහා තවම පාඩම් එකතු කර නොමැත',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : crossAxisCount == 1
+                                ? ListView.builder(
+                                    itemCount: lessons.length,
+                                    itemBuilder: (ctx, i) {
+                                      final lesson = lessons[i];
+                                      final subject = _subjectOf(lesson);
+                                      final subjectColor = _getSubjectColor(subject);
+                                      final subjectIcon = _getSubjectIcon(subject);
+                                      
+                                      return _buildLessonCard(
+                                        lesson,
+                                        subjectColor,
+                                        subjectIcon,
+                                      );
+                                    },
+                                  )
+                                : GridView.builder(
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount,
+                                      childAspectRatio: 0.85,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                    ),
+                                    itemCount: lessons.length,
+                                    itemBuilder: (ctx, i) {
+                                      final lesson = lessons[i];
+                                      final subject = _subjectOf(lesson);
+                                      final subjectColor = _getSubjectColor(subject);
+                                      final subjectIcon = _getSubjectIcon(subject);
+                                      
+                                      return _buildLessonCard(
+                                        lesson,
+                                        subjectColor,
+                                        subjectIcon,
+                                      );
+                                    },
+                                  ),
               ),
             ],
           ),
@@ -257,163 +394,179 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
       ),
     );
   }
-}
 
-class _LessonCard extends StatefulWidget {
-  final dynamic lesson;
-  final bool isTab;
+  Widget _buildLessonCard(dynamic lesson, Color subjectColor, IconData subjectIcon) {
+    final title = _titleOf(lesson);
+    final subject = _subjectOf(lesson);
+    final grade = _gradeOf(lesson);
+    final description = _descriptionOf(lesson);
+    final hasVideo = (lesson['videoUrl'] as String?)?.isNotEmpty ?? false;
 
-  final VoidCallback onFocusSpeak;
-  final VoidCallback onTapSpeak;
-  final VoidCallback onDoubleTapSpeak;
-  final VoidCallback onSwipeRightPlay;
-
-  const _LessonCard({
-    required this.lesson,
-    required this.isTab,
-    required this.onFocusSpeak,
-    required this.onTapSpeak,
-    required this.onDoubleTapSpeak,
-    required this.onSwipeRightPlay,
-  });
-
-  @override
-  State<_LessonCard> createState() => _LessonCardState();
-}
-
-class _LessonCardState extends State<_LessonCard> {
-  final FocusNode _focusNode = FocusNode();
-  Offset? _start;
-  Offset? _last;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus) {
-        widget.onFocusSpeak();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  String _titleOf() => (widget.lesson['title'] ?? 'No title').toString();
-  String _subjectOf() => (widget.lesson['subject'] ?? '').toString();
-  String _gradeOf() => (widget.lesson['grade'] ?? '').toString();
-
-  void _trySwipeRight() {
-    final s = _start;
-    final e = _last;
-    _start = null;
-    _last = null;
-    if (s == null || e == null) return;
-
-    final dx = e.dx - s.dx;
-    final dy = e.dy - s.dy;
-
-    // Must be mostly horizontal and to the right
-    final minDx = widget.isTab ? 90.0 : 65.0;
-
-    if (dx > minDx && dx.abs() > dy.abs()) {
-      widget.onSwipeRightPlay();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isTab = widget.isTab;
-
-    return Focus(
-      focusNode: _focusNode,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-
-        // ✅ Single tap = speak description
-        onTap: () {
-          _focusNode.requestFocus();
-          widget.onTapSpeak();
-        },
-
-        // ✅ Double tap = replay description
-        onDoubleTap: () {
-          _focusNode.requestFocus();
-          widget.onDoubleTapSpeak();
-        },
-
-        // 👉 Swipe right = play lesson
-        onPanStart: (d) {
-          _start = d.globalPosition;
-          _last = d.globalPosition;
-        },
-        onPanUpdate: (d) {
-          _last = d.globalPosition;
-        },
-        onPanEnd: (d) {
-          _trySwipeRight();
-        },
-
-        child: Card(
-          elevation: 3,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(isTab ? 16 : 14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: isTab ? 56 : 48,
-                  height: isTab ? 56 : 48,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.12),
-                    shape: BoxShape.circle,
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: InkWell(
+        onTap: hasVideo ? () => _openLessonVideo(lesson) : null,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row with subject icon and grade
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: subjectColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      subjectIcon,
+                      color: subjectColor,
+                      size: 28,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.play_circle_fill,
-                    size: isTab ? 38 : 32,
-                    color: Colors.blue,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          subject.isNotEmpty ? subject : 'General',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: subjectColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Grade $grade',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  // Video indicator
+                  if (hasVideo)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Title
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
                 ),
-                SizedBox(width: isTab ? 16 : 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Description
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Bottom row with play button if video available
+              if (hasVideo)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _openLessonVideo(lesson),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text('නරඹන්න'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: subjectColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _titleOf(),
-                        style: TextStyle(
-                          fontSize: isTab ? 18 : 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      Icon(
+                        Icons.hourglass_empty,
+                        size: 16,
+                        color: Colors.grey.shade600,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(width: 4),
                       Text(
-                        "${_subjectOf()} • Grade ${_gradeOf()}",
+                        'වීඩියෝව සූදානම් වෙමින් පවතී',
                         style: TextStyle(
-                          fontSize: isTab ? 14 : 13,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "",
-                        style: TextStyle(
-                          fontSize: isTab ? 13 : 12,
-                          color: Colors.grey.shade800,
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

@@ -7,17 +7,22 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'performance_logger.dart'; // Added for research logging
 
 class GazeData {
   final double x;
   final double y;
   final double confidence;
+  final bool isStable;
+  final double blinkProbability; // Adds support for "Blink to Select"
   final DateTime timestamp;
 
   GazeData({
     required this.x,
     required this.y,
     required this.confidence,
+    this.isStable = false,
+    this.blinkProbability = 1.0, // 1.0 = Fully open, 0.0 = Closed
     required this.timestamp,
   });
 }
@@ -52,18 +57,28 @@ class EyeTrackingService {
       StreamController<GazeData>.broadcast();
   Stream<GazeData> get gazeStream => _gazeController.stream;
 
+  // Optimized ValueNotifiers for global UI overlays (e.g. Cursor)
+  final ValueNotifier<Offset> currentGaze = ValueNotifier(
+    const Offset(-100, -100),
+  );
+  final ValueNotifier<bool> isStableNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> isFaceDetectedNotifier = ValueNotifier(true);
+
   bool get isInitialized => _isInitialized;
 
-  // --- CALIBRATION DATA ---
+  // --- CALIBRATION & FILTERING DATA ---
   final Map<int, List<Offset>> _calibrationSamples = {};
   Offset _gazeOffset = Offset.zero;
-  double _scaleX = 1.0;
-  double _scaleY = 1.0;
   double _calculatedAccuracy = 0.0;
 
-  // Smoothing
+  // Smoothing & Stability Model Variables
   final List<Offset> _history = [];
-  static const int _historyLimit = 10;
+  static const int _historyLimit = 15; // N frames for moving average
+  static const double _spikeThreshold = 150.0; // Max pixels jump allowed
+  double _stabilityVarianceThreshold =
+      25.0; // Pixels variance (Personalized later)
+
+  Offset? _lastRawPosition;
 
   Future<EyeTrackingInitializationResult> initialize() async {
     if (_isInitialized) return EyeTrackingInitializationResult(success: true);
@@ -86,6 +101,7 @@ class EyeTrackingService {
       _faceDetector = FaceDetector(
         options: FaceDetectorOptions(
           enableLandmarks: true,
+          enableClassification: true, // For blink/eye status if needed later
           performanceMode: FaceDetectorMode.fast,
         ),
       );
@@ -145,12 +161,14 @@ class EyeTrackingService {
         final faces = await _faceDetector?.processImage(inputImage);
 
         if (faces != null && faces.isNotEmpty && _isTracking) {
+          isFaceDetectedNotifier.value = true;
           _processFace(
             faces.first,
             image.width.toDouble(),
             image.height.toDouble(),
           );
         } else {
+          isFaceDetectedNotifier.value = false;
           // Send 0 confidence to indicate no face detected
           _gazeController.add(
             GazeData(x: -1, y: -1, confidence: 0, timestamp: DateTime.now()),
@@ -159,8 +177,7 @@ class EyeTrackingService {
       } catch (e) {
         debugPrint("EyeTracking: Processing error: $e");
       } finally {
-        // Essential delay for emulator stability
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 33)); // Target ~30fps
         _isProcessing = false;
       }
     });
@@ -181,7 +198,7 @@ class EyeTrackingService {
           metadata: InputImageMetadata(
             size: Size(image.width.toDouble(), image.height.toDouble()),
             rotation: rotation,
-            format: InputImageFormat.nv21, // Use NV21 explicitly
+            format: InputImageFormat.nv21,
             bytesPerRow: image.width,
           ),
         );
@@ -190,7 +207,6 @@ class EyeTrackingService {
         // We requested bgra8888, so we assume it is bgra8888.
         // If dynamic format needed, we'd need a mapping from image.format.raw
         const format = InputImageFormat.bgra8888;
-
         final WriteBuffer allBytes = WriteBuffer();
         for (final Plane plane in image.planes) {
           allBytes.putUint8List(plane.bytes);
@@ -268,23 +284,32 @@ class EyeTrackingService {
         nv21[id++] = uBuffer[uIndex];
       }
     }
-
     return nv21;
   }
 
+  /// -------------------------------------------------------------------------
+  /// ALGORITHM 1: Real-Time Gaze Stability Filtering Model (The "Catch")
+  /// This algorithm runs at ~30 FPS to stabilize raw jittery eye/head data.
+  /// -------------------------------------------------------------------------
   void _processFace(Face face, double imgWidth, double imgHeight) {
-    // We switch here to HEAD POSE tracking (Yaw/Pitch) which acts as a 'Virtual Joystick'
-    // Attached to the nose. This is far more intuitive for 'Gaze' control than raw Cartesian movement.
+    final stopwatch = Stopwatch()..start();
 
-    // Yaw = Left/Right (Degrees). Pitch = Up/Down (Degrees).
+    // Step 1: Landmark Extraction (Requirement 3.2 - Research Ready)
+    final leftEye = face.landmarks[FaceLandmarkType.leftEye];
+    final rightEye = face.landmarks[FaceLandmarkType.rightEye];
+    final noseBase = face.landmarks[FaceLandmarkType.noseBase];
+
+    // Landmark-based pre-validation (ensure critical landmarks are visible)
+    if (leftEye == null || rightEye == null || noseBase == null) return;
+
+    // Extract head orientation values (Yaw/Pitch)
     final yaw = face.headEulerAngleY ?? 0;
     final pitch = face.headEulerAngleX ?? 0;
 
     final view = PlatformDispatcher.instance.views.first;
     final size = view.physicalSize / view.devicePixelRatio;
 
-    // Sensitivity: 30 pixels per degree of rotation
-    const sensitivity = 30.0;
+    const sensitivity = 35.0;
     double centerX = size.width / 2;
     double centerY = size.height / 2;
 
@@ -303,23 +328,76 @@ class EyeTrackingService {
     targetX = targetX.clamp(0.0, size.width);
     targetY = targetY.clamp(0.0, size.height);
 
-    // Smoothing (Sliding Window)
-    _history.add(Offset(targetX, targetY));
+    Offset currentRawPosition = Offset(targetX, targetY);
+
+    // Step 3: Spike Detection and Removal
+    if (_lastRawPosition != null) {
+      double distance = (currentRawPosition - _lastRawPosition!).distance;
+      if (distance > _spikeThreshold) return;
+    }
+    _lastRawPosition = currentRawPosition;
+
+    // Step 2: Moving Average Smoothing
+    _history.add(currentRawPosition);
     if (_history.length > _historyLimit) _history.removeAt(0);
 
     double avgX =
         _history.map((e) => e.dx).reduce((a, b) => a + b) / _history.length;
     double avgY =
         _history.map((e) => e.dy).reduce((a, b) => a + b) / _history.length;
+    Offset smoothedPos = Offset(avgX, avgY);
+
+    // Step 4: Stability Window Logic
+    bool isStable = false;
+    if (_history.length >= _historyLimit) {
+      double variance = _calculateVariance(_history, smoothedPos);
+      isStable = variance < _stabilityVarianceThreshold;
+    }
+
+    stopwatch.stop();
+
+    // Performance Logging: Latency Monitoring (Requirement 4.1)
+    if (_history.length % 60 == 0) {
+      PerformanceLogger().logEvent(
+        event: 'GAZE_LATENCY',
+        details: 'Frame -> Landmark -> Smoothed Point',
+        newValue: '${stopwatch.elapsedMilliseconds}ms',
+      );
+    }
+
+    // Extract Eye Open Probability (New for Blink-to-Select)
+    final leftEyeOpen = face.leftEyeOpenProbability ?? 1.0;
+    final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
+    final blinkProb = (leftEyeOpen + rightEyeOpen) / 2.0;
+
+    // Update global ValueNotifiers
+    currentGaze.value = smoothedPos;
+    isStableNotifier.value = isStable;
 
     _gazeController.add(
-      GazeData(x: avgX, y: avgY, confidence: 0.9, timestamp: DateTime.now()),
+      GazeData(
+        x: smoothedPos.dx,
+        y: smoothedPos.dy,
+        confidence: 0.9,
+        isStable: isStable,
+        blinkProbability: blinkProb,
+        timestamp: DateTime.now(),
+      ),
     );
+  }
+
+  double _calculateVariance(List<Offset> points, Offset mean) {
+    double sumSquaredDist = 0;
+    for (var p in points) {
+      sumSquaredDist += (p - mean).distanceSquared;
+    }
+    return sumSquaredDist / points.length;
   }
 
   // --- CALIBRATION INTERFACE ---
   Future<void> startCalibration(List<CalibrationPoint> points) async {
     await clearCalibration();
+    await PerformanceLogger().logEvent(event: 'CALIBRATION_STARTED');
   }
 
   Future<void> clearCalibration() async {
@@ -327,6 +405,7 @@ class EyeTrackingService {
     _gazeOffset = Offset.zero;
     _history.clear();
     _calculatedAccuracy = 0.0;
+    _lastRawPosition = null;
   }
 
   void addCalibrationPoint(
@@ -368,7 +447,6 @@ class EyeTrackingService {
         // Sum of distances from centroid
         double sumDist = 0;
         for (var p in samples) sumDist += (Offset(cx, cy) - p).distance;
-
         totalVariance += (sumDist / samples.length);
         groups++;
       }
@@ -381,13 +459,26 @@ class EyeTrackingService {
     // 0 variance = 100%. 100px variance = 0%.
     _calculatedAccuracy = (1.0 - (avgVar / 100.0)).clamp(0.01, 0.99);
 
-    debugPrint(
-      "EyeTracking: Accuracy: ${(_calculatedAccuracy * 100).toStringAsFixed(1)}%",
+    // -------------------------------------------------------------------------
+    // ALGORITHM 2: Personalized Threshold Generation (The "Learn")
+    // This algorithm computes a user-specific stability threshold based on
+    // their unique jitter profile measured during calibration.
+    // -------------------------------------------------------------------------
+    _stabilityVarianceThreshold = (avgVar * 1.5).clamp(15.0, 60.0);
+
+    // ACCURACY METRICS LOGGING
+    await PerformanceLogger().logEvent(
+      event: 'CALIBRATION_FINISHED',
+      details: 'Personalized thresholds generated',
+      oldValue: 'Default: 25.0',
+      newValue: _stabilityVarianceThreshold.toStringAsFixed(2),
+      reason: 'Accuracy: ${(_calculatedAccuracy * 100).toStringAsFixed(1)}%',
     );
   }
 
   Future<void> stopTracking() async {
     _isTracking = false;
+    currentGaze.value = const Offset(-100, -100);
     if (_cameraController?.value.isStreamingImages ?? false) {
       await _cameraController?.stopImageStream();
     }
@@ -396,7 +487,7 @@ class EyeTrackingService {
   Future<double> getCalibrationAccuracy() async => _calculatedAccuracy;
 
   List<CalibrationPoint> createStandardPoints(double width, double height) {
-    const margin = 0.15;
+    const margin = 0.2;
     return [
       CalibrationPoint(x: width * margin, y: height * margin, order: 0),
       CalibrationPoint(x: width * (1 - margin), y: height * margin, order: 1),

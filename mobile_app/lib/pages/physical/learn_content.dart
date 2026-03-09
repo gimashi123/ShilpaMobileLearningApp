@@ -107,6 +107,8 @@ class _LearnContentState extends State<LearnContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Sinhala'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "සිංහල",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -154,6 +156,8 @@ class _LearnContentState extends State<LearnContent> {
                 child: InputAwareButton(
                   onTap: () => setState(() => _selectedSubject = 'Maths'),
                   inputMode: widget.inputMode,
+                  voiceLabel: "ගණිතය",
+                  showVoiceIndex: false,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -301,6 +305,7 @@ class _LearnCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(25),
       onTap: onTap,
       inputMode: inputMode,
+      voiceLabel: title,
       child: Container(
         decoration: BoxDecoration(
           color: cardColor,
@@ -341,10 +346,13 @@ class _LearnCard extends StatelessWidget {
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
-                    fontSize: 15,
+                    fontSize: 14,
                     color: Colors.white,
+                    height: 1.1,
                   ),
                 ),
               ),

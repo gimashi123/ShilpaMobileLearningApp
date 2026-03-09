@@ -6,9 +6,13 @@ import os
 import logging
 import logging.handlers
 from dotenv import load_dotenv
+import sys
+from routes.visual_impairment_routes import router as visual_impairment_router
 
 # Load environment variables
 load_dotenv()
+
+sys.stdout.reconfigure(encoding="utf-8")
 
 # Configure logging
 def setup_logging():
@@ -53,6 +57,7 @@ logger = setup_logging()
 # Import routes
 from routes.hearing_impairment_routes import router as hearing_impairment_router
 from services.model_loader import initialize_models
+from routes.visual_impairment_routes import router as visual_impairment_router
 
 # Store models in app state
 lifespan_models = {}
@@ -60,21 +65,21 @@ lifespan_models = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("=" * 60)
-    logger.info("🚀 Starting application startup sequence")
+    logger.info("Starting application startup sequence")
     logger.info("=" * 60)
     logger.info("Loading ML models...")
     try:
         logger.debug("Calling initialize_models()...")
         app.state.models = initialize_models()   # ✅ store in app state
-        logger.info(f"✓ Models loaded successfully. Loaded models: {list(app.state.models.keys())}")
+        logger.info(f"Models loaded successfully. Loaded models: {list(app.state.models.keys())}")
         logger.info("=" * 60)
     except Exception as e:
-        logger.error(f"✗ Failed to load models: {str(e)}", exc_info=True)
+        logger.error(f"Failed to load models: {str(e)}", exc_info=True)
         logger.error("=" * 60)
         raise
     yield
     logger.info("=" * 60)
-    logger.info("🛑 Starting application shutdown sequence")
+    logger.info("Starting application shutdown sequence")
     logger.info("Shutting down...")
     logger.info("=" * 60)
 
@@ -153,7 +158,14 @@ app.add_middleware(LoggingMiddleware)
 # Include routers
 app.include_router(hearing_impairment_router, prefix="/api/hearing-impairment", tags=["hearing-impairment"])
 logger.info("Hearing impairment router registered")
+app.include_router(visual_impairment_router, prefix="/api/visual-impairment", tags=["visual-impairment"])
+logger.info("Visual impairment router registered")
 
+app.include_router(
+    visual_impairment_router,
+    prefix="/api/visual-impairment",
+    tags=["visual-impairment"]
+)
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

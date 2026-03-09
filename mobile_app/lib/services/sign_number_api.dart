@@ -1,34 +1,34 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import 'package:mobile_app/config/AppConfig.dart';
 
-class SignNumberApi {
-  // ✅ For Android Emulator use 10.0.2.2
-  // ✅ For real phone use your PC IP address
-  static const String baseUrl = "http://10.0.2.2:8000";
+// class SignNumberApi {
 
-  /// Call POST /predict
-  /// features must be exactly 42 numbers
-  static Future<Map<String, dynamic>> predict({
-    required List<double> features,
-    int? expected,
-  }) async {
-    final uri = Uri.parse("$baseUrl/predict");
+//   static String baseUrl = AppConfig.apiBaseUrl;
 
-    final body = {
-      "features": features,
-      "expected": expected,
-    };
+//   /// Call POST /predict
+//   /// features must be exactly 42 numbers
+//   static Future<Map<String, dynamic>> predict({
+//     required List<double> features,
+//     int? expected,
+//   }) async {
+//     final uri = Uri.parse("$baseUrl/predict");
 
-    final res = await http.post(
-      uri,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
+//     final body = {
+//       "features": features,
+//       "expected": expected,
+//     };
 
-    if (res.statusCode != 200) {
-      throw Exception("API error ${res.statusCode}: ${res.body}");
-    }
+//     final res = await http.post(
+//       uri,
+//       headers: {"Content-Type": "application/json"},
+//       body: jsonEncode(body),
+//     );
 
-    return jsonDecode(res.body) as Map<String, dynamic>;
-  }
-}
+//     if (res.statusCode != 200) {
+//       throw Exception("API error ${res.statusCode}: ${res.body}");
+//     }
+
+//     return jsonDecode(res.body) as Map<String, dynamic>;
+//   }
+// }

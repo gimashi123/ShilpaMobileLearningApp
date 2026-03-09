@@ -1,42 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Your pages
 import 'package:mobile_app/lesson_dashboard/hearing_lesson.dart';
 import 'package:mobile_app/pages/auth/create_account_blind_screen.dart';
 import 'package:mobile_app/pages/auth/create_account_screen.dart';
 import 'package:mobile_app/pages/auth/login_screen.dart';
-import 'package:mobile_app/pages/dashboard/cognative_dashboard_screen.dart';
+import 'package:mobile_app/pages/dashboard/cognitive_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
+import 'package:mobile_app/pages/games/math_game_deaf.dart';
 import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
 import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
 import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
 import 'package:mobile_app/pages/games/hearing_game_dashboard.dart';
-import 'package:mobile_app/pages/games/level1_math_gamedeaf.dart';
+
 import 'package:mobile_app/pages/games_cognitive/activity_countNumbers.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_iqScore.dart';
 import 'package:mobile_app/pages/games_cognitive/iq.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchSound.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchPattern.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchNumbers.dart';
+import 'package:mobile_app/pages/games_cognitive/activity_matchImage.dart';
 import 'package:mobile_app/pages/landing_screen.dart';
 import 'package:mobile_app/pages/profile_screen.dart';
 import 'package:mobile_app/pages/quiz.dart';
 import 'package:mobile_app/pages/quiz/hearing_quiz_screen.dart';
 import 'package:mobile_app/pages/quiz/quiz_hub.dart';
 import 'package:mobile_app/pages/subject/hearing_math.dart';
-import 'package:mobile_app/pages/subject/lessons.dart';
 import 'package:mobile_app/pages/subject/maths_screen.dart';
 import 'package:mobile_app/pages/visual_lesson_dashboard.dart';
 import 'package:mobile_app/pages/visual_quiz_dashboard.dart';
 import 'package:mobile_app/session/session.dart';
-
 import 'package:mobile_app/pages/games/more_or_less_game.dart';
 import 'package:mobile_app/pages/physical/physical_main_screen.dart';
-
 // Speech service
 import 'package:mobile_app/services/speech_service.dart';
+import 'package:mobile_app/pages/quiz/quiz_screen.dart';
+
 
 // ✅ Global cameras list
 late final List<CameraDescription> cameras;
@@ -56,6 +61,10 @@ Future<void> main() async {
     cameras = <CameraDescription>[];
   }
 
+
+  await dotenv.load(fileName: ".env");
+
+  
   // Start Flutter UI
   runApp(const MyApp());
 
@@ -106,9 +115,8 @@ class MyApp extends StatelessWidget {
         '/general_quiz': (_) => const QuizHubPage(),
         '/hearing_lessons': (_) => const HearingLesson(),
         '/profile': (_) => const ProfileScreen(),
-        '/lessons': (_) => const VisualLessonDashboard(),
 
-        // cognitive disability games
+        // cognitive disability gamesp
         '/iq_game': (_) => const IqGame(),
         '/activity_draw': (_) => const ActivityDraw(),
         '/activity_findImage': (_) => const PuzzleApp(),
@@ -117,6 +125,10 @@ class MyApp extends StatelessWidget {
           final studentId = Session.userId ?? '';
           return ProgressHistoryScreen(studentId: studentId);
         },
+        '/activity_matchSound': (_) => const SoundPictureMatchApp(),
+        '/activity_matchPattern': (_) => const PatternGameApp(),
+        '/activity_matchNumbers': (_) => const NumberMatchingGameApp(),
+        '/activity_matchImage': (_) => const MatchImageGameApp(),
 
         '/visual_game_dashboard': (_) => const VisualGameDashboard(),
         '/visual_math_gamecard': (_) => const AvailableGamesPage(),
@@ -125,26 +137,39 @@ class MyApp extends StatelessWidget {
         '/visual_more_or_less_game': (context) => const MoreNumberSwipeGame(),
         '/hearing_games_dashboard': (_) => const HearingGameDashboard(),
 
-        // ✅ FIXED: pass real cameras list (NOT [])
-        '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),
+        // ✅ Unified Math Game
+        '/hearing_games': (_) => MathGameDeaf(cameras: cameras),
       },
+      // onGenerateRoute: (settings) {
+      //   if (settings.name == '/quizhearing') {
+      //     final op = settings.arguments as Op;
+      //     return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
+      //   }
+      //   if (settings.name == '/result') {
+      //     final args = settings.arguments as ResultArgs;
+      //     return MaterialPageRoute(
+      //       builder: (_) => ResultPage(
+      //         op: args.op,
+      //         correctCount: args.correctCount,
+      //         score: args.score,
+      //       ),
+      //     );
+      //   }
+      //   return null;
+      // },
       onGenerateRoute: (settings) {
-        if (settings.name == '/quizhearing') {
-          final op = settings.arguments as Op;
-          return MaterialPageRoute(builder: (_) => QuizPagehearing(op: op));
-        }
-        if (settings.name == '/result') {
-          final args = settings.arguments as ResultArgs;
-          return MaterialPageRoute(
-            builder: (_) => ResultPage(
-              op: args.op,
-              correctCount: args.correctCount,
-              score: args.score,
-            ),
-          );
-        }
-        return null;
-      },
+  if (settings.name == '/quizscreen') {
+    final args = settings.arguments as Map<String, String>?;
+
+    return MaterialPageRoute(
+      builder: (_) => QuizScreen(
+        grade: args?['grade'] ?? '3',
+        type: args?['type'] ?? 'addition',
+      ),
+    );
+  }
+  return null;
+},
     );
   }
 }

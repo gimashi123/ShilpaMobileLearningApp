@@ -38,14 +38,14 @@ class VisualGameDashboard extends StatelessWidget {
                   childAspectRatio: 1.2,
                   children: [
                     _CardItem(
-                      title: "ගණිත ප්‍රශ්න",
+                      title: "ගණිත Games",
                       icon: Icons.calculate,
                       onTap: () {
                         Navigator.pushNamed(context, '/visual_math_gamecard');
                       },
                     ),
                     _CardItem(
-                      title: "සිංහල ප්‍රශ්න",
+                      title: "සිංහල Games",
                       icon: Icons.book,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(

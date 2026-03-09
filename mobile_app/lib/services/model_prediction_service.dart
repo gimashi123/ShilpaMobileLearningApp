@@ -25,10 +25,11 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mobile_app/config/AppConfig.dart';
 
 class ModelPredictionService {
   // Backend API URL - Update this to your backend server address
-  static const String backendUrl = 'http://your-backend-ip:3000';
+  static String backendUrl = AppConfig.apiBaseUrl;
   
   /// Call the hearing impairment model for sign number prediction
   /// 
