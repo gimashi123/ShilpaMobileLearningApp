@@ -159,18 +159,6 @@ class HearingGameDashboard extends StatelessWidget {
                                 Navigator.pushNamed(context, '/hearing_games');
                               },
                             ),
-                            _QuizCard(
-                              title: "සිංහල Games",
-                              icon: Icons.menu_book,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              onTap: () {
-                                Navigator.pushNamed(context, '/hearing_games_level2');
-                              },
-                            ),
                           ],
                         ),
                       ),
