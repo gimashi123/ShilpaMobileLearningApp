@@ -6,6 +6,21 @@ import 'package:mobile_app/services/auth_api.dart';
 
 String get baseUrl => AuthApi.baseUrl;
 
+class ApiException implements Exception {
+  final int? statusCode;
+  final String message;
+
+  ApiException({this.statusCode, required this.message});
+
+  @override
+  String toString() {
+    if (statusCode != null) {
+      return 'ApiException($statusCode): $message';
+    }
+    return 'ApiException: $message';
+  }
+}
+
 Future<void> saveLdResultToBackend({
   required String studentId,
   required Map<String, dynamic> features,
@@ -41,7 +56,7 @@ Future<void> saveLdResultToBackend({
   );
 
   if (res.statusCode < 200 || res.statusCode >= 300) {
-    throw Exception('Save failed ${res.statusCode}: ${res.body}');
+    throw ApiException(statusCode: res.statusCode, message: 'Save failed');
   }
 }
 
@@ -58,7 +73,10 @@ class LdHistoryApi {
     );
 
     if (res.statusCode != 200) {
-      throw Exception("Failed: ${res.statusCode} ${res.body}");
+      throw ApiException(
+        statusCode: res.statusCode,
+        message: 'Failed to fetch history',
+      );
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
