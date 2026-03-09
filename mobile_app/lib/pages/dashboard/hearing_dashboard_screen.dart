@@ -415,7 +415,7 @@ class _LessonsGrid extends StatelessWidget {
           context,
           "සිංහල",
           '📖',
-          '/quizhearing',
+          '',
           const LinearGradient(
             colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
             begin: Alignment.topLeft,

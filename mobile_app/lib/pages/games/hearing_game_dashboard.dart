@@ -168,23 +168,7 @@ class HearingGameDashboard extends StatelessWidget {
                                 end: Alignment.bottomRight,
                               ),
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      "සිංහල ප්‍රශ්න ඉක්මනින් එයි",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    backgroundColor: Colors.deepPurple.withOpacity(0.9),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: const EdgeInsets.all(20),
-                                  ),
-                                );
+                                Navigator.pushNamed(context, '/hearing_games_level2');
                               },
                             ),
                           ],

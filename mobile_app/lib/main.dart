@@ -11,6 +11,7 @@ import 'package:mobile_app/pages/dashboard/cognitive_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
+import 'package:mobile_app/pages/games/level2_math_gamedeaf.dart';
 import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
 import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
 import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
@@ -138,6 +139,7 @@ class MyApp extends StatelessWidget {
 
         // ✅ FIXED: pass real cameras list (NOT [])
         '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),
+        '/hearing_games_level2': (_) => Level2MathGameDeaf(cameras: cameras),
       },
       // onGenerateRoute: (settings) {
       //   if (settings.name == '/quizhearing') {

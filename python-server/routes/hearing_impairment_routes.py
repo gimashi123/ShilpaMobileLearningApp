@@ -154,11 +154,16 @@ KERAS_FEATURE_SIZE = {
 
 # Label-offset map: maps keras class index 0 -> actual number
 # Level 3 predicts classes which map to numbers starting at 24
-# Level 4 predicts classes which map to numbers starting at 45
 # Adjust these offsets if your training labels differ.
 KERAS_LABEL_OFFSET = {
     3: 24,
-    4: 45,
+}
+
+# Explicit class-name lists for levels with non-contiguous labels.
+# Index i of the list corresponds to keras output class i.
+KERAS_CLASS_NAMES = {
+    4: ['72','74','75','76','78','80','83','84','85','88',
+        '90','92','94','95','96','97','98','99','100'],
 }
 
 
@@ -238,28 +243,7 @@ async def predict_from_video(
 
         logger.info(f"[PREDICT_VIDEO] Received video: {video.filename} ({len(content)} bytes, type: {video.content_type})")
 
-        # Extract feature vectors — choose extractor based on per-level feature size
-        feature_size = KERAS_FEATURE_SIZE.get(level, 42) if is_keras else 42
-        seq_len = KERAS_SEQ_LEN.get(level, 30) if is_keras else None
-        include_z = feature_size == 63
-        max_frames = seq_len * 4 if seq_len else 40   # collect ~4 sequences worth of frames
-        logger.info(
-            f"[PREDICT_VIDEO] Starting video vector extraction "
-            f"(feature_size={feature_size}, seq_len={seq_len}, include_z={include_z})..."
-        )
-        try:
-            if is_keras:
-                vectors = await _extract_video_vectors(temp_video_path, max_samples=max_frames, include_z=include_z, normalize=not include_z)
-            else:
-                vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
-            logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[PREDICT_VIDEO] Vector extraction failed: {str(e)}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Vector extraction failed: {str(e)}")
-
-        # Get the model for the requested level
+        # Get the model for the requested level EARLY so we can inspect its expected shape
         try:
             model_key = f"hearing_impairment_level{level}"
             logger.debug(f"[PREDICT_VIDEO] Attempting to retrieve model: {model_key}")
@@ -273,30 +257,74 @@ async def predict_from_video(
             logger.error(f"[PREDICT_VIDEO] Failed to get model: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
 
+        # Extract feature vectors based on model shape
+        if is_keras:
+            try:
+                input_shape = model.input_shape if hasattr(model, 'input_shape') else model.layers[0].input_shape
+                seq_len = input_shape[1]
+                feature_size = input_shape[2]
+                logger.info(f"[PREDICT_VIDEO] Dynamically read Keras shape from model: {input_shape} -> seq_len={seq_len}, feature_size={feature_size}")
+            except Exception as e:
+                logger.warning(f"[PREDICT_VIDEO] Could not read model shape dynamically, falling back to dict configs. Error: {e}")
+                feature_size = KERAS_FEATURE_SIZE.get(level, 42)
+                seq_len = KERAS_SEQ_LEN.get(level, 30)
+        else:
+            feature_size = 42
+            seq_len = None
+
+        include_z = (feature_size == 63)
+        max_frames = seq_len if seq_len else 40   # collect exactly seq_len frames
+        logger.info(
+            f"[PREDICT_VIDEO] Starting video vector extraction "
+            f"(feature_size={feature_size}, seq_len={seq_len}, include_z={include_z})..."
+        )
+        try:
+            if is_keras and include_z:
+                # Level 4: use legacy mp.solutions.hands API to match training notebook
+                vectors = await _extract_video_vectors_legacy(
+                    temp_video_path, seq_len=seq_len, include_z=True
+                )
+            elif is_keras:
+                vectors = await _extract_video_vectors(temp_video_path, max_samples=max_frames, include_z=include_z, normalize=not include_z)
+            else:
+                vectors = await _extract_video_vectors_42(temp_video_path, max_samples=40)
+            logger.info(f"[PREDICT_VIDEO] Successfully extracted {len(vectors)} vectors from video")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[PREDICT_VIDEO] Vector extraction failed: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Vector extraction failed: {str(e)}")
+
         # Predict per-vector and majority vote
         try:
             logger.debug(f"[PREDICT_VIDEO] Running prediction on {len(vectors)} vectors (is_keras={is_keras})...")
 
             if is_keras:
                 input_array = np.array(vectors, dtype=np.float32)
-                seq_len = KERAS_SEQ_LEN.get(level, 30)
                 n_frames = input_array.shape[0]
-                sequences = []
 
-                # Split frames into windows of seq_len; pad the last window if needed
-                for i in range(0, n_frames, seq_len):
-                    seq = input_array[i:i+seq_len]
-                    if seq.shape[0] < seq_len:
-                        pad_width = ((seq_len - seq.shape[0], 0), (0, 0))
-                        seq = np.pad(seq, pad_width, mode='constant')
-                    sequences.append(seq)
-                sequences = np.stack(sequences)  # shape: (n_sequences, seq_len, feature_size)
+                # Ensure exactly `seq_len` frames
+                if n_frames < seq_len:
+                    pad_width = ((0, seq_len - n_frames), (0, 0))
+                    input_array = np.pad(input_array, pad_width, mode='constant')
+                elif n_frames > seq_len:
+                    input_array = input_array[:seq_len]
+
+                sequences = np.expand_dims(input_array, axis=0)  # shape: (1, seq_len, feature_size)
                 logger.debug(f"[PREDICT_VIDEO] Sequences shape: {sequences.shape}")
 
                 probs = model.predict(sequences)  # (n_sequences, n_classes)
                 raw_classes = np.argmax(probs, axis=1)
-                offset = KERAS_LABEL_OFFSET.get(level, 0)
-                preds = raw_classes + offset
+
+                # Map raw class indices to actual numbers
+                class_names_map = KERAS_CLASS_NAMES.get(level)
+                if class_names_map is not None:
+                    # Non-contiguous labels: look up from explicit list
+                    preds = np.array([int(class_names_map[c]) for c in raw_classes])
+                else:
+                    # Contiguous labels: simple offset
+                    offset = KERAS_LABEL_OFFSET.get(level, 0)
+                    preds = raw_classes + offset
 
                 confidence = float(np.mean(np.max(probs, axis=1)))
                 logger.info(f"[PREDICT_VIDEO] Keras mean confidence: {confidence}")
@@ -390,6 +418,121 @@ def _normalize_landmarks_42(vec42: List[float]) -> List[float]:
     if max_dist > 0:
         pts = pts / max_dist
     return pts.reshape(-1).astype(np.float32).tolist()
+
+
+async def _extract_video_vectors_legacy(
+    video_path: str, seq_len: int = 40, include_z: bool = True
+) -> List[List[float]]:
+    """
+    Extract hand landmark sequences using the MediaPipe Tasks HandLandmarker
+    in VIDEO running mode (temporal tracking between frames).
+    After extraction: uniform-sample to `seq_len` frames, then apply
+    per-feature standardisation  —  matching the training notebook exactly.
+    """
+    expected_len = 63 if include_z else 42
+    logger.info(
+        f"[EXTRACT_LEGACY] Starting extraction from: {video_path} "
+        f"(seq_len={seq_len}, include_z={include_z})"
+    )
+
+    try:
+        import cv2
+        import mediapipe as mp
+        from mediapipe.tasks import python as mp_python
+        from mediapipe.tasks.python import vision as mp_vision
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Backend missing dependencies: install opencv-python and mediapipe"
+        ) from e
+
+    # Locate the hand_landmarker.task model file
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "../models/mediapipe/hand_landmarker.task"),
+        os.path.join(os.getcwd(), "models/mediapipe/hand_landmarker.task"),
+    ]
+    task_model_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            task_model_path = p
+            break
+    if task_model_path is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Missing hand_landmarker.task. Searched: {possible_paths}",
+        )
+
+    # Create landmarker in VIDEO mode (enables temporal tracking)
+    base_opts = mp_python.BaseOptions(model_asset_path=task_model_path)
+    options = mp_vision.HandLandmarkerOptions(
+        base_options=base_opts,
+        running_mode=mp_vision.RunningMode.VIDEO,
+        num_hands=1,
+    )
+    landmarker = mp_vision.HandLandmarker.create_from_options(options)
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise HTTPException(status_code=400, detail="Could not open uploaded video")
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    vectors: List[List[float]] = []
+    frame_idx = 0
+
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame_idx += 1
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+            # Timestamp in milliseconds (required by VIDEO mode)
+            timestamp_ms = int((frame_idx / fps) * 1000)
+            result = landmarker.detect_for_video(mp_image, timestamp_ms)
+
+            if result.hand_landmarks and len(result.hand_landmarks) > 0:
+                hand = result.hand_landmarks[0]
+                vec: List[float] = []
+                for lm in hand:
+                    if include_z:
+                        vec.extend([lm.x, lm.y, lm.z])
+                    else:
+                        vec.extend([lm.x, lm.y])
+                if len(vec) == expected_len:
+                    vectors.append(vec)
+    finally:
+        cap.release()
+        landmarker.close()
+
+    logger.info(
+        f"[EXTRACT_LEGACY] Processed {frame_idx} frames, "
+        f"{len(vectors)} with hand landmarks detected"
+    )
+
+    if not vectors:
+        raise HTTPException(
+            status_code=400, detail="No hand landmarks detected in the video"
+        )
+
+    # ---- Post-processing (matches training notebook) ----
+    seq = np.array(vectors, dtype=np.float32)
+
+    # 1. Uniform sampling (or padding) to exactly `seq_len` frames
+    if len(seq) >= seq_len:
+        idx = np.linspace(0, len(seq) - 1, seq_len).astype(int)
+        seq = seq[idx]
+    else:
+        padding = np.zeros((seq_len - len(seq), expected_len), dtype=np.float32)
+        seq = np.vstack((seq, padding))
+
+    # 2. Temporal feature-wise standardisation
+    mean = np.mean(seq, axis=0)
+    std = np.std(seq, axis=0) + 1e-6
+    seq = (seq - mean) / std
+
+    return seq.tolist()
 
 
 def _normalize_landmarks_63(vec63: List[float]) -> List[float]:
@@ -513,7 +656,7 @@ async def _extract_video_vectors(video_path: str, max_samples: int = 40, include
         frames_with_hands = 0
 
         try:
-            while cap.isOpened() and len(vectors) < max_samples:
+            while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     logger.debug(f"[EXTRACT_VIDEO] End of video reached. Processed {frame_idx} total frames")
@@ -577,6 +720,23 @@ async def _extract_video_vectors(video_path: str, max_samples: int = 40, include
                         continue
                 else:
                     logger.debug(f"[EXTRACT_VIDEO] No hand landmarks detected in frame {frame_idx}")
+                    
+            if len(vectors) > 0 and include_z:
+                # Keras sequence model needs uniform sampling & normalization
+                import numpy as np
+                seq = np.array(vectors)
+                
+                # 1. Sample max_samples frames evenly
+                if len(seq) > max_samples:
+                    idx = np.linspace(0, len(seq)-1, max_samples).astype(int)
+                    seq = seq[idx]
+                
+                # 2. Temporal feature-wise normalization
+                mean = np.mean(seq, axis=0)
+                std = np.std(seq, axis=0) + 1e-6
+                seq = (seq - mean) / std
+                
+                vectors = seq.tolist()
 
         finally:
             cap.release()

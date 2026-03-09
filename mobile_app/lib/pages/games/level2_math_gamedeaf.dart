@@ -16,58 +16,75 @@ import '../../config/AppConfig.dart';
 /// =======================
 /// Question Model + Bank
 /// =======================
-class L1Question {
+class L2Question {
   final String text;
-  final int answer; // 1..10
-  const L1Question(this.text, this.answer);
+  final int answer; // 11..20
+  const L2Question(this.text, this.answer);
 }
+class L2QuestionBank {
 
-class L1QuestionBank {
   static final _rng = Random();
 
-  static L1Question randomQuestion() {
-    final op = _rng.nextInt(4); // 0:+ 1:- 2:* 3:/
+  static L2Question randomQuestion() {
 
+    final op = _rng.nextInt(3); // 0:+ 1:- 2:*
+
+    // ------------------
+    // ADDITION
+    // ------------------
     if (op == 0) {
-      final a = _rng.nextInt(10) + 1;
-      final b = _rng.nextInt(10 - a + 1);
-      final ans = a + b;
-      return L1Question("$a + $b = ?", ans);
+
+      final ans = _rng.nextInt(10) + 11; // 11..20
+      final a = _rng.nextInt(ans - 1) + 1;
+      final b = ans - a;
+
+      return L2Question("$a + $b = ?", ans);
     }
 
+    // ------------------
+    // SUBTRACTION
+    // ------------------
     if (op == 1) {
-      final a = _rng.nextInt(10) + 1;
-      final b = _rng.nextInt(a);
-      final ans = a - b;
-      return L1Question("$a - $b = ?", ans);
+
+      final ans = _rng.nextInt(10) + 11; // 11..20
+      final b = _rng.nextInt(9) + 1;
+      final a = ans + b;
+
+      return L2Question("$a - $b = ?", ans);
     }
 
-    if (op == 2) {
-      const pairs = [
-        [1, 1],[1, 2],[1, 3],[1, 4],[1, 5],[1, 6],[1, 7],[1, 8],[1, 9],[1, 10],
-        [2, 1],[2, 2],[2, 3],[2, 4],[2, 5],
-        [3, 1],[3, 2],[3, 3],
-        [4, 1],[4, 2],
-        [5, 1],[5, 2],
-        [6, 1],[7, 1],[8, 1],[9, 1],[10, 1],
-      ];
-      final p = pairs[_rng.nextInt(pairs.length)];
-      final a = p[0], b = p[1];
-      final ans = a * b;
-      return L1Question("$a × $b = ?", ans);
+    // ------------------
+    // MULTIPLICATION
+    // ------------------
+
+    const pairs = [
+      [3,4], [3,5], [3,6],
+      [4,3], [4,4], [4,5],
+      [5,3], [5,4],
+      [6,2], [7,2], [8,2], [9,2], [10,2]
+    ];
+
+    final p = pairs[_rng.nextInt(pairs.length)];
+
+    final a = p[0];
+    final b = p[1];
+    final ans = a * b;
+
+    if (ans >= 11 && ans <= 20) {
+      return L2Question("$a × $b = ?", ans);
     }
 
-    final ans = _rng.nextInt(10) + 1;
-    final divisor = _rng.nextInt(9) + 1;
-    final dividend = ans * divisor;
-    return L1Question("$dividend ÷ $divisor = ?", ans);
+    return randomQuestion();
   }
 
-  static List<L1Question> buildLevel(int count) {
-    final list = <L1Question>[];
+  static List<L2Question> buildLevel(int count) {
+
+    final list = <L2Question>[];
+
     while (list.length < count) {
       list.add(randomQuestion());
     }
+
     return list;
   }
 }
@@ -75,15 +92,15 @@ class L1QuestionBank {
 /// =======================
 /// MAIN GAME PAGE
 /// =======================
-class Level1MathGameDeaf extends StatefulWidget {
-  const Level1MathGameDeaf({super.key, required List<CameraDescription> cameras});
+class Level2MathGameDeaf extends StatefulWidget {
+  const Level2MathGameDeaf({super.key, required List<CameraDescription> cameras});
 
   @override
-  State<Level1MathGameDeaf> createState() => _Level1MathGameDeafState();
+  State<Level2MathGameDeaf> createState() => _Level2MathGameDeafState();
 }
 
-class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
-  final List<L1Question> _questions = L1QuestionBank.buildLevel(10);
+class _Level2MathGameDeafState extends State<Level2MathGameDeaf> {
+  final List<L2Question> _questions = L2QuestionBank.buildLevel(10);
 
   bool _started = false;
   int _index = 0;
@@ -95,7 +112,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
   String? _errorMsg;
 
   bool get _levelFinished => _index >= _questions.length;
-  L1Question get _currentQ => _questions[_index];
+  L2Question get _currentQ => _questions[_index];
 
   void _resetForNextQuestion() {
     _checked = false;
@@ -247,7 +264,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "මට්ටම 1",
+                          "මට්ටම 2",
                           style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
@@ -655,7 +672,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                       Text(
-                        "මට්ටම 1",
+                        "මට්ටම 2",
                         style: TextStyle(
                         fontSize: 16,
                         color: Colors.deepPurple.withValues(alpha: 0.7),
@@ -1357,12 +1374,13 @@ class CaptureSignPage extends StatefulWidget {
 
 class _CaptureSignPageState extends State<CaptureSignPage> {
   CameraController? _controller;
+
   bool _loading = true;
-  String? _error;
   bool _sending = false;
   bool _isRecording = false;
+
+  String? _error;
   int _countdown = 3;
-  Timer? _timer;
 
   @override
   void initState() {
@@ -1370,48 +1388,53 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
     _initCamera();
   }
 
+  /// --------------------------------
+  /// Initialize Camera
+  /// --------------------------------
   Future<void> _initCamera() async {
     try {
-      final status = await Permission.camera.request();
-      if (!status.isGranted) {
+      final permission = await Permission.camera.request();
+
+      if (!permission.isGranted) {
         setState(() {
-          _error = "කැමරා අවසරය අවශ්‍යයි";
+          _error = "Camera permission required";
           _loading = false;
         });
         return;
       }
 
-      final cams = await availableCameras();
-      if (cams.isEmpty) {
+      final cameras = await availableCameras();
+
+      if (cameras.isEmpty) {
         setState(() {
-          _error = "මෙම උපාංගයේ කැමරාවක් නොමැත";
+          _error = "No camera available";
           _loading = false;
         });
         return;
       }
 
-      // ✅ FRONT camera for better self-recording
-      final front = cams.firstWhere(
+      final frontCamera = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
-        orElse: () => cams.first,
+        orElse: () => cameras.first,
       );
 
-      final controller = CameraController(
-        front,
+      _controller = CameraController(
+        frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
       );
 
-      await controller.initialize();
+      await _controller!.initialize();
+
+      if (!mounted) return;
 
       setState(() {
-        _controller = controller;
         _loading = false;
         _error = null;
       });
     } catch (e) {
       setState(() {
-        _error = "කැමරාව ආරම්භ කිරීමට නොහැකි විය: $e";
+        _error = "Camera init failed: $e";
         _loading = false;
       });
     }
@@ -1420,404 +1443,205 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
   @override
   void dispose() {
     _controller?.dispose();
-    _timer?.cancel();
     super.dispose();
   }
 
-  void _startCountdown() async {
+  /// --------------------------------
+  /// Countdown → Record → Upload
+  /// --------------------------------
+  Future<void> _startCountdown() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
     setState(() {
       _sending = true;
-      _error = null;
       _countdown = 3;
+      _error = null;
     });
 
-    // Countdown
     for (int i = 3; i > 0; i--) {
       if (!mounted) return;
+      setState(() => _countdown = i);
       await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return;
-      setState(() => _countdown = i - 1);
     }
 
-    // Start recording
     try {
-      setState(() => _isRecording = true);
+      setState(() {
+        _isRecording = true;
+        _countdown = 0;
+      });
+
+      await Future.delayed(const Duration(milliseconds: 300));
       await _controller!.startVideoRecording();
-      
-      // Record for 3 seconds
-      await Future.delayed(const Duration(seconds: 3));
-      
+      await Future.delayed(const Duration(seconds: 4));
+
       final XFile video = await _controller!.stopVideoRecording();
+
       setState(() => _isRecording = false);
 
-      final res = await _uploadToApi(videoPath: video.path);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      final result = await _uploadVideo(video.path);
 
       if (!mounted) return;
-      Navigator.pop(context, res);
+      Navigator.pop(context, result);
     } catch (e) {
       setState(() {
-        _error = "$e";
+        _error = e.toString();
         _sending = false;
         _isRecording = false;
       });
     }
   }
 
-  Future<_CaptureResult> _uploadToApi({required String videoPath}) async {
-    final uri = Uri.parse("${widget.apiBaseUrl}/api/models/hearing-impairment/predict-video");
-    final req = http.MultipartRequest("POST", uri);
-
-    req.files.add(
-    await http.MultipartFile.fromPath(
-      "video",
-      videoPath,
-      contentType: MediaType('video', 'mp4'), // force correct type
-    ),
-   );
-
-
-    req.fields["expected"] = widget.expectedAnswer.toString();
-
-    final streamed = await req.send();
-    final resp = await http.Response.fromStream(streamed);
-
-    if (resp.statusCode != 200) {
-      return _CaptureResult(error: "API ${resp.statusCode}: ${resp.body}");
-    }
-
-    final decoded = jsonDecode(resp.body);
-    if (decoded is! Map<String, dynamic>) {
-      return _CaptureResult(error: "වලංගු නොවන ප්‍රතිචාරය");
-    }
-
-    final rawPred = decoded["prediction"];
-    final int? predInt = (rawPred is int) ? rawPred : int.tryParse("$rawPred");
-
-    final rawConf = decoded["confidence"];
-    final double? conf = (rawConf is num) ? rawConf.toDouble() : double.tryParse("$rawConf");
-
-    return _CaptureResult(
-      prediction: predInt,
-      confidence: conf,
-      isCorrect: null,
+  /// --------------------------------
+  /// Upload Video to API
+  /// --------------------------------
+  Future<_CaptureResult> _uploadVideo(String videoPath) async {
+    // ✅ Mobile app goes via the Node.js backend → /api/models/...
+    final uri = Uri.parse(
+      "${widget.apiBaseUrl}/api/models/hearing-impairment/predict-video",
     );
+
+    try {
+      final request = http.MultipartRequest("POST", uri);
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          "video",
+          videoPath,
+          contentType: MediaType("video", "mp4"),
+        ),
+      );
+
+      // Level 2 model
+      request.fields["level"] = "2";
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode != 200) {
+        return _CaptureResult(error: "API error ${response.statusCode}");
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      final rawPred = decoded["prediction"];
+      final int? prediction =
+          rawPred is int ? rawPred : int.tryParse("$rawPred");
+
+      final rawConf = decoded["confidence"];
+      final double? confidence =
+          rawConf is num ? rawConf.toDouble() : double.tryParse("$rawConf");
+
+      return _CaptureResult(
+        prediction: prediction,
+        confidence: confidence,
+      );
+    } catch (e) {
+      return _CaptureResult(error: e.toString());
+    }
   }
 
+  /// --------------------------------
+  /// UI
+  /// --------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF667EEA).withOpacity(0.15),
-              const Color(0xFF764BA2).withOpacity(0.12),
-              Colors.black.withOpacity(0.95),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [const Color(0xFF6A11CB), const Color(0xFF2575FC)],
+      body: SafeArea(
+        child: Column(
+          children: [
+            /// HEADER
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.deepPurple,
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: _sending ? null : () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: _sending ? null : () => Navigator.pop(context),
-                      icon: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Record Sign",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      "සංඥාව පටිගත කරන්න",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        "පිළිතුර: ?",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    "Answer: ${widget.expectedAnswer}",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
               ),
+            ),
 
-              // Camera Preview
-              Expanded(
-                child: _loading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                      )
-                    : _error != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.videocam_off_rounded,
-                                    size: 80,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    _error!,
+            /// CAMERA PREVIEW
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(child: Text(_error!))
+                      : Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CameraPreview(_controller!),
+
+                            // countdown overlay
+                            if (_sending && !_isRecording)
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _countdown > 0 ? "$_countdown" : "🎬",
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 48,
                                       color: Colors.white,
                                     ),
-                                    textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 20),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Color(0xFF6A11CB),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 32, vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "ආපසු යන්න",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          )
-                        : Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              if (_controller != null)
-                                CameraPreview(_controller!),
-                              if (_sending && !_isRecording)
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      _countdown > 0 ? "$_countdown" : "🎬",
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (_isRecording)
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.8),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.fiber_manual_record,
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-              ),
 
-              // Controls
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
-                ),
-                child: Column(
-                  children: [
-                    if (!_sending)
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.red.withOpacity(0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
-                            ),
+                            // recording indicator
+                            if (_isRecording)
+                              const Icon(
+                                Icons.fiber_manual_record,
+                                color: Colors.red,
+                                size: 70,
+                              ),
                           ],
                         ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          child: InkWell(
-                            onTap: _startCountdown,
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.6),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.videocam_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    "පටිගත කරන්න",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (_sending)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        decoration: BoxDecoration(
-                          color: Colors.blueGrey.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Center(
-                          child: _isRecording
-                              ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.fiber_manual_record,
-                                      color: Colors.red,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      "පටිගත වෙමින්...",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : const Text(
-                                  "යොමු කරමින්...",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Column(
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.lightbulb_rounded,
-                                  size: 18, color: Colors.yellow),
-                              SizedBox(width: 8),
-                              Text(
-                                "උපදෙස්:",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "• ඔබගේ අත පැහැදිලිව දක්වන්න\n"
-                            "• ආලෝකය යහපත් අයුරින් ඇති බවට වග බලා ගන්න\n"
-                            "• පසුබිම සරලව තබා ගන්න",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+            ),
+
+            /// RECORD BUTTON
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: ElevatedButton.icon(
+                onPressed: _sending ? null : _startCountdown,
+                icon: const Icon(Icons.videocam),
+                label: const Text(
+                  "Record Sign",
+                  style: TextStyle(fontSize: 18),
+                ),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 55),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
 /// result returned back to game page
 class _CaptureResult {
   final int? prediction;

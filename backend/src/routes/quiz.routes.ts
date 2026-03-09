@@ -189,6 +189,18 @@ router.get("/random-save", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/math-level1", async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({
+      grade: "3",
+      subject: "math"
+    }).limit(10);
+
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch quizzes" });
+  }
+});
 
 
 export default router;
