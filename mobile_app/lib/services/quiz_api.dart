@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_app/models/quiz.dart';
 
 class QuizApi {
-  static const String baseUrl = "http://192.168.8.179:3000/api/quizzes";
+  static const String baseUrl = "http://192.168.1.101:3000/api/quizzes";
 
   static Future<List<Quiz>> fetchRandomQuizzes({
     required String grade,

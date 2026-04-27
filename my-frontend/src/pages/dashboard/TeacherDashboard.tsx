@@ -5,7 +5,7 @@ import * as Icons from "lucide-react";
 import StudentsPage from "../StudentPage.tsx";
 import TeachersPage from "../TeacherPage.tsx";
 import ParentsPage from "../ParentsPage.tsx";
-import { hover } from "framer-motion";
+
 
 type User = {
     id: string;

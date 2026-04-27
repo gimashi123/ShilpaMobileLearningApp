@@ -354,29 +354,29 @@ const Home = () => {
                   }} />
                 </button>
 
-                <button
-                    style={{
-                      padding: isMobile ? "1rem 2rem" : "1.2rem 2.5rem",
-                      fontSize: isMobile ? "1rem" : "1.1rem",
-                      fontWeight: "600",
-                      background: "transparent",
-                      color: "#004643",
-                      border: "2px solid #004643",
-                      borderRadius: "50px",
-                      cursor: "pointer",
-                      transition: "all 0.3s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#004643";
-                      e.currentTarget.style.color = "white";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#004643";
-                    }}
-                >
-                  🎬 Watch Demo
-                </button>
+                {/*<button*/}
+                {/*    style={{*/}
+                {/*      padding: isMobile ? "1rem 2rem" : "1.2rem 2.5rem",*/}
+                {/*      fontSize: isMobile ? "1rem" : "1.1rem",*/}
+                {/*      fontWeight: "600",*/}
+                {/*      background: "transparent",*/}
+                {/*      color: "#004643",*/}
+                {/*      border: "2px solid #004643",*/}
+                {/*      borderRadius: "50px",*/}
+                {/*      cursor: "pointer",*/}
+                {/*      transition: "all 0.3s ease"*/}
+                {/*    }}*/}
+                {/*    onMouseEnter={(e) => {*/}
+                {/*      e.currentTarget.style.background = "#004643";*/}
+                {/*      e.currentTarget.style.color = "white";*/}
+                {/*    }}*/}
+                {/*    onMouseLeave={(e) => {*/}
+                {/*      e.currentTarget.style.background = "transparent";*/}
+                {/*      e.currentTarget.style.color = "#004643";*/}
+                {/*    }}*/}
+                {/*>*/}
+                {/*  🎬 Watch Demo*/}
+                {/*</button>*/}
               </div>
 
               {/* Trust Indicators */}

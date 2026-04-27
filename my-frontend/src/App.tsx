@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Register from './pages/Register';
 import Login from './pages/Login'; 
-import ParentDashboard from './pages/ParentDashboard';
+import ParentDashboard from './pages/dashboard/ParentDashboard.tsx';
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import QuizCreate from "./pages/Quiz/QuizCreate.tsx";
