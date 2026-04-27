@@ -21,6 +21,11 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
   late Animation<double> _scaleRotation;
 
   // Game State
+  int _currentLevel = 1;
+  static const int _totalLevels = 5;
+  int _correctAttempts = 0;
+  int _totalAttempts = 0;
+
   int? _leftValue;
   String? _operator;
   int? _rightValue;
@@ -53,16 +58,31 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
       _selectedValue = null;
       _isSuccess = false;
 
-      // Grade 4-5 level addition/subtraction
-      _leftValue = _random.nextInt(20) + 1;
-      _rightValue = _random.nextInt(20) + 1;
-      _operator = '+'; // Keep it simple for now as requested
-      _totalSum = _leftValue! + _rightValue!;
+      // Difficulty increases with levels
+      int maxVal = 10 + (_currentLevel * 5);
 
-      // Decide which one is missing (either left, right, or total)
-      // For the balance scale, let's put equation on one side, result on other.
-      // E.g. 7 + [] = 15 or [] + 8 = 15
-      int sideToHide = _random.nextInt(2); // 0 or 1
+      // Decide operator: Levels 1-2 (+) , 3-5 (+ or -)
+      if (_currentLevel <= 2) {
+        _operator = '+';
+        _leftValue = _random.nextInt(maxVal) + 5;
+        _rightValue = _random.nextInt(maxVal) + 5;
+        _totalSum = _leftValue! + _rightValue!;
+      } else {
+        _operator = _random.nextBool() ? '+' : '-';
+        if (_operator == '+') {
+          _leftValue = _random.nextInt(maxVal) + 5;
+          _rightValue = _random.nextInt(maxVal) + 5;
+          _totalSum = _leftValue! + _rightValue!;
+        } else {
+          // Ensure positive result for subtraction
+          _totalSum = _random.nextInt(maxVal) + 5;
+          _leftValue = _totalSum! + _random.nextInt(maxVal) + 1;
+          _rightValue = _leftValue! - _totalSum!;
+        }
+      }
+
+      // Decide which one is missing
+      int sideToHide = _random.nextInt(2);
       if (sideToHide == 0) {
         _missingValue = _leftValue;
         _leftValue = null;
@@ -71,10 +91,10 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
         _rightValue = null;
       }
 
-      // Generate 4 options
+      // Generate 5 options
       _options = [_missingValue!];
       while (_options.length < 5) {
-        int opt = _random.nextInt(30) + 1;
+        int opt = _random.nextInt(maxVal * 2) + 1;
         if (!_options.contains(opt)) {
           _options.add(opt);
         }
@@ -93,7 +113,6 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
     });
 
     // AUTO-SLOTTING: If selected via voice, automatically try to place it
-    // because the user wants to "fill the gap" specifically.
     if (isVoice ||
         widget.inputMode == InputMode.voiceControl ||
         widget.inputMode == InputMode.hybrid) {
@@ -109,55 +128,48 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
     if (_selectedValue == null || _isSuccess) return;
 
     setState(() {
+      _totalAttempts++;
       _placedValue = _selectedValue;
       if (_placedValue == _missingValue) {
         _isSuccess = true;
+        _correctAttempts++;
         _selectedValue = null;
-        // Balance the scale
-        _rotationController.animateTo(0.5); // Center
-        _showSuccessAnimation();
+        _rotationController.animateTo(0.5); // Balance
+        _showLevelResultDialog(true);
       } else {
-        // Wrong answer feedback
-        // Tilt more to the "wrong" side? Or just flash red
-        _shakeScale();
+        // Wrong answer: lock it and show result
+        _isSuccess = true; // Prevents further changes to this level
+        _selectedValue = null;
+        _rotationController.animateTo(1.0); // Keep it tilted
+        _showLevelResultDialog(false);
       }
     });
   }
 
-  void _shakeScale() {
-    // Visual feedback for wrong answer
-    _rotationController
-        .animateTo(1.0, duration: const Duration(milliseconds: 100))
-        .then(
-          (_) => _rotationController.animateTo(
-            0.8,
-            duration: const Duration(milliseconds: 100),
-          ),
-        )
-        .then(
-          (_) => _rotationController.animateTo(
-            1.0,
-            duration: const Duration(milliseconds: 100),
-          ),
-        );
-  }
-
-  void _showSuccessAnimation() async {
+  void _showLevelResultDialog(bool isCorrect) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
+
+    bool isGameFinished = _currentLevel >= _totalLevels;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        backgroundColor: const Color(0xFFE8F5E9),
-        title: const Center(
+        backgroundColor: isCorrect
+            ? const Color(0xFFE8F5E9)
+            : const Color(0xFFFFEBEE),
+        title: Center(
           child: Text(
-            "ඉතා හොඳයි! (Well Done!)",
+            isCorrect
+                ? (isGameFinished
+                      ? "අභියෝගය අවසන්! (Finished!)"
+                      : "ඉතා හොඳයි! (Well Done!)")
+                : "නැවත උත්සාහ කරමු! (Nice Try!)",
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: isCorrect ? Colors.green : Colors.red,
               fontSize: 24,
             ),
           ),
@@ -165,12 +177,30 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.star, size: 80, color: Colors.orange),
+            Icon(
+              isCorrect
+                  ? (isGameFinished ? Icons.emoji_events : Icons.star)
+                  : Icons.sentiment_dissatisfied,
+              size: 80,
+              color: isCorrect ? Colors.orange : Colors.redAccent,
+            ),
             const SizedBox(height: 20),
             Text(
-              "$_totalSum = ${(_leftValue ?? _placedValue)} $_operator ${(_rightValue ?? _placedValue)}",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              isCorrect ? "නිවැරදි පිළිතුර:" : "නිවැරදි පිළිතුර වන්නේ:",
+              style: const TextStyle(fontSize: 14, color: Colors.blueGrey),
             ),
+            Text(
+              "$_totalSum = ${(_leftValue ?? _missingValue)} $_operator ${(_rightValue ?? _missingValue)}",
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            if (!isGameFinished)
+              Padding(
+                padding: const EdgeInsets.only(top: 15),
+                child: Text(
+                  "මට්ටම: $_currentLevel / $_totalLevels",
+                  style: const TextStyle(color: Colors.blueGrey),
+                ),
+              ),
           ],
         ),
         actions: [
@@ -178,22 +208,31 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
             child: InputAwareButton(
               onTap: () {
                 Navigator.pop(context);
-                _generateLevel();
+                if (isGameFinished) {
+                  _showProgressReport();
+                } else {
+                  setState(() {
+                    _currentLevel++;
+                  });
+                  _generateLevel();
+                }
               },
               inputMode: widget.inputMode,
-              voiceLabel: "ඊළඟ",
+              voiceLabel: isGameFinished ? "අවසන්" : "ඊළඟ",
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
                   vertical: 15,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: isGameFinished
+                      ? Colors.blue
+                      : (isCorrect ? Colors.green : Colors.orange),
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: const Text(
-                  "ඊළඟ අභියෝගය", // Next Challenge
-                  style: TextStyle(
+                child: Text(
+                  isGameFinished ? "ප්‍රගති වාර්තාව බලන්න" : "ඊළඟ අභියෝගය",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
@@ -202,6 +241,92 @@ class _ArithmeticBalanceScaleState extends State<ArithmeticBalanceScale>
             ),
           ),
           const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+
+  void _showProgressReport() {
+    double accuracy = (_totalAttempts > 0)
+        ? (_correctAttempts / _totalAttempts) * 100
+        : 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "ක්‍රීඩා ප්‍රගතිය", // Game Progress
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4527A0),
+              ),
+            ),
+            const Divider(),
+            const SizedBox(height: 20),
+            _buildStatRow(
+              "නිවැරදි පිළිතුරු",
+              "$_correctAttempts / $_totalLevels",
+              Colors.green,
+            ),
+            _buildStatRow("මුළු උත්සාහයන්", "$_totalAttempts", Colors.orange),
+            _buildStatRow(
+              "නිවැරදි ප්‍රතිශතය",
+              "${accuracy.toStringAsFixed(1)}%",
+              Colors.blue,
+            ),
+            const SizedBox(height: 30),
+            InputAwareButton(
+              onTap: () => Navigator.pop(context),
+              inputMode: widget.inputMode,
+              voiceLabel: "ඉවත් වන්න",
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 15,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4527A0),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Text(
+                  "අහවරයි", // Finished/Done
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) => Navigator.pop(context)); // Return to main menu
+  }
+
+  Widget _buildStatRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

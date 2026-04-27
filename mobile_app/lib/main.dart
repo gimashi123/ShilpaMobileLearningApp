@@ -11,11 +11,12 @@ import 'package:mobile_app/pages/dashboard/cognitive_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/hearing_dashboard_screen.dart';
 import 'package:mobile_app/pages/dashboard/visual_dashboard_screen.dart';
+import 'package:mobile_app/pages/games/math_game_deaf.dart';
 import 'package:mobile_app/pages/games/visual_game_dashboard.dart';
 import 'package:mobile_app/pages/games/visual_math_gamecard.dart';
 import 'package:mobile_app/pages/games/visual_math_quick_game.dart';
 import 'package:mobile_app/pages/games/hearing_game_dashboard.dart';
-import 'package:mobile_app/pages/games/level1_math_gamedeaf.dart';
+
 import 'package:mobile_app/pages/games_cognitive/activity_countNumbers.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_draw.dart';
 import 'package:mobile_app/pages/games_cognitive/activity_findImage.dart';
@@ -136,8 +137,8 @@ class MyApp extends StatelessWidget {
         '/visual_more_or_less_game': (context) => const MoreNumberSwipeGame(),
         '/hearing_games_dashboard': (_) => const HearingGameDashboard(),
 
-        // ✅ FIXED: pass real cameras list (NOT [])
-        '/hearing_games': (_) => Level1MathGameDeaf(cameras: cameras),
+        // ✅ Unified Math Game
+        '/hearing_games': (_) => MathGameDeaf(cameras: cameras),
       },
       // onGenerateRoute: (settings) {
       //   if (settings.name == '/quizhearing') {

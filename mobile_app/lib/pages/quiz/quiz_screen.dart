@@ -161,9 +161,9 @@ class _QuizScreenState extends State<QuizScreen>
       setState(() {
         if (isCorrect) {
           score++;
-          feedback = "✨ Wonderful! That's right!";
+          feedback = "ඔබගේ පිළිතුර නිවැරදි ";
         } else {
-          feedback = "💫 Almost! The answer is: ${result["correctAnswer"]}";
+          feedback = "ඔබගේ පිළිතුර වැරදි! නිවැරදි පිළිතුර: ${result["correctAnswer"]}";
         }
       });
 
@@ -821,8 +821,8 @@ class _QuizScreenState extends State<QuizScreen>
                               children: [
                                 Text(
                                   currentIndex == quizzes.length - 1
-                                      ? '🎯 Finish Quiz'
-                                      : '✨ Next Question',
+                                      ? 'ප්‍රශ්න අවසන්  '
+                                      : 'පිළිතුර පරික්ෂා කරන්න ',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,

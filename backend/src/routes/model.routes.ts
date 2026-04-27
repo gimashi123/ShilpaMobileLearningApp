@@ -49,7 +49,7 @@ router.get('/hearing-impairment/health', async (req: Request, res: Response) => 
     const response = await axios.get(`${PYTHON_SERVER_URL}/api/hearing-impairment/health`, {
       timeout: 5000
     });
-    
+
     res.json({
       status: 'healthy',
       python_server: response.data,
@@ -58,7 +58,7 @@ router.get('/hearing-impairment/health', async (req: Request, res: Response) => 
   } catch (error) {
     const axiosError = error as AxiosError;
     logger.error('Python server health check failed:', axiosError.message);
-    
+
     res.status(503).json({
       status: 'unhealthy',
       python_server: axiosError.message,
@@ -90,10 +90,20 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     }
 
     videoPath = req.file.path;
-    const { description } = req.body;
+    const { description, level } = req.body;   // ✅ also read level
 
     const ext = path.extname(req.file.originalname);
-    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext})`);
+
+    console.log("\n==========================================================");
+    console.log("   EXPRESS: NEW VIDEO PREDICTION REQUEST RECEIVED       ");
+    console.log("==========================================================");
+    console.log(`Filename        : ${req.file.filename} (ext: ${ext})`);
+    console.log(`Expected Answer : ${req.body.expected || "NOT PROVIDED"}`);
+    console.log(`Requested Level : ${level}   <--- THIS IS WHAT THE MOBILE APP SENT`);
+    console.log(`Description     : ${description}`);
+    console.log("==========================================================\n");
+
+    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext}, level: ${level})`);
 
     // Create FormData to send video to Python server
     const FormData = require('form-data');
@@ -106,6 +116,11 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
 
     if (description) {
       form.append('description', description);
+    }
+
+    // ✅ Forward level to Python so the correct model is selected
+    if (level !== undefined && level !== null && level !== '') {
+      form.append('level', String(level));
     }
 
     // Call Python API with video
@@ -128,7 +143,7 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
 
   } catch (error) {
     const axiosError = error as AxiosError;
-    
+
     logger.error('Video prediction failed:', {
       error: axiosError.message,
       status: axiosError.status,

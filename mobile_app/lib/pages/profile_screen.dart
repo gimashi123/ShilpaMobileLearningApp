@@ -4,9 +4,15 @@ import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
+import 'package:mobile_app/models/input_modes.dart';
+import 'package:mobile_app/services/adaptive_dwell_service.dart';
+import 'package:mobile_app/components/input_aware_button.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final InputMode?
+  inputMode; // Added to support physical disability interaction settings
+
+  const ProfileScreen({super.key, this.inputMode});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -19,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Map<String, dynamic>? me;
 
-  // ✅ Fix: Use late but initialize properly
+  // Animation controllers
   late AnimationController _waveController;
   late Animation<double> _waveAnimation;
 
@@ -27,18 +33,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
 
-    // ✅ Initialize controller first
+    // Initialize animation controller
     _waveController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     );
 
-    // ✅ Then initialize animation using the controller
+    // Initialize animation
     _waveAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _waveController, curve: Curves.easeInOut),
     );
 
-    // ✅ Start the animation after initialization
+    // Start the animation
     _waveController.repeat(reverse: true);
 
     _loadMe();
@@ -46,7 +52,6 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   void dispose() {
-    // ✅ Always dispose controllers
     _waveController.dispose();
     super.dispose();
   }
@@ -111,6 +116,36 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  void _navigateToHomeByDisabilityType() {
+    final disabilityType = (me?["disabilityType"] ?? "").toString().toLowerCase();
+    
+    if (disabilityType.isEmpty) {
+      // If no disability type, go back normally
+      Navigator.pop(context);
+      return;
+    }
+    
+    // Navigate to the appropriate home screen
+    switch (disabilityType) {
+      case 'visual':
+        Navigator.pushReplacementNamed(context, '/home_visual');
+        break;
+      case 'hearing':
+        Navigator.pushReplacementNamed(context, '/home_hearing');
+        break;
+      case 'physical':
+        Navigator.pushReplacementNamed(context, '/home_physical');
+        break;
+      case 'cognitive':
+        Navigator.pushReplacementNamed(context, '/home_cognitive');
+        break;
+      default:
+        // If disability type doesn't match, go back normally
+        Navigator.pop(context);
+        break;
+    }
+  }
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return "Good morning";
@@ -149,7 +184,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ✅ Safe to use animation now
                 ScaleTransition(
                   scale: _waveAnimation,
                   child: Container(
@@ -335,30 +369,55 @@ class _ProfileScreenState extends State<ProfileScreen>
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Header with greeting
+                  // Header with back button and greeting
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getGreeting(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
+                      // Back button - only shows if there's something to go back to
+                      if (Navigator.canPop(context))
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF7AF2D6).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              onPressed: _navigateToHomeByDisabilityType,
+                              color: const Color(0xFF2C3E50),
+                              iconSize: 24,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            name.split(' ').first,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3E50),
+                        ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getGreeting(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              name.split(' ').first,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2C3E50),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -424,22 +483,36 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Positioned(
                           bottom: 0,
                           right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.withOpacity(0.2),
-                                  blurRadius: 8,
+                          child: GestureDetector(
+                            onTap: () async {
+                              final changed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const EditProfilePage(),
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 18,
-                              color: Color(0xFF7AF2D6),
+                              );
+                              if (changed == true) {
+                                setState(() => loading = true);
+                                _loadMe();
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.2),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 18,
+                                color: Color(0xFF7AF2D6),
+                              ),
                             ),
                           ),
                         ),
@@ -592,22 +665,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
 
                   _buildMenuItem(
-                    icon: Icons.timeline_rounded,
-                    text: 'Learning Journey',
-                    subtitle: 'Track your progress',
-                    onTap: () {},
-                    gradientColors: const [Colors.orange, Colors.amber],
-                  ),
-
-                  _buildMenuItem(
-                    icon: Icons.emoji_events_rounded,
-                    text: 'Achievements',
-                    subtitle: '🌟 5 badges earned',
-                    onTap: () {},
-                    gradientColors: const [Colors.purple, Colors.pink],
-                  ),
-
-                  _buildMenuItem(
                     icon: Icons.logout_rounded,
                     text: 'Sign Out',
                     subtitle: 'See you again soon!',
@@ -619,7 +676,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                   // App version
                   Text(
-                    'Version 1.0.0 • Made with 💚 for you',
+                    'Version 1.0.0',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
                   ),
                 ],
@@ -667,7 +724,77 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String subtitle,
     required VoidCallback onTap,
     required List<Color> gradientColors,
+    bool useInputAware = false, // Added to support gaze interaction reset
   }) {
+    final body = Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icon with gradient background
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              // Text content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2C3E50),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: gradientColors.first.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -680,74 +807,13 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon with gradient background
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 16),
-                // Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        text,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Arrow
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: gradientColors.first.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 18,
-                    color: Color(0xFF2C3E50),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: useInputAware
+          ? InputAwareButton(
+              inputMode: widget.inputMode ?? InputMode.standard,
+              onTap: onTap,
+              child: body,
+            )
+          : body,
     );
   }
 
@@ -803,6 +869,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
+                        Session.token = null; // Clear session
                         Navigator.pop(ctx);
                         Navigator.pushReplacementNamed(context, '/newlogin');
                       },

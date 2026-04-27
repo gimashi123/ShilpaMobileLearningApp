@@ -1,10 +1,3 @@
-// ✅ SINGLE FILE (COMPLETE) — fixed lifecycle/setState-after-dispose bugs + fixed syntax errors
-// Paste this as: lib/main.dart  (or any single dart file) and run: flutter run
-//
-// Notes:
-// - Make sure you added assets in pubspec.yaml if you want sounds
-// - This prints metrics to console AFTER each game AND after all 3 at the end
-
 import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
@@ -471,35 +464,35 @@ class Menu extends StatelessWidget {
   }
 }
 
-class ScoreHistoryScreen extends StatelessWidget {
-  const ScoreHistoryScreen({Key? key}) : super(key: key);
+// class ScoreHistoryScreen extends StatelessWidget {
+//   const ScoreHistoryScreen({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Score History'),
-        backgroundColor: Colors.pink,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.pink.shade100, Colors.purple.shade100],
-          ),
-        ),
-        child: const Center(
-          child: Text(
-            'ලකුණු ඉතිහාස විශේෂාංගය ළඟදීම එනවා!',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Score History'),
+//         backgroundColor: Colors.pink,
+//       ),
+//       body: Container(
+//         decoration: BoxDecoration(
+//           gradient: LinearGradient(
+//             begin: Alignment.topLeft,
+//             end: Alignment.bottomRight,
+//             colors: [Colors.pink.shade100, Colors.purple.shade100],
+//           ),
+//         ),
+//         child: const Center(
+//           child: Text(
+//             'ලකුණු ඉතිහාස විශේෂාංගය ළඟදීම එනවා!',
+//             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+//             textAlign: TextAlign.center,
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 /// =====================================
 /// Sequential Flow
@@ -512,8 +505,6 @@ class SequentialGameFlow extends StatefulWidget {
 }
 
 class _SequentialGameFlowState extends State<SequentialGameFlow> {
-  // Backend base URL (PC IP + port). Do NOT use localhost on a phone.
-  // final String apiBaseUrl = 'http://127.0.0.1:3000';
   late final String studentId;
 
   int currentGameIndex = 0;

@@ -159,34 +159,6 @@ class HearingGameDashboard extends StatelessWidget {
                                 Navigator.pushNamed(context, '/hearing_games');
                               },
                             ),
-                            _QuizCard(
-                              title: "සිංහල Games",
-                              icon: Icons.menu_book,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      "සිංහල ප්‍රශ්න ඉක්මනින් එයි",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    backgroundColor: Colors.deepPurple.withOpacity(0.9),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: const EdgeInsets.all(20),
-                                  ),
-                                );
-                              },
-                            ),
                           ],
                         ),
                       ),

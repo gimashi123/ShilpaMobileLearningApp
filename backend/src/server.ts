@@ -172,3 +172,5 @@ app.use('/api/quizzes', quizRoutes);
 
 
 app.use("/api", answerValidation);
+
+app.use("/api/quizzes", quizRoutes);

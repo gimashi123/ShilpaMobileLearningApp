@@ -53,9 +53,24 @@ def _load_single_model(level: int, config: dict):
 
     if config["loader"] == "joblib":
         model = joblib.load(model_path)
+        logger.info(f"[MODEL_INIT] Level {level} model path: {os.path.abspath(model_path)}")
     elif config["loader"] == "keras":
         from tensorflow import keras
         model = keras.models.load_model(model_path)
+        abs_path = os.path.abspath(model_path)
+        logger.info(f"[MODEL_INIT] Level {level} Keras model path: {abs_path}")
+        
+        # Determine and log input shape safely
+        try:
+            input_shape = model.input_shape if hasattr(model, 'input_shape') else model.layers[0].input_shape
+            logger.info(f"[MODEL_INIT] Level {level} Keras model input_shape: {input_shape}")
+            
+            # Print model summary via logger
+            logger.info(f"[MODEL_INIT] Level {level} Keras model summary:")
+            model.summary(print_fn=lambda x: logger.info(x))
+        except Exception as e:
+            logger.warning(f"[MODEL_INIT] Could not determine input shape or summary for Level {level}: {str(e)}")
+            
     else:
         raise ValueError(f"Unknown loader type: {config['loader']}")
 

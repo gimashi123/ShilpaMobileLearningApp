@@ -6,65 +6,115 @@ import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:http_parser/http_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../config/AppConfig.dart';
 
-
-
 /// =======================
-/// Question Model + Bank
+/// Unified Question Model + Bank (Levels 1, 2, 4)
 /// =======================
-class L1Question {
+class MathQuestion {
   final String text;
-  final int answer; // 1..10
-  const L1Question(this.text, this.answer);
+  final int answer;
+  const MathQuestion(this.text, this.answer);
 }
 
-class L1QuestionBank {
+class QuestionBank {
   static final _rng = Random();
 
-  static L1Question randomQuestion() {
-    final op = _rng.nextInt(4); // 0:+ 1:- 2:* 3:/
-
-    if (op == 0) {
-      final a = _rng.nextInt(10) + 1;
-      final b = _rng.nextInt(10 - a + 1);
-      final ans = a + b;
-      return L1Question("$a + $b = ?", ans);
-    }
-
-    if (op == 1) {
-      final a = _rng.nextInt(10) + 1;
-      final b = _rng.nextInt(a);
-      final ans = a - b;
-      return L1Question("$a - $b = ?", ans);
-    }
-
-    if (op == 2) {
-      const pairs = [
-        [1, 1],[1, 2],[1, 3],[1, 4],[1, 5],[1, 6],[1, 7],[1, 8],[1, 9],[1, 10],
-        [2, 1],[2, 2],[2, 3],[2, 4],[2, 5],
-        [3, 1],[3, 2],[3, 3],
-        [4, 1],[4, 2],
-        [5, 1],[5, 2],
-        [6, 1],[7, 1],[8, 1],[9, 1],[10, 1],
-      ];
-      final p = pairs[_rng.nextInt(pairs.length)];
-      final a = p[0], b = p[1];
-      final ans = a * b;
-      return L1Question("$a × $b = ?", ans);
-    }
-
-    final ans = _rng.nextInt(10) + 1;
-    final divisor = _rng.nextInt(9) + 1;
-    final dividend = ans * divisor;
-    return L1Question("$dividend ÷ $divisor = ?", ans);
+  /// Detects the level based on the answer to send to the backend
+  static int detectLevel(int answer) {
+    if (answer >= 1 && answer <= 10) return 1;
+    if (answer >= 11 && answer <= 20) return 2;
+    // Level 3 omitted for mobile (21-44)
+    if (answer >= 75 && answer <= 100) return 4;
+    return 1; // Fallback
   }
 
-  static List<L1Question> buildLevel(int count) {
-    final list = <L1Question>[];
+  static MathQuestion randomQuestion() {
+    // Pick a level to generate a question for:
+    // 0 = Level 1 (1-10)
+    // 1 = Level 2 (11-20)
+    // 2 = Level 4 (75-100)
+    final levelChoice = _rng.nextInt(3);
+
+    final op = _rng.nextInt(3); // 0:+, 1:-, 2:*
+
+    if (levelChoice == 0) {
+      // OVERALL ANSWER RANGE: 1 - 10
+      if (op == 0) { // +
+        final a = _rng.nextInt(10) + 1;
+        final b = _rng.nextInt(10 - a + 1);
+        return MathQuestion("$a + $b = ?", a + b);
+      } else if (op == 1) { // -
+        final a = _rng.nextInt(10) + 1;
+        final b = _rng.nextInt(a); // smaller than a
+        return MathQuestion("$a - $b = ?", a - b);
+      } else { // *
+        const pairs = [
+          [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10],
+          [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+          [3, 1], [3, 2], [3, 3],
+          [4, 1], [4, 2],
+          [5, 1], [5, 2],
+          [6, 1], [7, 1], [8, 1], [9, 1], [10, 1],
+        ];
+        final p = pairs[_rng.nextInt(pairs.length)];
+        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
+      }
+    } else if (levelChoice == 1) {
+      // OVERALL ANSWER RANGE: 11 - 20
+      if (op == 0) { // +
+        final a = _rng.nextInt(15) + 5; // 5 to 19
+        final targetAns = 11 + _rng.nextInt(10); // 11 to 20
+        final b = targetAns - a;
+        if (b >= 0) {
+          return MathQuestion("$a + $b = ?", targetAns);
+        } else {
+          return MathQuestion("10 + ${targetAns - 10} = ?", targetAns);
+        }
+      } else if (op == 1) { // -
+        final ans = _rng.nextInt(10) + 11; // 11 to 20
+        final b = _rng.nextInt(10) + 1; // 1 to 10
+        final a = ans + b;
+        return MathQuestion("$a - $b = ?", ans);
+      } else { // *
+        const pairs = [
+          [2, 6], [2,  7], [2,  8], [2,  9], [2, 10],
+          [3, 4], [3,  5], [3,  6],
+          [4, 3], [4,  4], [4,  5],
+          [5, 3], [5,  4],
+          [6, 2], [6,  3],
+          [7, 2], [8,  2], [9,  2], [10, 2],
+        ];
+        final p = pairs[_rng.nextInt(pairs.length)];
+        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
+      }
+    } else {
+      // OVERALL ANSWER RANGE: 75 - 100 (Level 4)
+      if (op == 0) { // +
+        final targetAns = 75 + _rng.nextInt(26); // 75 to 100
+        final a = _rng.nextInt(targetAns - 10) + 10;
+        final b = targetAns - a;
+        return MathQuestion("$a + $b = ?", targetAns);
+      } else if (op == 1) { // -
+        final ans = 75 + _rng.nextInt(26); // 75 to 100
+        final b = _rng.nextInt(20) + 1;
+        final a = ans + b;
+        return MathQuestion("$a - $b = ?", ans);
+      } else { // *
+        // Products in 75-100
+        const pairs = [
+          [8, 10], [9, 9], [9, 10], [10, 8], [10, 9], [10, 10]
+        ];
+        final p = pairs[_rng.nextInt(pairs.length)];
+        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
+      }
+    }
+  }
+
+  static List<MathQuestion> buildLevel(int count) {
+    final list = <MathQuestion>[];
     while (list.length < count) {
       list.add(randomQuestion());
     }
@@ -75,15 +125,16 @@ class L1QuestionBank {
 /// =======================
 /// MAIN GAME PAGE
 /// =======================
-class Level1MathGameDeaf extends StatefulWidget {
-  const Level1MathGameDeaf({super.key, required List<CameraDescription> cameras});
+class MathGameDeaf extends StatefulWidget {
+  const MathGameDeaf({super.key, required List<CameraDescription> cameras});
 
   @override
-  State<Level1MathGameDeaf> createState() => _Level1MathGameDeafState();
+  State<MathGameDeaf> createState() => _MathGameDeafState();
 }
 
-class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
-  final List<L1Question> _questions = L1QuestionBank.buildLevel(10);
+class _MathGameDeafState extends State<MathGameDeaf> {
+  List<MathQuestion> _questions = QuestionBank.buildLevel(10);
+  final List<MathQuestion> _wrongQuestions = [];
 
   bool _started = false;
   int _index = 0;
@@ -95,7 +146,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
   String? _errorMsg;
 
   bool get _levelFinished => _index >= _questions.length;
-  L1Question get _currentQ => _questions[_index];
+  MathQuestion get _currentQ => _questions[_index];
 
   void _resetForNextQuestion() {
     _checked = false;
@@ -107,6 +158,8 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
 
   void _startLevel() {
     setState(() {
+      _questions = QuestionBank.buildLevel(10);
+      _wrongQuestions.clear();
       _started = true;
       _index = 0;
       _resetForNextQuestion();
@@ -114,7 +167,15 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
   }
 
   void _goNext() {
-    if (!_checked || !_isCorrect) return;
+    if (!_checked) return;
+    
+    // If wrong, save it for the summary screen
+    if (!_isCorrect) {
+      if (!_wrongQuestions.contains(_currentQ)) {
+        _wrongQuestions.add(_currentQ);
+      }
+    }
+    
     setState(() {
       _index++;
       if (!_levelFinished) _resetForNextQuestion();
@@ -152,7 +213,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
       _predicted = result.prediction;
       _confidence = result.confidence;
 
-      // ✅ CORRECT MATH CONNECTION (don't trust API success flag)
+      // CORRECT MATH CONNECTION: 
       _isCorrect = (result.prediction != null && result.prediction == expected);
     });
   }
@@ -187,7 +248,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                       child: IconButton(
                         onPressed: () => Navigator.pushNamedAndRemoveUntil(
                         context,
-                        '/home_hearing',
+                        '/hearing_games_dashboard',
                         (route) => false,
                         ),
                         icon: Container(
@@ -246,14 +307,6 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          "මට්ටම 1",
-                          style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
                         ],
                       ),
                       ),
@@ -443,7 +496,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    "ඔබ මට්ටම 1 සම්පූර්ණ කළා",
+                    "ඔබ අභියෝගය සම්පූර්ණ කළා",
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.deepPurple.withOpacity(0.7),
@@ -451,13 +504,43 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "ප්‍රශ්න ${_questions.length}ක්ම නිවැරදියි",
+                    "ප්‍රශ්න ${_questions.length}න් ${_questions.length - _wrongQuestions.length}ක් නිවැරදියි",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF4CAF50),
                     ),
                   ),
+                  if (_wrongQuestions.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    const Text(
+                      "වැරදි පිළිතුරු:",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: _wrongQuestions.map((q) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              q.text.replaceAll('?', q.answer.toString()),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2D1B69),
+                              ),
+                            ),
+                          )).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 40),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -477,7 +560,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                           color: Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                           child: InkWell(
-                            onTap: () => setState(() => _started = false),
+                            onTap: _startLevel,
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -580,6 +663,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
     }
 
     final q = _currentQ;
+    final displayLevel = QuestionBank.detectLevel(q.answer);
 
     return Scaffold(
       body: Container(
@@ -618,7 +702,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                     IconButton(
                     onPressed: () => Navigator.pushNamedAndRemoveUntil(
                       context,
-                      '/home_hearing',
+                      '/hearing_games_dashboard',
                       (route) => false,
                     ),
                     icon: Container(
@@ -655,7 +739,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                       Text(
-                        "මට්ටම 1",
+                        "මට්ටම $displayLevel",
                         style: TextStyle(
                         fontSize: 16,
                         color: Colors.deepPurple.withValues(alpha: 0.7),
@@ -854,16 +938,20 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                         color: Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                         child: InkWell(
-                          onTap: (_checked && _isCorrect) ? _goNext : null,
+                          onTap: _checked ? _goNext : null,
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 32, vertical: 18),
                             decoration: BoxDecoration(
-                              gradient: (_checked && _isCorrect)
-                                  ? const LinearGradient(
-                                      colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-                                    )
+                              gradient: _checked
+                                  ? (_isCorrect
+                                      ? const LinearGradient(
+                                          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                                        )
+                                      : const LinearGradient(
+                                          colors: [Color(0xFF1976D2), Color(0xFF2196F3)],
+                                        ))
                                   : LinearGradient(
                                       colors: [
                                         Colors.grey.shade400,
@@ -902,11 +990,11 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (!_checked || !_isCorrect)
+                if (!_checked)
                   Text(
-                    "නිවැරදි පිළිතුරක් අවශ්‍යයි",
+                    "පිළිතුර සඳහා සංඥාව ලබා දෙන්න",
                     style: TextStyle(
-                      color: Colors.red.withOpacity(0.8),
+                      color: Colors.blue.withOpacity(0.8),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -998,51 +1086,50 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
     }
 
     if (!_checked) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.deepPurple.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(
-                color: Colors.deepPurple.withOpacity(0.1),
-                width: 4,
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.8),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.hourglass_empty_rounded,
+                size: 40,
+                color: Color(0xFF1976D2),
               ),
             ),
-            child: const Icon(
-              Icons.back_hand_rounded,
-              size: 60,
-              color: Color(0xFF6A11CB),
+            const SizedBox(height: 16),
+            const Text(
+              "පිළිතුරක් බලාපොරොත්තුවෙන්...",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1976D2),
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            "ඔබගේ සංඥාව පරීක්ෂා කරන්න",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2D1B69),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "පිළිතුර: ?",
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.deepPurple.withOpacity(0.7),
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -1051,7 +1138,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+            colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -1059,7 +1146,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
           boxShadow: [
             BoxShadow(
               color: Colors.green.withOpacity(0.3),
-              blurRadius: 25,
+              blurRadius: 20,
               offset: const Offset(0, 10),
             ),
           ],
@@ -1068,12 +1155,10 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 100,
-              height: 100,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
               ),
               child: const Icon(
                 Icons.check_circle_rounded,
@@ -1081,123 +1166,25 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             const Text(
-              "නිවැරදියි! ✅",
+              "නිවැරදියි!",
               style: TextStyle(
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 4,
-                    color: Colors.black26,
-                    offset: Offset(1, 1),
-                  ),
-                ],
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "අපේක්ෂිත:",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      Text(
-                        "$expected",
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "හඳුනාගත්තේ:",
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      Text(
-                        "${_predicted ?? "-"}",
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            const SizedBox(height: 8),
+            Text(
+              "ඔබේ සංඥාව: $_predicted",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 16),
-            if (_confidence != null)
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "විශ්වාසනීයත්වය:",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      Text(
-                        "${(_confidence! * 100).toStringAsFixed(1)}%",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: FractionallySizedBox(
-                      widthFactor: _confidence!.clamp(0.0, 1.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withOpacity(0.9),
-                              Colors.white,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
           ],
         ),
       );
@@ -1206,130 +1193,59 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF416C), Color(0xFFFF4B2B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.3),
-            blurRadius: 25,
+            color: Colors.red.withOpacity(0.1),
+            blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
+        border: Border.all(
+          color: Colors.red.withOpacity(0.2),
+          width: 2,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 100,
-            height: 100,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.red.withOpacity(0.1),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
             ),
             child: const Icon(
-              Icons.cancel_rounded,
-              size: 60,
-              color: Colors.white,
+              Icons.close_rounded,
+              size: 50,
+              color: Colors.red,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           const Text(
-            "වැරදියි! ❌",
+            "වැරදියි",
             style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  blurRadius: 4,
-                  color: Colors.black26,
-                  offset: Offset(1, 1),
-                ),
-              ],
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.red,
             ),
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "අපේක්ෂිත පිළිතුර:",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    Text(
-                      "$expected",
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "ඔබ පෙන්වූයේ:",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    Text(
-                      "${_predicted ?? "-"}",
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_confidence != null)
-            Text(
-              "විශ්වාසනීයත්වය: ${(_confidence! * 100).toStringAsFixed(1)}%",
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white70,
-              ),
-            ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+          Text(
+            "හඳුනාගත් සංඥාව: $_predicted",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.red.shade700,
             ),
-            child: const Text(
-              "නැවත උත්සාහ කරන්න. ඔබට පුළුවන්! 💪",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "නැවත උත්සාහ කරන්න!",
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.red.shade400,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -1339,7 +1255,7 @@ class _Level1MathGameDeafState extends State<Level1MathGameDeaf> {
 }
 
 /// =======================
-/// CAPTURE PAGE (CAMERA) - RECORD 3s VIDEO
+/// SIGN CAPTURE PAGE 
 /// =======================
 class CaptureSignPage extends StatefulWidget {
   final int expectedAnswer;
@@ -1390,7 +1306,7 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
         return;
       }
 
-      // ✅ FRONT camera for better self-recording
+      // FRONT camera for better self-recording
       final front = cams.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.front,
         orElse: () => cams.first,
@@ -1446,8 +1362,8 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
       setState(() => _isRecording = true);
       await _controller!.startVideoRecording();
       
-      // Record for 3 seconds
-      await Future.delayed(const Duration(seconds: 3));
+      // Changed to 4 seconds to match the Level2 improvement 
+      await Future.delayed(const Duration(seconds: 4));
       
       final XFile video = await _controller!.stopVideoRecording();
       setState(() => _isRecording = false);
@@ -1470,39 +1386,51 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
     final req = http.MultipartRequest("POST", uri);
 
     req.files.add(
-    await http.MultipartFile.fromPath(
-      "video",
-      videoPath,
-      contentType: MediaType('video', 'mp4'), // force correct type
-    ),
-   );
-
-
-    req.fields["expected"] = widget.expectedAnswer.toString();
-
-    final streamed = await req.send();
-    final resp = await http.Response.fromStream(streamed);
-
-    if (resp.statusCode != 200) {
-      return _CaptureResult(error: "API ${resp.statusCode}: ${resp.body}");
-    }
-
-    final decoded = jsonDecode(resp.body);
-    if (decoded is! Map<String, dynamic>) {
-      return _CaptureResult(error: "වලංගු නොවන ප්‍රතිචාරය");
-    }
-
-    final rawPred = decoded["prediction"];
-    final int? predInt = (rawPred is int) ? rawPred : int.tryParse("$rawPred");
-
-    final rawConf = decoded["confidence"];
-    final double? conf = (rawConf is num) ? rawConf.toDouble() : double.tryParse("$rawConf");
-
-    return _CaptureResult(
-      prediction: predInt,
-      confidence: conf,
-      isCorrect: null,
+      await http.MultipartFile.fromPath(
+        "video",
+        videoPath,
+        contentType: MediaType('video', 'mp4'), 
+      ),
     );
+
+    // Send the correct expected value (handled purely here)
+    req.fields["expected"] = widget.expectedAnswer.toString();
+    
+    // Auto detect level from the expected answer and send it
+    int calculatedLevel = QuestionBank.detectLevel(widget.expectedAnswer);
+    req.fields["level"] = calculatedLevel.toString();
+
+    try {
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (resp.statusCode != 200) {
+        return _CaptureResult(error: "Server Error: ${resp.body}");
+      }
+
+      final decoded = jsonDecode(resp.body);
+      if (decoded is! Map<String, dynamic>) {
+        return _CaptureResult(error: "වලංගු නොවන ප්‍රතිචාරය");
+      }
+
+      if (decoded["success"] == false) {
+        return _CaptureResult(error: decoded["message"] ?? "Failed to process video");
+      }
+
+      final rawPred = decoded["prediction"];
+      final int? predInt = (rawPred is int) ? rawPred : int.tryParse("$rawPred");
+
+      final rawConf = decoded["confidence"];
+      final double? conf = (rawConf is num) ? rawConf.toDouble() : double.tryParse("$rawConf");
+
+      return _CaptureResult(
+        prediction: predInt,
+        confidence: conf,
+        isCorrect: null,
+      );
+    } catch (e) {
+      return _CaptureResult(error: "Network error: $e");
+    }
   }
 
   @override

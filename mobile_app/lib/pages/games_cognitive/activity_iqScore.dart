@@ -13,6 +13,15 @@ class ProgressHistoryScreen extends StatefulWidget {
 class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
   Future<List<LdAttempt>>? _future;
 
+  String _extractErrorCode(Object? error) {
+    if (error is ApiException && error.statusCode != null) {
+      return error.statusCode.toString();
+    }
+
+    final match = RegExp(r'\b\d{3}\b').firstMatch(error.toString());
+    return match?.group(0) ?? 'N/A';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +65,10 @@ class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
           }
 
           if (snap.hasError) {
+            final errorCode = _extractErrorCode(snap.error);
             return Center(
               child: Text(
-                "ප්‍රගති ඉතිහාසය ලබාගැනීම අසාර්ථකයි.\n${snap.error}",
+                "ප්‍රගති ඉතිහාසය ලබාගැනීම අසාර්ථකයි.\nදෝෂ කේතය: $errorCode",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 14),
               ),
