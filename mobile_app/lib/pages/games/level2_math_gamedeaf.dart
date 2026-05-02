@@ -1513,9 +1513,6 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
         ),
       );
 
-      // Level 2 model
-      request.fields["level"] = "2";
-
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
 

@@ -1395,10 +1395,6 @@ class _CaptureSignPageState extends State<CaptureSignPage> {
 
     // Send the correct expected value (handled purely here)
     req.fields["expected"] = widget.expectedAnswer.toString();
-    
-    // Auto detect level from the expected answer and send it
-    int calculatedLevel = QuestionBank.detectLevel(widget.expectedAnswer);
-    req.fields["level"] = calculatedLevel.toString();
 
     try {
       final streamed = await req.send();

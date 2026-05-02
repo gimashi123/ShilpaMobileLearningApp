@@ -1,4 +1,3 @@
-import joblib
 import os
 from typing import Dict, Any
 import logging
@@ -7,10 +6,10 @@ from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
-# Base directory for hearing impairment models
-MODELS_DIR = os.path.join(
+# Sign language model path — H5 format for cross-version Keras compatibility
+SIGN_MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
-    "../models/hearing-impairments-models/numbers"
+    "../models/hearing-impairments-models/sign_lang_model.h5"
 )
 
 # Base directory for visual impairment models
@@ -28,53 +27,25 @@ VISUAL_MODEL_CONFIG = {
     }
 }
 
-# Model level configuration
-# Each level maps to a model file and its loader type
-MODEL_LEVELS = {
-    1: {"file": "number_sign_model_level1.pkl", "loader": "joblib"},
-    2: {"file": "number_sign_model_level2.pkl", "loader": "joblib"},
-    3: {"file": "number_sign_model_level3.keras", "loader": "keras"},
-    4: {"file": "number_sign_model_level4.keras", "loader": "keras"},
-}
 
-# Valid levels set for quick validation
-VALID_LEVELS = set(MODEL_LEVELS.keys())
+def _load_sign_model(model_path: str):
+    """Load the sign language Keras model for server-side inference."""
+    abs_path = os.path.abspath(model_path)
+    if not os.path.exists(abs_path):
+        raise FileNotFoundError(
+            f"[MODEL_INIT] Sign language model not found: {abs_path}\n"
+            "Export it from the training notebook with: model_aug.save('sign_lang_model.h5')"
+        )
 
+    logger.info(f"[MODEL_INIT] Loading sign language Keras model from: {abs_path}")
 
-def _load_single_model(level: int, config: dict):
-    """Load a single model based on its configuration."""
-    model_path = os.path.join(MODELS_DIR, config["file"])
+    from tensorflow import keras
+    model = keras.models.load_model(abs_path)
 
-    if not os.path.exists(model_path):
-        logger.warning(f"[MODEL_INIT] Model file not found for level {level}: {model_path}")
-        return None
+    logger.info(f"[MODEL_INIT] Sign language model loaded successfully")
+    logger.info(f"[MODEL_INIT] Input shape:  {model.input_shape}")
+    logger.info(f"[MODEL_INIT] Output shape: {model.output_shape}")
 
-    logger.info(f"[MODEL_INIT] Loading level {level} model from: {model_path}")
-
-    if config["loader"] == "joblib":
-        model = joblib.load(model_path)
-        logger.info(f"[MODEL_INIT] Level {level} model path: {os.path.abspath(model_path)}")
-    elif config["loader"] == "keras":
-        from tensorflow import keras
-        model = keras.models.load_model(model_path)
-        abs_path = os.path.abspath(model_path)
-        logger.info(f"[MODEL_INIT] Level {level} Keras model path: {abs_path}")
-        
-        # Determine and log input shape safely
-        try:
-            input_shape = model.input_shape if hasattr(model, 'input_shape') else model.layers[0].input_shape
-            logger.info(f"[MODEL_INIT] Level {level} Keras model input_shape: {input_shape}")
-            
-            # Print model summary via logger
-            logger.info(f"[MODEL_INIT] Level {level} Keras model summary:")
-            model.summary(print_fn=lambda x: logger.info(x))
-        except Exception as e:
-            logger.warning(f"[MODEL_INIT] Could not determine input shape or summary for Level {level}: {str(e)}")
-            
-    else:
-        raise ValueError(f"Unknown loader type: {config['loader']}")
-
-    logger.info(f"[MODEL_INIT] Level {level} model loaded successfully (type: {type(model).__name__})")
     return model
 
 
@@ -82,34 +53,21 @@ def initialize_models() -> Dict[str, Any]:
     """
     Initialize and load all ML models.
     Returns a dictionary of loaded models keyed by name.
-    
-    Keys follow the pattern: hearing_impairment_level{N}
-    Also sets 'hearing_impairment' as an alias for level 1 (backward compat).
     """
     models = {}
 
     try:
         logger.info("=" * 60)
         logger.info("[MODEL_INIT] Starting model initialization")
-        logger.info(f"[MODEL_INIT] Models directory: {MODELS_DIR}")
 
-        for level, config in MODEL_LEVELS.items():
-            key = f"hearing_impairment_level{level}"
-            try:
-                model = _load_single_model(level, config)
-                if model is not None:
-                    models[key] = model
-            except Exception as e:
-                logger.error(
-                    f"[MODEL_INIT] Failed to load level {level} model: {str(e)}",
-                    exc_info=True,
-                )
-                # Continue loading other models even if one fails
-                continue
-
-        # Backward compatibility: alias level 1 as 'hearing_impairment'
-        if "hearing_impairment_level1" in models:
-            models["hearing_impairment"] = models["hearing_impairment_level1"]
+        # Load the unified sign language Keras model
+        try:
+            model = _load_sign_model(SIGN_MODEL_PATH)
+            models["hearing_impairment_tflite"] = model
+            logger.info("[MODEL_INIT] Sign language model registered as 'hearing_impairment_tflite'")
+        except Exception as e:
+            logger.error(f"[MODEL_INIT] Failed to load TFLite model: {str(e)}", exc_info=True)
+            raise
 
         # Load visual impairment models
         logger.info("[MODEL_INIT] Loading visual impairment models...")

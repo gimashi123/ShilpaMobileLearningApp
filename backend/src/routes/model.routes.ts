@@ -90,7 +90,7 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     }
 
     videoPath = req.file.path;
-    const { description, level } = req.body;   // ✅ also read level
+    const { description } = req.body;
 
     const ext = path.extname(req.file.originalname);
 
@@ -99,11 +99,10 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
     console.log("==========================================================");
     console.log(`Filename        : ${req.file.filename} (ext: ${ext})`);
     console.log(`Expected Answer : ${req.body.expected || "NOT PROVIDED"}`);
-    console.log(`Requested Level : ${level}   <--- THIS IS WHAT THE MOBILE APP SENT`);
     console.log(`Description     : ${description}`);
     console.log("==========================================================\n");
 
-    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext}, level: ${level})`);
+    logger.info(`Processing video for prediction: ${req.file.filename} (ext: ${ext})`);
 
     // Create FormData to send video to Python server
     const FormData = require('form-data');
@@ -116,11 +115,6 @@ router.post('/hearing-impairment/predict-video', videoUpload.single('video'), as
 
     if (description) {
       form.append('description', description);
-    }
-
-    // ✅ Forward level to Python so the correct model is selected
-    if (level !== undefined && level !== null && level !== '') {
-      form.append('level', String(level));
     }
 
     // Call Python API with video
