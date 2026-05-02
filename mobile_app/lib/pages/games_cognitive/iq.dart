@@ -19,6 +19,14 @@ void main() {
 
 enum GameType { shape, color, bubble }
 
+Color? _colorFromHex(String input) {
+  final raw = input.trim().replaceFirst('#', '');
+  if (raw.length != 6) return null;
+  final value = int.tryParse(raw, radix: 16);
+  if (value == null) return null;
+  return Color(0xFF000000 | value);
+}
+
 /// =======================
 /// Settings (sound default ON)
 /// =======================
@@ -1114,6 +1122,7 @@ class ShapeMatchGame extends StatefulWidget {
 class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
   final FlutterTts _tts = FlutterTts();
   late final Future<void> _ttsReady;
+  bool _isLoadingShapes = true;
 
   @override
   GameMetrics get metrics => widget.metrics;
@@ -1137,10 +1146,17 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
   void initState() {
     super.initState();
     _ttsReady = _configureTts();
+    _loadDynamicShapes();
   }
 
   String? selectedShape;
-  final List<String> shapes = ['circle', 'square', 'triangle', 'rectangle'];
+  static const List<String> _fallbackShapes = [
+    'circle',
+    'square',
+    'triangle',
+    'rectangle',
+  ];
+  List<String> shapes = List<String>.from(_fallbackShapes);
 
   String targetShape = '';
   String? lastTargetShape;
@@ -1197,6 +1213,21 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(true);
     } catch (_) {}
+  }
+
+  Future<void> _loadDynamicShapes() async {
+    setState(() => _isLoadingShapes = true);
+    try {
+      final config = await fetchIqGameConfig();
+      if (!mounted) return;
+      if (config.shapes.isNotEmpty) {
+        setState(() {
+          shapes = List<String>.from(config.shapes);
+        });
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _isLoadingShapes = false);
   }
 
   String _shapeInstruction(String shape) {
@@ -1469,6 +1500,7 @@ class _ShapeMatchGameState extends BaseTimedGameState<ShapeMatchGame> {
               ),
             ),
             const SizedBox(height: 16),
+            if (_isLoadingShapes) const LinearProgressIndicator(minHeight: 3),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, c) {
@@ -1602,6 +1634,7 @@ class ColorMatchGame extends StatefulWidget {
 class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
   final FlutterTts _tts = FlutterTts();
   late final Future<void> _ttsReady;
+  bool _isLoadingColors = true;
 
   @override
   GameMetrics get metrics => widget.metrics;
@@ -1625,16 +1658,20 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
   void initState() {
     super.initState();
     _ttsReady = _configureTts();
+    _loadDynamicColors();
   }
 
   Color? selectedColor;
 
-  final Map<String, Color> colorOptions = {
-    'රතු': const Color(0xFFDC143C),
-    'නිල්': const Color(0xFF87CEEB),
-    'කොල': const Color(0xFF00FF00),
-    'කහ': const Color(0xFFFFFF00),
+  static const Map<String, Color> _fallbackColorOptions = {
+    'රතු': Color(0xFFDC143C),
+    'නිල්': Color(0xFF87CEEB),
+    'කොල': Color(0xFF00FF00),
+    'කහ': Color(0xFFFFFF00),
   };
+  Map<String, Color> colorOptions = Map<String, Color>.from(
+    _fallbackColorOptions,
+  );
 
   String targetColorName = '';
   Color targetColor = Colors.white;
@@ -1692,6 +1729,28 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
       await _tts.setVolume(1.0);
       await _tts.awaitSpeakCompletion(true);
     } catch (_) {}
+  }
+
+  Future<void> _loadDynamicColors() async {
+    setState(() => _isLoadingColors = true);
+    try {
+      final config = await fetchIqGameConfig();
+      if (!mounted) return;
+      final parsed = <String, Color>{};
+      config.colorOptions.forEach((name, hex) {
+        final color = _colorFromHex(hex);
+        if (color != null) {
+          parsed[name] = color;
+        }
+      });
+      if (parsed.isNotEmpty) {
+        setState(() {
+          colorOptions = parsed;
+        });
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _isLoadingColors = false);
   }
 
   String _colorInstruction(String colorName) => '$colorName පාට තෝරමු';
@@ -1954,6 +2013,7 @@ class _ColorMatchGameState extends BaseTimedGameState<ColorMatchGame> {
               ),
             ),
             const SizedBox(height: 16),
+            if (_isLoadingColors) const LinearProgressIndicator(minHeight: 3),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, c) {
@@ -2061,6 +2121,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
     with SingleTickerProviderStateMixin {
   final FlutterTts _tts = FlutterTts();
   late final Future<void> _ttsReady;
+  bool _isLoadingBubbleColors = true;
 
   @override
   GameMetrics get metrics => widget.metrics;
@@ -2090,7 +2151,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
   Timer? hintBlinkTimer;
   int hintBlinkTicks = 0;
 
-  final List<Color> bubbleColors = [
+  static const List<Color> _fallbackBubbleColors = [
     Colors.red,
     Colors.blue,
     Colors.green,
@@ -2098,6 +2159,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
     Colors.purple,
     Colors.orange,
   ];
+  List<Color> bubbleColors = List<Color>.from(_fallbackBubbleColors);
 
   @override
   void initState() {
@@ -2106,8 +2168,28 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
       duration: const Duration(milliseconds: 32),
     )..addListener(updateBubbles);
     _ttsReady = _configureTts();
+    _loadDynamicBubbleColors();
 
     super.initState();
+  }
+
+  Future<void> _loadDynamicBubbleColors() async {
+    setState(() => _isLoadingBubbleColors = true);
+    try {
+      final config = await fetchIqGameConfig();
+      if (!mounted) return;
+      final parsed = config.bubbleColors
+          .map(_colorFromHex)
+          .whereType<Color>()
+          .toList();
+      if (parsed.isNotEmpty) {
+        setState(() {
+          bubbleColors = parsed;
+        });
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _isLoadingBubbleColors = false);
   }
 
   Future<void> _configureTts() async {
@@ -2353,6 +2435,7 @@ class _PopBubblesGameState extends BaseTimedGameState<PopBubblesGame>
                 ],
               ),
             ),
+            if (_isLoadingBubbleColors) const LinearProgressIndicator(minHeight: 3),
             Expanded(
               child: Stack(
                 children: bubbles.map((b) {

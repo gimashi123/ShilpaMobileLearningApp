@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 
 class MatchImageGameApp extends StatelessWidget {
   const MatchImageGameApp({super.key});
@@ -18,6 +19,9 @@ class _ImageItem {
   final String asset;
 
   const _ImageItem({required this.id, required this.asset});
+
+  bool get isNetwork =>
+      asset.startsWith('http://') || asset.startsWith('https://');
 }
 
 class MatchImageGamePage extends StatefulWidget {
@@ -32,7 +36,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   final _rng = Random();
   final AudioPlayer _sfxPlayer = AudioPlayer();
 
-  final List<_ImageItem> _pool = const [
+  static const List<_ImageItem> _fallbackPool = [
     _ImageItem(id: 'monkey', asset: 'assets/images/cognitive/monkey.png'),
     _ImageItem(id: 'panda', asset: 'assets/images/cognitive/panda.png'),
     _ImageItem(id: 'dog', asset: 'assets/images/cognitive/dog.png'),
@@ -40,6 +44,8 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     _ImageItem(id: 'car', asset: 'assets/images/cognitive/car.png'),
     _ImageItem(id: 'bell', asset: 'assets/images/cognitive/bell.png'),
   ];
+  List<_ImageItem> _pool = List<_ImageItem>.from(_fallbackPool);
+  bool _isLoadingItems = true;
 
   late List<_ImageItem> _tiles;
 
@@ -76,7 +82,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     _starScale = Tween<double>(begin: 0.0, end: 1.2).animate(
       CurvedAnimation(parent: _starController, curve: Curves.elasticOut),
     );
-    _newRound();
+    _loadDynamicItems();
   }
 
   @override
@@ -88,6 +94,9 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   }
 
   void _newRound() {
+    if (_pool.length < 6) {
+      _pool = List<_ImageItem>.from(_fallbackPool);
+    }
     final picks = List<_ImageItem>.from(_pool)..shuffle(_rng);
     final selected = picks.take(6).toList();
     _tiles = [...selected, ...selected]..shuffle(_rng);
@@ -101,6 +110,32 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       _checking = false;
     });
     _pairStartedAt = null;
+  }
+
+  Future<void> _loadDynamicItems() async {
+    setState(() => _isLoadingItems = true);
+
+    final fetched = await _fetchPoolFromApi();
+    if (!mounted) return;
+
+    if (fetched.length >= 6) {
+      _pool = fetched;
+    } else {
+      _pool = List<_ImageItem>.from(_fallbackPool);
+    }
+
+    _newRound();
+    if (!mounted) return;
+    setState(() => _isLoadingItems = false);
+  }
+
+  Future<List<_ImageItem>> _fetchPoolFromApi() async {
+    try {
+      final items = await fetchMatchImageItems();
+      return items.map((e) => _ImageItem(id: e.id, asset: e.asset)).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   void _printAttemptStatsToTerminal({required String event}) {
@@ -235,13 +270,6 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     final feedbackSize = (isWide ? 16.0 : 14.0) * scale;
     final gridSpacing = (isWide ? 12.0 : 8.0) * scale;
     final cardRadius = (isWide ? 16.0 : 12.0) * scale;
-    final accuracy = _questionsPlayed == 0
-        ? 0.0
-        : (_correctAnswers / _questionsPlayed) * 100;
-    final avgReactionMs = _reactionSamples == 0
-        ? 0
-        : (_totalReactionTime.inMilliseconds / _reactionSamples).round();
-    final avgReactionSeconds = avgReactionMs / 1000.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -319,16 +347,18 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
                   ),
                   SizedBox(height: 12 * scale),
                   Expanded(
-                    child: _buildGrid(
-                      items: _tiles,
-                      onTap: _onTapTile,
-                      selectedId: _selectedId,
-                      selectedIndex: _selectedIndex,
-                      gridSpacing: gridSpacing,
-                      cardRadius: cardRadius,
-                      isPortrait: isPortrait,
-                      screenWidth: width,
-                    ),
+                    child: _isLoadingItems
+                        ? const Center(child: CircularProgressIndicator())
+                        : _buildGrid(
+                            items: _tiles,
+                            onTap: _onTapTile,
+                            selectedId: _selectedId,
+                            selectedIndex: _selectedIndex,
+                            gridSpacing: gridSpacing,
+                            cardRadius: cardRadius,
+                            isPortrait: isPortrait,
+                            screenWidth: width,
+                          ),
                   ),
                   SizedBox(height: 12 * scale),
                   Row(
@@ -468,7 +498,18 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
             ),
             child: Opacity(
               opacity: isMatched ? 0.6 : 1.0,
-              child: Image.asset(item.asset, fit: BoxFit.contain),
+              child: item.isNetwork
+                  ? Image.network(
+                      item.asset,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image_outlined,
+                          size: 36,
+                        );
+                      },
+                    )
+                  : Image.asset(item.asset, fit: BoxFit.contain),
             ),
           ),
         );

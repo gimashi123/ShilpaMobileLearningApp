@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'find_image_hand_hint_overlay.dart';
 
 /* =========================
@@ -31,12 +32,14 @@ class PuzzleScreen extends StatefulWidget {
 
 class _PuzzleScreenState extends State<PuzzleScreen> {
   /* ---- IMAGE PLAYLIST ---- */
-  final List<String> imagePool = [
+  static const List<String> _fallbackImagePool = [
     "assets/images/cognitive/monkey.png",
     "assets/images/cognitive/panda.png",
     "assets/images/cognitive/dog.png",
     "assets/images/cognitive/cat.png",
   ];
+  List<String> _imagePool = List<String>.from(_fallbackImagePool);
+  bool _isLoadingImages = true;
 
   late List<String> _playlist;
   int _index = 0;
@@ -68,7 +71,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _confettiController = ConfettiController(
       duration: const Duration(milliseconds: 900),
     );
-    _reshuffle();
+    _loadDynamicImages();
     _resetHintInactivityTimer();
   }
 
@@ -82,8 +85,40 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   void _reshuffle() {
-    _playlist = List<String>.from(imagePool)..shuffle();
+    _playlist = List<String>.from(_imagePool)..shuffle();
     _index = 0;
+  }
+
+  Future<void> _loadDynamicImages() async {
+    setState(() => _isLoadingImages = true);
+    try {
+      final items = await fetchMatchImageItems();
+      if (!mounted) return;
+      final assets = items
+          .map((e) => e.asset.trim())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList();
+      _imagePool = assets.isNotEmpty
+          ? assets
+          : List<String>.from(_fallbackImagePool);
+    } catch (_) {
+      if (!mounted) return;
+      _imagePool = List<String>.from(_fallbackImagePool);
+    }
+    if (!mounted) return;
+    _reshuffle();
+    setState(() => _isLoadingImages = false);
+  }
+
+  bool _isNetworkImage(String path) =>
+      path.startsWith('http://') || path.startsWith('https://');
+
+  Widget _buildImage(String path) {
+    if (_isNetworkImage(path)) {
+      return Image.network(path, fit: BoxFit.cover);
+    }
+    return Image.asset(path, fit: BoxFit.cover);
   }
 
   void _resetHintInactivityTimer() {
@@ -240,6 +275,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         ),
         body: LayoutBuilder(
           builder: (context, c) {
+            if (_isLoadingImages) {
+              return const Center(child: CircularProgressIndicator());
+            }
             final size = Size(c.maxWidth, c.maxHeight);
 
             if (pieces.isEmpty) {
@@ -252,7 +290,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.asset(currentImage, fit: BoxFit.cover),
+                      _buildImage(currentImage),
                       GestureDetector(
                         onTapDown: _autoAdvancing
                             ? null

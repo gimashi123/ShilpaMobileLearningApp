@@ -5,6 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'hand_hint_overlay.dart';
 import 'idle_dino_overlay.dart';
 
@@ -16,8 +17,6 @@ class PatternGameApp extends StatelessWidget {
     return const PatternGamePage();
   }
 }
-
-enum PatternType { colors, shapes, numbers }
 
 class PatternGamePage extends StatefulWidget {
   const PatternGamePage({super.key});
@@ -46,10 +45,21 @@ class _PatternGamePageState extends State<PatternGamePage>
   // Levels & Pattern State
   int level = 1;
   int score = 0;
-  PatternType type = PatternType.colors;
+  String type = 'colors';
   late List<String> pattern;
   late String answer;
   late List<String> options;
+  bool _isLoadingPatternTypes = true;
+
+  static const Map<String, List<String>> _fallbackPatternTypes = {
+    'colors': ["🔵", "🔴", "🟡", "🟢"],
+    'shapes': ["⬛", "⬜", "🔺", "⭐"],
+    'numbers': ["1", "2", "3", "4", "5"],
+  };
+  Map<String, List<String>> _patternTypes = Map<String, List<String>>.from(
+    _fallbackPatternTypes,
+  );
+  List<String> _typeOrder = List<String>.from(_fallbackPatternTypes.keys);
 
   // UI feedback
   String feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
@@ -83,7 +93,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     );
 
     _setupTts();
-    _newRound(speak: true);
+    _loadDynamicPatternTypes();
   }
 
   Future<void> _setupTts() async {
@@ -105,8 +115,43 @@ class _PatternGamePageState extends State<PatternGamePage>
     super.dispose();
   }
 
+  Future<void> _loadDynamicPatternTypes() async {
+    setState(() => _isLoadingPatternTypes = true);
+    final fetched = await _fetchPatternTypesFromApi();
+    if (!mounted) return;
+
+    if (fetched.isNotEmpty) {
+      _patternTypes = fetched;
+      _typeOrder = fetched.keys.toList();
+    } else {
+      _patternTypes = Map<String, List<String>>.from(_fallbackPatternTypes);
+      _typeOrder = List<String>.from(_fallbackPatternTypes.keys);
+    }
+
+    _newRound(speak: true);
+    if (!mounted) return;
+    setState(() => _isLoadingPatternTypes = false);
+  }
+
+  Future<Map<String, List<String>>> _fetchPatternTypesFromApi() async {
+    try {
+      final items = await fetchMatchPatternTypeItems();
+      final data = <String, List<String>>{};
+      for (final item in items) {
+        final cleaned = item.bank.where((e) => e.trim().isNotEmpty).toList();
+        if (item.type.trim().isNotEmpty && cleaned.length >= 3) {
+          data[item.type.trim()] = cleaned;
+        }
+      }
+      return data;
+    } catch (_) {
+      return {};
+    }
+  }
+
   void _newRound({bool speak = false}) {
-    type = PatternType.values[(level - 1) % PatternType.values.length];
+    if (_typeOrder.isEmpty) return;
+    type = _typeOrder[(level - 1) % _typeOrder.length];
 
     if (level <= 2) {
       _makeABAB();
@@ -170,15 +215,12 @@ class _PatternGamePageState extends State<PatternGamePage>
     options = _buildOptions(answer, bank, 4);
   }
 
-  List<String> _bankForType(PatternType t) {
-    switch (t) {
-      case PatternType.colors:
-        return const ["🔵", "🔴", "🟡", "🟢"];
-      case PatternType.shapes:
-        return const ["⬛", "⬜", "🔺", "⭐"];
-      case PatternType.numbers:
-        return const ["1", "2", "3", "4", "5"];
+  List<String> _bankForType(String t) {
+    final bank = _patternTypes[t];
+    if (bank == null || bank.isEmpty) {
+      return const ["1", "2", "3", "4", "5"];
     }
+    return bank;
   }
 
   List<String> _buildOptions(String correct, List<String> bank, int count) {
@@ -315,6 +357,10 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingPatternTypes) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final size = MediaQuery.sizeOf(context);
     final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
     final questionRow = [...pattern, "?"];

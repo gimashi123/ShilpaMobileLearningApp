@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'hand_hint_overlay.dart';
 
 class SoundPictureMatchApp extends StatelessWidget {
@@ -25,6 +26,12 @@ class SoundItem {
     required this.soundAsset,
     required this.imageAsset,
   });
+
+  bool get hasNetworkSound =>
+      soundAsset.startsWith('http://') || soundAsset.startsWith('https://');
+
+  bool get hasNetworkImage =>
+      imageAsset.startsWith('http://') || imageAsset.startsWith('https://');
 }
 
 class SoundPictureMatchGame extends StatefulWidget {
@@ -44,7 +51,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   final List<GlobalKey> _cardKeys = List.generate(4, (index) => GlobalKey());
   bool _showHandHint = false;
 
-  final List<SoundItem> _items = const [
+  static const List<SoundItem> _fallbackItems = [
     SoundItem(
       id: "dog",
       soundAsset: "sounds/cognitive/dog.mp3",
@@ -66,6 +73,8 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       imageAsset: "assets/images/cognitive/car.png",
     ),
   ];
+  List<SoundItem> _items = List<SoundItem>.from(_fallbackItems);
+  bool _isLoadingItems = true;
 
   late SoundItem _current;
   late List<SoundItem> _choices;
@@ -102,7 +111,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     _starScale = Tween<double>(begin: 0.0, end: 1.2).animate(
       CurvedAnimation(parent: _starController, curve: Curves.elasticOut),
     );
-    _startNewRound();
+    _loadDynamicItems();
   }
 
   @override
@@ -132,6 +141,9 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   }
 
   void _startNewRound() {
+    if (_items.length < 4) {
+      _items = List<SoundItem>.from(_fallbackItems);
+    }
     _cancelAllTimers();
     _current = _items[_rng.nextInt(_items.length)];
     final pool = _items.where((e) => e.id != _current.id).toList()
@@ -150,18 +162,22 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 
     _autoPlayTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted || _locked || _soundPlayedThisRound) return;
-      _playSound(startedByAuto: true);
+      _playSound();
     });
   }
 
-  Future<void> _playSound({bool startedByAuto = false}) async {
+  Future<void> _playSound() async {
     _soundPlayedThisRound = true;
     _roundSoundPlayedAt = DateTime.now();
     _autoPlayTimer?.cancel();
     _stopHintBlink();
 
     await _player.stop();
-    await _player.play(AssetSource(_current.soundAsset));
+    if (_current.hasNetworkSound) {
+      await _player.play(UrlSource(_current.soundAsset));
+    } else {
+      await _player.play(AssetSource(_current.soundAsset));
+    }
 
     if (!mounted) return;
     setState(() => _feedback = "දැන් නිවැරදි රූපය තට්ටු කරන්න");
@@ -171,6 +187,40 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       if (!mounted || _locked) return;
       _startBlinkHint();
     });
+  }
+
+  Future<void> _loadDynamicItems() async {
+    setState(() => _isLoadingItems = true);
+
+    final fetched = await _fetchPoolFromApi();
+    if (!mounted) return;
+
+    if (fetched.length >= 4) {
+      _items = fetched;
+    } else {
+      _items = List<SoundItem>.from(_fallbackItems);
+    }
+
+    _startNewRound();
+    if (!mounted) return;
+    setState(() => _isLoadingItems = false);
+  }
+
+  Future<List<SoundItem>> _fetchPoolFromApi() async {
+    try {
+      final items = await fetchMatchSoundItems();
+      return items
+          .map(
+            (e) => SoundItem(
+              id: e.id,
+              soundAsset: e.soundAsset,
+              imageAsset: e.imageAsset,
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   void _startBlinkHint() {
@@ -224,7 +274,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     });
 
     if (correct) {
-      setState(() => _feedback = "හරි! හොඳ වැඩයි.");
+      setState(() => _feedback = "හරි! හොඳයි.");
       await _playRewardAnimation();
       if (!mounted) return;
       _startNewRound();
@@ -293,75 +343,77 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
           children: [
             Padding(
               padding: EdgeInsets.all(16 * scale),
-              child: Column(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _locked ? null : () => _playSound(),
-                    icon: const Icon(Icons.volume_up, size: 28),
-                    label: const Text("ශබ්දය ප්‍රසංගය කරන්න"),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 60),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.black.withOpacity(0.05),
-                    ),
-                    child: Text(
-                      _feedback,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Expanded(
-                    child: GridView.builder(
-                      itemCount: _choices.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
+              child: _isLoadingItems
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _locked ? null : () => _playSound(),
+                          icon: const Icon(Icons.volume_up, size: 28),
+                          label: const Text("ශබ්දය ප්‍රසංගය කරන්න"),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 60),
                           ),
-                      itemBuilder: (context, index) {
-                        return _PictureCard(
-                          key: _cardKeys[index], // KEY ASSIGNED HERE
-                          imageAsset: _choices[index].imageAsset,
-                          onTap: () => _onPick(_choices[index]),
-                          disabled: _locked,
-                          blinkGreen: index == _hintBlinkIndex,
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.black.withOpacity(0.05),
+                          ),
+                          child: Text(
+                            _feedback,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Expanded(
+                          child: GridView.builder(
+                            itemCount: _choices.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                ),
+                            itemBuilder: (context, index) {
+                              return _PictureCard(
+                                key: _cardKeys[index], // KEY ASSIGNED HERE
+                                item: _choices[index],
+                                onTap: () => _onPick(_choices[index]),
+                                disabled: _locked,
+                                blinkGreen: index == _hintBlinkIndex,
+                              );
+                            },
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _goDashboard,
+                                icon: const Icon(Icons.dashboard),
+                                label: const Text("Home"),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _startNewRound,
+                                icon: const Icon(Icons.restart_alt),
+                                label: const Text("Restart"),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _goDashboard,
-                          icon: const Icon(Icons.dashboard),
-                          label: const Text("Home"),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _startNewRound,
-                          icon: const Icon(Icons.restart_alt),
-                          label: const Text("Restart"),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
             Align(
               alignment: Alignment.topCenter,
@@ -379,9 +431,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
             if (_showHandHint)
               HandHintOverlay(
                 targetKey:
-                    _cardKeys[_choices.indexWhere(
-                      (it) => it.id == _current.id,
-                    )],
+                    _cardKeys[_choices.indexWhere((it) => it.id == _current.id)],
                 onFinished: () => setState(() => _showHandHint = false),
               ),
           ],
@@ -392,14 +442,14 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
 }
 
 class _PictureCard extends StatelessWidget {
-  final String imageAsset;
+  final SoundItem item;
   final VoidCallback onTap;
   final bool disabled;
   final bool blinkGreen;
 
   const _PictureCard({
     super.key,
-    required this.imageAsset,
+    required this.item,
     required this.onTap,
     required this.disabled,
     required this.blinkGreen,
@@ -425,7 +475,9 @@ class _PictureCard extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Image.asset(imageAsset, fit: BoxFit.contain),
+          child: item.hasNetworkImage
+              ? Image.network(item.imageAsset, fit: BoxFit.contain)
+              : Image.asset(item.imageAsset, fit: BoxFit.contain),
         ),
       ),
     );

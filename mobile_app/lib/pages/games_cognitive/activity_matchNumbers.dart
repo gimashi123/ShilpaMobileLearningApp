@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'idle_dino_overlay.dart';
 // --- HAND HINT OVERLAY WIDGET ---
 class HandHintOverlay extends StatefulWidget {
@@ -125,7 +126,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   final AudioPlayer _sfxPlayer = AudioPlayer();
   final GlobalKey _correctKey = GlobalKey(); // Key to track correct answer position
 
-  final List<NumberItem> _items = const [
+  static const List<NumberItem> _fallbackItems = [
     NumberItem(value: 1, word: "එක"),
     NumberItem(value: 2, word: "දෙක"),
     NumberItem(value: 3, word: "තුන"),
@@ -136,6 +137,8 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     NumberItem(value: 8, word: "අට"),
     NumberItem(value: 9, word: "නවය"),
   ];
+  List<NumberItem> _items = List<NumberItem>.from(_fallbackItems);
+  bool _isLoadingItems = true;
 
   late NumberItem _current;
   late List<NumberItem> _choices;
@@ -177,7 +180,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     _starScale = Tween<double>(begin: 0.0, end: 1.2).animate(
       CurvedAnimation(parent: _starController, curve: Curves.elasticOut),
     );
-    _startNewRound();
+    _loadDynamicItems();
   }
 
   @override
@@ -230,6 +233,9 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   }
 
   void _startNewRound() {
+    if (_items.length < 4) {
+      _items = List<NumberItem>.from(_fallbackItems);
+    }
     _cancelHintTimers();
     _current = _items[_rng.nextInt(_items.length)];
     final pool = _items.where((e) => e.value != _current.value).toList()..shuffle(_rng);
@@ -245,6 +251,31 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
     });
     _roundStartedAt = DateTime.now();
     _startHintTimer();
+  }
+
+  Future<void> _loadDynamicItems() async {
+    setState(() => _isLoadingItems = true);
+    final fetched = await _fetchItemsFromApi();
+    if (!mounted) return;
+
+    _items = fetched.length >= 4
+        ? fetched
+        : List<NumberItem>.from(_fallbackItems);
+    _startNewRound();
+
+    if (!mounted) return;
+    setState(() => _isLoadingItems = false);
+  }
+
+  Future<List<NumberItem>> _fetchItemsFromApi() async {
+    try {
+      final items = await fetchMatchNumberItems();
+      return items
+          .map((e) => NumberItem(value: e.value, word: e.word))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<void> _onPick(NumberItem picked, int index) async {
@@ -309,6 +340,11 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
+    if (_isLoadingItems) {
+      return const Scaffold(
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
     return IdleDinoOverlay(
     gifPath: 'assets/images/cognitive/dinosaur_2.gif',
 

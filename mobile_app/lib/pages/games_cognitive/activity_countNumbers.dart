@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
 
 class SinhalaNumberGame extends StatefulWidget {
@@ -13,20 +14,20 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     with SingleTickerProviderStateMixin {
   final FlutterTts _tts = FlutterTts();
 
-  final List<int> _numbers = List.generate(10, (i) => i + 1);
-
-  final List<String> _siWords = const [
-    "එක",
-    "දෙක",
-    "තුන",
-    "හතර",
-    "පහ",
-    "හය",
-    "හත",
-    "අට",
-    "නවය",
-    "දහය",
+  static const List<MatchNumberItem> _fallbackItems = [
+    MatchNumberItem(value: 1, word: "එක"),
+    MatchNumberItem(value: 2, word: "දෙක"),
+    MatchNumberItem(value: 3, word: "තුන"),
+    MatchNumberItem(value: 4, word: "හතර"),
+    MatchNumberItem(value: 5, word: "පහ"),
+    MatchNumberItem(value: 6, word: "හය"),
+    MatchNumberItem(value: 7, word: "හත"),
+    MatchNumberItem(value: 8, word: "අට"),
+    MatchNumberItem(value: 9, word: "නවය"),
+    MatchNumberItem(value: 10, word: "දහය"),
   ];
+  List<MatchNumberItem> _items = List<MatchNumberItem>.from(_fallbackItems);
+  bool _isLoadingItems = true;
 
   /// Teaching chunks that Sinhala TTS pronounces more reliably than single letters.
   /// (This also solves the “some letters are not spelled” issue.)
@@ -77,7 +78,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
       duration: const Duration(milliseconds: 650),
     );
 
-    _setupTts().then((_) => _startAuto());
+    _setupTts().then((_) => _loadDynamicItems());
   }
 
   Future<void> _setupTts() async {
@@ -117,8 +118,8 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     super.dispose();
   }
 
-  int get currentNumber => _numbers[_index];
-  String get currentWord => _siWords[_index];
+  int get currentNumber => _items[_index].value;
+  String get currentWord => _items[_index].word;
 
   void _setHighlight(bool on) {
     if (!mounted) return;
@@ -131,13 +132,21 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     }
   }
 
+  List<String> _teachingChunksForCurrent() {
+    final predefined = _teachChunks[currentNumber];
+    if (predefined != null && predefined.length >= 2) {
+      return predefined;
+    }
+    final letters = currentWord.runes.map((e) => String.fromCharCode(e)).toList();
+    if (letters.isEmpty) return [currentWord];
+    return [...letters, currentWord];
+  }
+
   List<String> _currentVisibleChunks() {
     // We use the chunks except the last one (full word)
-    final chunks = _teachChunks[currentNumber] ?? const [];
-    if (chunks.isEmpty) return const [];
-
+    final chunks = _teachingChunksForCurrent();
     // Everything except last item is “step chunks”
-    final stepChunks = chunks.sublist(0, chunks.length - 1);
+    final stepChunks = chunks.length > 1 ? chunks.sublist(0, chunks.length - 1) : <String>[];
 
     final neededSlots = _slots[currentNumber] ?? stepChunks.length;
 
@@ -155,9 +164,9 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
     }
   }
 
-  Future<void> _teachStepByStep(int number) async {
-    final chunks = _teachChunks[number];
-    if (chunks == null || chunks.isEmpty) return;
+  Future<void> _teachStepByStep() async {
+    final chunks = _teachingChunksForCurrent();
+    if (chunks.isEmpty) return;
 
     final stepChunks = chunks.sublist(0, chunks.length - 1);
     final fullWord = chunks.last;
@@ -171,7 +180,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
       if (!mounted) return;
 
       // reveal on UI (do not reveal more than slot count)
-      final maxSlots = _slots[number] ?? stepChunks.length;
+      final maxSlots = _slots[currentNumber] ?? stepChunks.length;
       final revealCount = (i + 1) > maxSlots ? maxSlots : (i + 1);
       setState(() => _revealed = revealCount);
 
@@ -193,20 +202,21 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   }
 
   Future<void> _startAuto() async {
+    if (_items.isEmpty) return;
     final myToken = ++_runToken;
 
     while (mounted && myToken == _runToken) {
       // repeat 5 times per number
       for (int r = 0; r < 5; r++) {
         if (!mounted || myToken != _runToken) return;
-        await _teachStepByStep(currentNumber);
+        await _teachStepByStep();
         await Future.delayed(const Duration(seconds: 2));
       }
 
       if (!mounted || myToken != _runToken) return;
 
       // move to next number
-      if (_index < _numbers.length - 1) {
+      if (_index < _items.length - 1) {
         await _tts.stop();
         _setHighlight(false);
         await _showLoadingScreen();
@@ -219,6 +229,31 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
         return;
       }
     }
+  }
+
+  Future<void> _loadDynamicItems() async {
+    setState(() => _isLoadingItems = true);
+    try {
+      final fetched = await fetchMatchNumberItems();
+      if (!mounted) return;
+      if (fetched.isNotEmpty) {
+        fetched.sort((a, b) => a.value.compareTo(b.value));
+        _items = fetched;
+      } else {
+        _items = List<MatchNumberItem>.from(_fallbackItems);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _items = List<MatchNumberItem>.from(_fallbackItems);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingItems = false;
+      _index = 0;
+      _revealed = 0;
+    });
+    _startAuto();
   }
 
   Future<void> _showLoadingScreen() async {
@@ -234,7 +269,7 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
   }
 
   void _restartFromIndex(int newIndex) {
-    if (newIndex < 0 || newIndex >= _numbers.length) return;
+    if (newIndex < 0 || newIndex >= _items.length) return;
 
     _runToken++;
     _tts.stop();
@@ -250,6 +285,13 @@ class _SinhalaNumberGameState extends State<SinhalaNumberGame>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingItems) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
+
     final visibleChunks = _currentVisibleChunks();
     final slotCount = visibleChunks.isEmpty ? 2 : visibleChunks.length;
 
