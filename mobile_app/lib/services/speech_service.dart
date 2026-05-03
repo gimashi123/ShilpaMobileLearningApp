@@ -107,10 +107,10 @@ class SpeechService {
             'Heard: ${result.recognizedWords} (Final: ${result.finalResult}, Conf: ${confidence.toStringAsFixed(2)})',
           );
 
-          // Acoustic Confidence Threshold Filter
-          // If confidence is too low (< 0.5), we ignore to prevent false activations
+          // Acoustic Confidence Threshold Filter - Lowered for better sensitivity
+          // If confidence is too low (< 0.2), we ignore to prevent false activations
           if (result.finalResult && _onCommandRecognized != null) {
-            if (confidence > 0.5 || confidence == 0) {
+            if (confidence > 0.2 || confidence == 0) {
               // 0 sometimes means not reported
               _onCommandRecognized!(result.recognizedWords);
             } else {
@@ -119,10 +119,11 @@ class SpeechService {
           }
         },
         listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 10), // Increased pause duration
-        cancelOnError: false, // Don't cancel immediately on error
+        pauseFor: const Duration(seconds: 5), // Quicker response
+        cancelOnError: false, 
         listenMode:
-            stt.ListenMode.dictation, // Use dictation for better sensitivity
+            stt.ListenMode.confirmation, // Optimized for short commands
+        onDevice: true, // Faster and often more sensitive
         partialResults: true,
       );
     } catch (e) {

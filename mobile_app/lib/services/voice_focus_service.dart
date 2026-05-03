@@ -18,15 +18,20 @@ class VoiceFocusService {
   VoiceFocusService._internal();
 
   final List<VoiceElement> _elements = [];
-  int _idCounter = 1;
 
   // Stream to notify UI when indexes need refresh
   final _refreshController = StreamController<void>.broadcast();
   Stream<void> get refreshStream => _refreshController.stream;
 
-  /// Registers a button. Returns a unique ID for this session.
+  /// Registers a button. Returns a unique small ID (1-10) for this screen.
   int register(VoidCallback action, {String? label}) {
-    final id = _idCounter++;
+    // Find the smallest available ID starting from 1
+    int id = 1;
+    final existingIds = _elements.map((e) => e.id).toSet();
+    while (existingIds.contains(id)) {
+      id++;
+    }
+
     _elements.add(VoiceElement(id: id, label: label, onTap: action));
 
     // Batch refresh notifications
@@ -84,7 +89,6 @@ class VoiceFocusService {
   /// Resets the counter when screen changes
   void clear() {
     _elements.clear();
-    _idCounter = 1;
     _refreshController.add(null);
   }
 

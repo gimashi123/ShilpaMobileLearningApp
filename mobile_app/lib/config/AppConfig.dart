@@ -6,6 +6,6 @@ class AppConfig {
   }
 
   static String get apiChatBaseUrl {
-    return dotenv.env['API_CHAT_BASE_URL'] ?? 'http://192.168.1.100:8000';
+    return dotenv.env['API_CHAT_BASE_URL'] ?? 'http://192.168.8.179:8000';
   }
 }

@@ -35,6 +35,7 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   InputMode _inputMode =
       InputMode.standard; // Default to standard mode, not dwell
   int _selectedTab = 0; // 0: Home, 1: Learn, 2: Games, 3: Profile
+  String? _initialLearnSubject; // To store subject when navigating from home
 
   // --- Eye Gaze & Dwell State ---
   final _eyeTrackingService = EyeTrackingService();
@@ -473,9 +474,20 @@ class _PhysicalMainScreenState extends State<PhysicalMainScreen> {
   Widget _buildContent() {
     switch (_selectedTab) {
       case 0:
-        return DashboardContent(inputMode: _inputMode);
+        return DashboardContent(
+          inputMode: _inputMode,
+          onNavigateToLearn: (subject) {
+            setState(() {
+              _initialLearnSubject = subject;
+              _selectedTab = 1; // Switch to Learn tab
+            });
+          },
+        );
       case 1:
-        return LearnContent(inputMode: _inputMode);
+        return LearnContent(
+          inputMode: _inputMode,
+          initialSubject: _initialLearnSubject,
+        );
       case 2:
         return GamesContent(inputMode: _inputMode);
       case 3:
