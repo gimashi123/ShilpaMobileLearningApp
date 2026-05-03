@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(extract-text \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\")",
+      "Bash(pandoc \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" -o /tmp/gimashi_report.md)",
+      "Read(//tmp/**)",
+      "Bash(python \"C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/a7a193dc-4412-4d7a-82fc-c26eb3c9b2e7/44570f50-12ae-4756-8199-b5c3d0205625/skills/docx/scripts/office/unpack.py\" \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" /tmp/gimashi_unpacked/)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(mkdir -p /tmp)",
+      "Bash(where pdftoppm *)",
+      "Read(//c/Program Files/**)",
+      "Bash(python \"C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/a7a193dc-4412-4d7a-82fc-c26eb3c9b2e7/44570f50-12ae-4756-8199-b5c3d0205625/skills/docx/scripts/office/pack.py\" /tmp/gimashi_unpacked/ \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" --original \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\")",
+      "Bash(PYTHONIOENCODING=utf-8 python \"C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/a7a193dc-4412-4d7a-82fc-c26eb3c9b2e7/44570f50-12ae-4756-8199-b5c3d0205625/skills/docx/scripts/office/pack.py\" /tmp/gimashi_unpacked/ \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" --original \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\")",
+      "Bash(xargs ls *)",
+      "Bash(python C:/Users/User/AppData/Local/Temp/gimashi/make_accuracy_plot.py)",
+      "Bash(python \"C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/a7a193dc-4412-4d7a-82fc-c26eb3c9b2e7/44570f50-12ae-4756-8199-b5c3d0205625/skills/docx/scripts/office/soffice.py\" --headless --convert-to pdf \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" --outdir C:/Users/User/AppData/Local/Temp/gimashi/)",
+      "Bash(where soffice *)",
+      "Bash(python C:/Users/User/AppData/Local/Temp/gimashi/rewrite_sections.py)",
+      "Bash(pandoc \"E:/ShilpaMobileLearningApp/documents/chamindu Final Report document.docx\" -t plain)",
+      "Bash(pandoc \"E:/ShilpaMobileLearningApp/documents/final report _Gimashi.docx\" -t plain)",
+      "Bash(python C:/Users/User/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/a7a193dc-4412-4d7a-82fc-c26eb3c9b2e7/44570f50-12ae-4756-8199-b5c3d0205625/skills/docx/scripts/extract-text.py 'E:/ShilpaMobileLearningApp/documents/chamindu Final Report document.docx')"
+    ]
+  }
+}
