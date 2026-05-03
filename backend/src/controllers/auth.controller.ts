@@ -167,6 +167,7 @@ export const getMe = async (req: any, res: Response) => {
       role: user.role,
       disabilityType: user.disabilityType,
       student: user.student,
+      signGameXp: user.signGameXp,
     });
   } catch (err) {
     console.error("GET_ME_ERROR", err);
@@ -189,6 +190,7 @@ const createLoginResponse = (user: any): AuthResponse => {
       role: user.role,
       disabilityType: user.disabilityType,
       student: user.student,
+      signGameXp: user.signGameXp,
     },
   };
 };

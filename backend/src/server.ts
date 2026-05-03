@@ -17,6 +17,8 @@ import { spawn } from 'child_process';
 import cogvitive from './routes/cognitive/routes';
 import quizRoutes from "@routes/quiz.routes";
 import answerValidation from "./routes/answerValidation.routes";
+import signGameRoutes from "./routes/signGame.routes";
+import requireAuth from "./middlewares/auth.middleware";
 
 
 
@@ -174,3 +176,6 @@ app.use('/api/quizzes', quizRoutes);
 app.use("/api", answerValidation);
 
 app.use("/api/quizzes", quizRoutes);
+
+// Sign Language Math Game History Routes
+app.use("/api/sign-game", requireAuth, signGameRoutes);

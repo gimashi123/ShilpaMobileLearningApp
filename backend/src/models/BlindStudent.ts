@@ -16,6 +16,7 @@ export interface IUser extends Document {
     role: Role;
     student?: StudentProfile;
     disabilityType?: DisabilityType;
+    signGameXp: number;
     comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -61,6 +62,11 @@ const UserSchema = new Schema<IUser>(
             required: function (this: IUser) {
                 return this.role === 'student';
             },
+        },
+
+        signGameXp: {
+            type: Number,
+            default: 0,
         },
     },
     { timestamps: true }
