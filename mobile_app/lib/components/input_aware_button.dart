@@ -161,13 +161,18 @@ class _InputAwareButtonState extends State<InputAwareButton>
     if (isInside) {
       if (!_isGazeInside) {
         setState(() => _isGazeInside = true);
+        
+        // MAGNETIC SNAP: Lock cursor to button center
+        final Offset center = box.localToGlobal(box.size.center(Offset.zero));
+        EyeTrackingService().setStickyPosition(center);
+
         _interactionService.updateStatus(
           InteractionStatus(state: InteractionState.hovering),
         );
       }
 
-      // Blink Detection (Probability < 0.15 indicates eyes closed)
-      if (data.blinkProbability < 0.15) {
+      // Blink Detection (Probability < 0.35 indicates eyes closed - Sensitive)
+      if (data.blinkProbability < 0.35) {
         if (!_isBlinking) {
           _isBlinking = true;
           _handleBlinkTrigger();
@@ -181,6 +186,10 @@ class _InputAwareButtonState extends State<InputAwareButton>
           _isGazeInside = false;
           _isWaitingForSecondBlink = false;
           _confirmationTimeout?.cancel();
+          
+          // MAGNETIC UNLOCK: Release cursor
+          EyeTrackingService().setStickyPosition(null);
+
           _interactionService.clear();
           _resetDwell();
         });
@@ -232,6 +241,9 @@ class _InputAwareButtonState extends State<InputAwareButton>
     _gazeSubscription?.cancel();
     _voiceSubscription?.cancel();
     _focusRefreshSubscription?.cancel();
+    if (_isGazeInside) {
+      EyeTrackingService().setStickyPosition(null);
+    }
     if (_voiceId != null) VoiceFocusService().unregister(_voiceId!);
     super.dispose();
   }

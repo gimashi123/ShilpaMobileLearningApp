@@ -7,7 +7,55 @@ import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'dart:math' as math;
 import 'performance_logger.dart'; // Added for research logging
+
+/// -------------------------------------------------------------------------
+/// COMPONENT: 1-Euro Filter for Adaptive Smoothing
+/// -------------------------------------------------------------------------
+class OneEuroFilter {
+  final double minCutoff;
+  final double beta;
+  final double dCutoff;
+  double _lastTimestamp = -1;
+  double _yPrev = 0;
+  double _dyPrev = 0;
+
+  OneEuroFilter({this.minCutoff = 1.0, this.beta = 0.0, this.dCutoff = 1.0});
+
+  double filter(double value, double timestamp) {
+    if (_lastTimestamp == -1) {
+      _lastTimestamp = timestamp;
+      _yPrev = value;
+      return value;
+    }
+
+    double dt = timestamp - _lastTimestamp;
+    if (dt <= 0) return _yPrev;
+
+    double dy = (value - _yPrev) / dt;
+    double dySmoothed = _lowPass(dy, _dyPrev, _alpha(dt, dCutoff));
+    _dyPrev = dySmoothed;
+
+    double cutoff = minCutoff + beta * dySmoothed.abs();
+    double ySmoothed = _lowPass(value, _yPrev, _alpha(dt, cutoff));
+
+    _lastTimestamp = timestamp;
+    _yPrev = ySmoothed;
+
+    return ySmoothed;
+  }
+
+  double _alpha(double dt, double cutoff) {
+    double tau = 1.0 / (2 * math.pi * cutoff);
+    return 1.0 / (1.0 + tau / dt);
+  }
+
+  double _lowPass(double value, double prev, double alpha) {
+    return alpha * value + (1.0 - alpha) * prev;
+  }
+}
 
 class GazeData {
   final double x;
@@ -15,6 +63,8 @@ class GazeData {
   final double confidence;
   final bool isStable;
   final double blinkProbability; // Adds support for "Blink to Select"
+  final double luminance; // New: To detect low-light environments
+  final double deviceShake; // New: To detect shaky hands via accelerometer
   final DateTime timestamp;
 
   GazeData({
@@ -22,7 +72,9 @@ class GazeData {
     required this.y,
     required this.confidence,
     this.isStable = false,
-    this.blinkProbability = 1.0, // 1.0 = Fully open, 0.0 = Closed
+    this.blinkProbability = 1.0,
+    this.luminance = 100.0,
+    this.deviceShake = 0.0,
     required this.timestamp,
   });
 }
@@ -63,6 +115,7 @@ class EyeTrackingService {
   );
   final ValueNotifier<bool> isStableNotifier = ValueNotifier(false);
   final ValueNotifier<bool> isFaceDetectedNotifier = ValueNotifier(true);
+  final ValueNotifier<Offset?> stickyPosition = ValueNotifier(null);
 
   bool get isInitialized => _isInitialized;
 
@@ -78,11 +131,16 @@ class EyeTrackingService {
   double _stabilityVarianceThreshold =
       25.0; // Pixels variance (Personalized later)
 
-  // EMA Variables
-  Offset? _smoothedPosition;
-  static const double _emaAlpha = 0.25; // Smoothing factor (0.0 to 1.0)
+  // 1-Euro Filter Instances
+  final OneEuroFilter _filterX = OneEuroFilter(minCutoff: 0.5, beta: 0.01);
+  final OneEuroFilter _filterY = OneEuroFilter(minCutoff: 0.5, beta: 0.01);
 
   Offset? _lastRawPosition;
+
+  // Environment & Motion Data
+  double _currentLuminance = 100.0;
+  double _currentDeviceShake = 0.0;
+  StreamSubscription? _accelerometerSub;
 
   Future<EyeTrackingInitializationResult> initialize() async {
     if (_isInitialized) return EyeTrackingInitializationResult(success: true);
@@ -133,6 +191,22 @@ class EyeTrackingService {
       );
 
       await _cameraController!.initialize();
+
+      // Optimize for low-light if needed
+      if (await _cameraController!.getMinExposureOffset() < 0) {
+        await _cameraController!.setExposureOffset(1.0); // Brighten by default
+      }
+
+      // Start Accelerometer to detect shaky hands
+      _accelerometerSub = accelerometerEventStream().listen((event) {
+        // Calculate G-force magnitude change
+        _currentDeviceShake = math.sqrt(
+          event.x * event.x + event.y * event.y + event.z * event.z,
+        );
+        // Normalize: Subtract gravity (~9.8) and clamp
+        _currentDeviceShake = (_currentDeviceShake - 9.8).abs().clamp(0.0, 5.0);
+      });
+
       _isInitialized = true;
       debugPrint("EyeTracking: Initialization successful.");
       return EyeTrackingInitializationResult(success: true);
@@ -162,6 +236,9 @@ class EyeTrackingService {
           return;
         }
 
+        // Environment Check: Calculate Luminance from Y-Plane
+        _currentLuminance = _calculateLuminance(image);
+
         final faces = await _faceDetector?.processImage(inputImage);
 
         if (faces != null && faces.isNotEmpty && _isTracking) {
@@ -175,7 +252,14 @@ class EyeTrackingService {
           isFaceDetectedNotifier.value = false;
           // Send 0 confidence to indicate no face detected
           _gazeController.add(
-            GazeData(x: -1, y: -1, confidence: 0, timestamp: DateTime.now()),
+            GazeData(
+              x: -1,
+              y: -1,
+              confidence: 0,
+              luminance: _currentLuminance,
+              deviceShake: _currentDeviceShake,
+              timestamp: DateTime.now(),
+            ),
           );
         }
       } catch (e) {
@@ -291,6 +375,16 @@ class EyeTrackingService {
     return nv21;
   }
 
+  double _calculateLuminance(CameraImage image) {
+    final Uint8List plane = image.planes[0].bytes;
+    double total = 0;
+    // Sample every 10th pixel for performance
+    for (int i = 0; i < plane.length; i += 10) {
+      total += plane[i];
+    }
+    return total / (plane.length / 10);
+  }
+
   /// -------------------------------------------------------------------------
   /// ALGORITHM 1: Real-Time Gaze Stability Filtering Model (The "Catch")
   /// This algorithm runs at ~30 FPS to stabilize raw jittery eye/head data.
@@ -341,24 +435,18 @@ class EyeTrackingService {
     }
     _lastRawPosition = currentRawPosition;
 
-    // Step 2: Exponential Moving Average (EMA) Smoothing
-    // This provides better responsiveness while aggressively suppressing noise.
-    if (_smoothedPosition == null) {
-      _smoothedPosition = currentRawPosition;
-    } else {
-      _smoothedPosition = Offset(
-        _smoothedPosition!.dx +
-            _emaAlpha * (currentRawPosition.dx - _smoothedPosition!.dx),
-        _smoothedPosition!.dy +
-            _emaAlpha * (currentRawPosition.dy - _smoothedPosition!.dy),
-      );
-    }
+    _lastRawPosition = currentRawPosition;
+
+    // Step 2: 1-Euro Filter Smoothing (Adaptive)
+    // Replaces EMA for better jitter suppression while maintaining low lag.
+    double timestamp = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    double filteredX = _filterX.filter(currentRawPosition.dx, timestamp);
+    double filteredY = _filterY.filter(currentRawPosition.dy, timestamp);
+    Offset smoothedPos = Offset(filteredX, filteredY);
 
     // Still track history for variance/stability calculation
     _history.add(currentRawPosition);
     if (_history.length > _historyLimit) _history.removeAt(0);
-
-    Offset smoothedPos = _smoothedPosition!;
 
     // Step 4: Stability Window Logic
     bool isStable = false;
@@ -384,7 +472,13 @@ class EyeTrackingService {
     final blinkProb = (leftEyeOpen + rightEyeOpen) / 2.0;
 
     // Update global ValueNotifiers
-    currentGaze.value = smoothedPos;
+    // MAGNETIC LOGIC: If a sticky position (button center) is set, lock the public cursor to it.
+    if (stickyPosition.value != null) {
+      currentGaze.value = stickyPosition.value!;
+    } else {
+      currentGaze.value = smoothedPos;
+    }
+    
     isStableNotifier.value = isStable;
 
     _gazeController.add(
@@ -394,6 +488,8 @@ class EyeTrackingService {
         confidence: 0.9,
         isStable: isStable,
         blinkProbability: blinkProb,
+        luminance: _currentLuminance,
+        deviceShake: _currentDeviceShake,
         timestamp: DateTime.now(),
       ),
     );
@@ -417,7 +513,6 @@ class EyeTrackingService {
     _calibrationSamples.clear();
     _gazeOffset = Offset.zero;
     _history.clear();
-    _smoothedPosition = null;
     _calculatedAccuracy = 0.0;
     _lastRawPosition = null;
   }
@@ -500,6 +595,10 @@ class EyeTrackingService {
 
   Future<double> getCalibrationAccuracy() async => _calculatedAccuracy;
 
+  void setStickyPosition(Offset? pos) {
+    stickyPosition.value = pos;
+  }
+
   List<CalibrationPoint> createStandardPoints(double width, double height) {
     const margin = 0.2;
     return [
@@ -520,5 +619,6 @@ class EyeTrackingService {
     _cameraController?.dispose();
     _faceDetector?.close();
     _gazeController.close();
+    _accelerometerSub?.cancel();
   }
 }

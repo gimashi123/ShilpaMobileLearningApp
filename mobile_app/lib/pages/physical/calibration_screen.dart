@@ -19,6 +19,11 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   Timer? _collectionTimer;
   String _message = "Initializing camera... Please wait.";
 
+  // New: Environmental/Motion status
+  bool _isShaking = false;
+  bool _isTooDark = false;
+  double _faceConfidence = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -111,10 +116,26 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
     tempSub = _service.gazeStream.listen((data) {
       if (!mounted || !_isCalibrating) return;
 
-      debugPrint("Gaze: Conf=${data.confidence} X=${data.x} Y=${data.y}");
+      debugPrint(
+        "Gaze: Conf=${data.confidence} X=${data.x} Y=${data.y} Lum=${data.luminance.toStringAsFixed(1)} Shake=${data.deviceShake.toStringAsFixed(2)}",
+      );
 
-      // Only progress if we see a valid face (confidence > 0.5)
-      if (data.confidence > 0.5) {
+      bool stable = data.isStable && data.deviceShake < 0.2;
+      bool goodLight = data.luminance > 45;
+
+      if (mounted) {
+        setState(() {
+          _isShaking = data.deviceShake >= 0.2;
+          _isTooDark = !goodLight;
+          _faceConfidence = data.confidence;
+        });
+      }
+
+      // Only progress if conditions are met:
+      // 1. Face detected (confidence > 0.5)
+      // 2. Light is sufficient
+      // 3. Device is steady (shake < 0.2)
+      if (data.confidence > 0.5 && goodLight && !_isShaking) {
         count++;
         if (mounted) {
           setState(() {
@@ -239,7 +260,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                     height: 50,
                     child: CircularProgressIndicator(
                       value: _progress,
-                      color: Colors.white,
+                      color: _isShaking || _isTooDark ? Colors.orange : Colors.greenAccent,
                       strokeWidth: 4,
                     ),
                   ),
@@ -247,12 +268,57 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                   Container(
                     width: 20,
                     height: 20,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
+                    decoration: BoxDecoration(
+                      color: _isShaking || _isTooDark ? Colors.yellow : Colors.red,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isShaking || _isTooDark ? Colors.yellow : Colors.red)
+                              .withAlpha(128),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+            ),
+
+          // Feedback Overlays
+          if (_isCalibrating)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 50),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(180),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _isShaking || _isTooDark ? Colors.orange : Colors.blueAccent,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isTooDark ? Icons.wb_sunny : Icons.face,
+                      color: _isTooDark ? Colors.orange : Colors.white,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _isTooDark
+                          ? "Room too dark! Move to light."
+                          : _isShaking
+                              ? "Hold steady..."
+                              : _faceConfidence < 0.5
+                                  ? "Face not detected"
+                                  : "Collecting stable data...",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

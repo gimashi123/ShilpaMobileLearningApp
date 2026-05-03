@@ -6,8 +6,13 @@ import '../../components/responsive_layout.dart';
 /// Dashboard content (Home tab)
 class DashboardContent extends StatelessWidget {
   final InputMode inputMode;
+  final Function(String subject)? onNavigateToLearn;
 
-  const DashboardContent({super.key, required this.inputMode});
+  const DashboardContent({
+    super.key,
+    required this.inputMode,
+    this.onNavigateToLearn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +35,11 @@ class DashboardContent extends StatelessWidget {
                   icon: Icons.calculate_outlined,
                   color: const Color(0xFF7E57C2), // Purple
                   inputMode: inputMode,
-                  onTap: () => Navigator.pushNamed(context, '/math_lessons'),
+                  onTap: () {
+                    if (onNavigateToLearn != null) {
+                      onNavigateToLearn!("Maths");
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -41,9 +50,13 @@ class DashboardContent extends StatelessWidget {
                   color: const Color(0xFF26A69A), // Green/Teal
                   inputMode: inputMode,
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("සිංහල පාඩම් ළඟදීම!")),
-                    );
+                    if (onNavigateToLearn != null) {
+                      onNavigateToLearn!("Sinhala");
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("සිංහල පාඩම් ළඟදීම!")),
+                      );
+                    }
                   },
                 ),
               ),
@@ -54,7 +67,11 @@ class DashboardContent extends StatelessWidget {
                   icon: Icons.help_outline_rounded,
                   color: const Color(0xFFFF5252), // Red/Coral
                   inputMode: inputMode,
-                  onTap: () => Navigator.pushNamed(context, ''),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("ප්‍රශ්න පත්‍ර ළඟදීම!")),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -93,7 +110,11 @@ class DashboardContent extends StatelessWidget {
           icon: Icons.calculate_outlined,
           color: const Color(0xFF7E57C2), // Purple
           inputMode: inputMode,
-          onTap: () => Navigator.pushNamed(context, '/math_lessons'),
+          onTap: () {
+            if (onNavigateToLearn != null) {
+              onNavigateToLearn!("Maths");
+            }
+          },
         ),
         _BigVerticalCard(
           label: "සිංහල",
@@ -101,9 +122,13 @@ class DashboardContent extends StatelessWidget {
           color: const Color(0xFF26A69A), // Green/Teal
           inputMode: inputMode,
           onTap: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text("සිංහල පාඩම් ළඟදීම!")));
+            if (onNavigateToLearn != null) {
+              onNavigateToLearn!("Sinhala");
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("සිංහල පාඩම් ළඟදීම!")));
+            }
           },
         ),
         _BigVerticalCard(
@@ -111,7 +136,11 @@ class DashboardContent extends StatelessWidget {
           icon: Icons.help_outline_rounded,
           color: const Color(0xFFFF5252), // Red/Coral
           inputMode: inputMode,
-          onTap: () => Navigator.pushNamed(context, '/quiz'),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("ප්‍රශ්න පත්‍ර ළඟදීම!")),
+            );
+          },
         ),
         _BigVerticalCard(
           label: "GAMES",

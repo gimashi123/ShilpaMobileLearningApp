@@ -4,20 +4,22 @@ import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 import '../../components/responsive_layout.dart';
 import '../../services/lessons_api.dart';
+import '../../services/voice_focus_service.dart';
 import '../../session/session.dart';
 
 /// Learn content (Learn tab)
 class LearnContent extends StatefulWidget {
   final InputMode inputMode;
+  final String? initialSubject;
 
-  const LearnContent({super.key, required this.inputMode});
+  const LearnContent({super.key, required this.inputMode, this.initialSubject});
 
   @override
   State<LearnContent> createState() => _LearnContentState();
 }
 
 class _LearnContentState extends State<LearnContent> {
-  String _selectedSubject = 'Sinhala'; // Default
+  late String _selectedSubject;
 
   List<dynamic> _backendLessons = [];
   bool _isLoading = true;
@@ -26,6 +28,7 @@ class _LearnContentState extends State<LearnContent> {
   @override
   void initState() {
     super.initState();
+    _selectedSubject = widget.initialSubject ?? 'Sinhala';
     _fetchLessons();
   }
 
@@ -87,10 +90,13 @@ class _LearnContentState extends State<LearnContent> {
               // SINHALA TAB
               Expanded(
                 child: InputAwareButton(
-                  onTap: () => setState(() => _selectedSubject = 'Sinhala'),
+                  onTap: () {
+                    VoiceFocusService().clear();
+                    setState(() => _selectedSubject = 'Sinhala');
+                  },
                   inputMode: widget.inputMode,
                   voiceLabel: "සිංහල",
-                  showVoiceIndex: false,
+                  showVoiceIndex: true,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -136,10 +142,13 @@ class _LearnContentState extends State<LearnContent> {
               // MATHS TAB
               Expanded(
                 child: InputAwareButton(
-                  onTap: () => setState(() => _selectedSubject = 'Maths'),
+                  onTap: () {
+                    VoiceFocusService().clear();
+                    setState(() => _selectedSubject = 'Maths');
+                  },
                   inputMode: widget.inputMode,
                   voiceLabel: "ගණිතය",
-                  showVoiceIndex: false,
+                  showVoiceIndex: true,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),

@@ -2,39 +2,35 @@ import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
 import '../../components/responsive_layout.dart';
+import '../../services/voice_focus_service.dart';
 import '../games_physical/arithmetic_balance_scale.dart';
 import '../games_physical/sinhala_word_sorter.dart';
 
 /// Games content (Games tab)
 class GamesContent extends StatefulWidget {
   final InputMode inputMode;
+  final String? forcedSubject; // New: allow forcing a specific subject
 
-  const GamesContent({super.key, required this.inputMode});
+  const GamesContent({super.key, required this.inputMode, this.forcedSubject});
 
   @override
   State<GamesContent> createState() => _GamesContentState();
 }
 
 class _GamesContentState extends State<GamesContent> {
-  String _selectedSubject = 'Sinhala'; // Default subject
+  late String _selectedSubject;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use forcedSubject if provided, otherwise default to Sinhala
+    _selectedSubject = widget.forcedSubject ?? 'Sinhala';
+  }
 
   // Mock Data for Games
   final List<Map<String, dynamic>> _allGames = [
     {'title': 'Noun vs Verb Sorting', 'subject': 'Sinhala', 'id': 102},
-    {'title': 'Sinhala Word Puzzle', 'subject': 'Sinhala', 'id': 1},
-
     {'title': 'Arithmetic Balance Scale', 'subject': 'Maths', 'id': 101},
-    {'title': 'Maths Addition Quest', 'subject': 'Maths', 'id': 2},
-    {'title': 'Sinhala Letter Match', 'subject': 'Sinhala', 'id': 3},
-    {'title': 'Maths Shapes Adventure', 'subject': 'Maths', 'id': 4},
-    {'title': 'Sinhala Grammar Quiz', 'subject': 'Sinhala', 'id': 5},
-    {'title': 'Maths Subtraction Hero', 'subject': 'Maths', 'id': 6},
-    {'title': 'Sinhala Story Maker', 'subject': 'Sinhala', 'id': 7},
-    {'title': 'Maths Multiplication Race', 'subject': 'Maths', 'id': 8},
-    {'title': 'Sinhala Vocabulary Fun', 'subject': 'Sinhala', 'id': 9},
-    {'title': 'Maths Division Master', 'subject': 'Maths', 'id': 10},
-    {'title': 'Sinhala Poetry Game', 'subject': 'Sinhala', 'id': 11},
-    {'title': 'Maths Fractions Explorer', 'subject': 'Maths', 'id': 12},
   ];
 
   @override
@@ -44,15 +40,28 @@ class _GamesContentState extends State<GamesContent> {
     final bool isTablet = Responsive.isTablet(context);
     final int crossAxisCount = isMobile ? 2 : (isTablet ? 3 : 4);
 
-    // Filter games based on selected subject
+    // Filter games based on selected subject (case-insensitive and robust)
     final filteredGames = _allGames.where((game) {
-      return game['subject'] == _selectedSubject;
+      final gameSub = (game['subject'] as String).toLowerCase();
+      final targetSub = _selectedSubject.toLowerCase();
+      
+      // Basic match
+      if (gameSub == targetSub) return true;
+      
+      // Handle Math vs Maths
+      if ((gameSub == 'math' || gameSub == 'maths') && 
+          (targetSub == 'math' || targetSub == 'maths')) {
+        return true;
+      }
+      
+      return false;
     }).toList();
 
     return Column(
       children: [
-        // ===== SUBJECT TOGGLE SECTION (Redesigned) =====
-        Container(
+        // ===== SUBJECT TOGGLE SECTION (Hide if subject is forced) =====
+        if (widget.forcedSubject == null)
+          Container(
           margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
@@ -68,10 +77,13 @@ class _GamesContentState extends State<GamesContent> {
               // SINHALA TAB
               Expanded(
                 child: InputAwareButton(
-                  onTap: () => setState(() => _selectedSubject = 'Sinhala'),
+                  onTap: () {
+                    VoiceFocusService().clear();
+                    setState(() => _selectedSubject = 'Sinhala');
+                  },
                   inputMode: widget.inputMode,
                   voiceLabel: "සිංහල",
-                  showVoiceIndex: false,
+                  showVoiceIndex: true,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -117,10 +129,13 @@ class _GamesContentState extends State<GamesContent> {
               // MATHS TAB
               Expanded(
                 child: InputAwareButton(
-                  onTap: () => setState(() => _selectedSubject = 'Maths'),
+                  onTap: () {
+                    VoiceFocusService().clear();
+                    setState(() => _selectedSubject = 'Maths');
+                  },
                   inputMode: widget.inputMode,
                   voiceLabel: "ගණිතය",
-                  showVoiceIndex: false,
+                  showVoiceIndex: true,
                   borderRadius: BorderRadius.circular(25),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),

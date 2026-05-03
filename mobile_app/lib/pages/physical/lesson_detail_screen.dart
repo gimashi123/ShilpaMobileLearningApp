@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../components/input_aware_button.dart';
 import '../../models/input_modes.dart';
+import '../../components/responsive_layout.dart';
 import '../../services/auth_api.dart';
 import '../video_player_page.dart';
 import 'games_content.dart';
@@ -118,12 +119,14 @@ class LessonDetailScreen extends StatelessWidget {
                               offset: const Offset(0, 10),
                             ),
                           ],
-                          image: const DecorationImage(
-                            image: AssetImage(
-                              'assets/physical.png',
-                            ), // Placeholder image
-                            fit: BoxFit.cover,
-                            opacity: 0.6,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              themeColor.withOpacity(0.8),
+                              themeColor.withOpacity(0.4),
+                              Colors.black87,
+                            ],
                           ),
                         ),
                         child: Center(
@@ -211,67 +214,128 @@ class LessonDetailScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Responsive row of specific action cards
-                    Row(
-                      children: [
-                        // QUIZ BUTTON
-                        Expanded(
-                          child: _buildActionCard(
-                            context: context,
-                            title: "Attempt Quiz",
-                            subtitle: "Test your $subject knowledge",
-                            icon: Icons.quiz_rounded,
-                            color: themeColor,
-                            onTap: () {
-                              // TODO: Navigate to Subject-Specific Quiz Screen here
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Quiz module for $title coming soon!',
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // GAMES BUTTON
-                        Expanded(
-                          child: _buildActionCard(
-                            context: context,
-                            title: "Play Games",
-                            subtitle: "Interactive $subject games",
-                            icon: Icons.games_rounded,
-                            color: Colors.orange,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => Scaffold(
-                                    appBar: AppBar(
-                                      title: Text("$subject Games"),
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.black,
-                                      elevation: 0,
-                                      leading: IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_back_ios_new_rounded,
+                    // Responsive layout for action cards
+                    Responsive.isMobile(context)
+                        ? Column(
+                            children: [
+                              _buildActionCard(
+                                context: context,
+                                title: "Attempt Quiz",
+                                subtitle: "Test your $subject knowledge",
+                                icon: Icons.quiz_rounded,
+                                color: themeColor,
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Quiz module for $title coming soon!',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              _buildActionCard(
+                                context: context,
+                                title: "Play Games",
+                                subtitle: "Interactive $subject games",
+                                icon: Icons.games_rounded,
+                                color: Colors.orange,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => Scaffold(
+                                        appBar: AppBar(
+                                          title: Text("$subject Games"),
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.black,
+                                          elevation: 0,
+                                          leading: IconButton(
+                                            icon: const Icon(
+                                              Icons.arrow_back_ios_new_rounded,
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                          ),
                                         ),
-                                        onPressed: () => Navigator.pop(context),
+                                        body: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: GamesContent(
+                                            inputMode: inputMode,
+                                            forcedSubject: subject,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    body: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: GamesContent(inputMode: inputMode),
-                                    ),
-                                  ),
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: _buildActionCard(
+                                  context: context,
+                                  title: "Attempt Quiz",
+                                  subtitle: "Test your $subject knowledge",
+                                  icon: Icons.quiz_rounded,
+                                  color: themeColor,
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Quiz module for $title coming soon!',
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildActionCard(
+                                  context: context,
+                                  title: "Play Games",
+                                  subtitle: "Interactive $subject games",
+                                  icon: Icons.games_rounded,
+                                  color: Colors.orange,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Scaffold(
+                                          appBar: AppBar(
+                                            title: Text("$subject Games"),
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black,
+                                            elevation: 0,
+                                            leading: IconButton(
+                                              icon: const Icon(
+                                                Icons.arrow_back_ios_new_rounded,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                            ),
+                                          ),
+                                          body: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: GamesContent(
+                                              inputMode: inputMode,
+                                              forcedSubject: subject,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
 
                     // Bottom Padding
                     const SizedBox(height: 40),
@@ -299,8 +363,10 @@ class LessonDetailScreen extends StatelessWidget {
       inputMode: inputMode,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        height:
-            140, // Fixed height to maintain visual balance alongside each other
+        constraints: BoxConstraints(
+          minHeight: Responsive.isMobile(context) ? 110 : 140,
+        ),
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
@@ -319,7 +385,7 @@ class LessonDetailScreen extends StatelessWidget {
               ),
               child: Icon(icon, color: color, size: 28),
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
