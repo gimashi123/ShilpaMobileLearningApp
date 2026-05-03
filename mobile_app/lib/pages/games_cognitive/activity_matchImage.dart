@@ -35,6 +35,7 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
   final AudioPlayer _sfxPlayer = AudioPlayer();
+  final Set<String> _recentRoundKeys = <String>{};
 
   static const List<_ImageItem> _fallbackPool = [
     _ImageItem(id: 'monkey', asset: 'assets/images/cognitive/monkey.png'),
@@ -68,6 +69,10 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   Duration _totalReactionTime = Duration.zero;
   int _reactionSamples = 0;
   DateTime? _pairStartedAt;
+  int _roundsCompleted = 0;
+  int _targetMatches = 6;
+
+  static const int _maxRecentRoundMemory = 12;
 
   @override
   void initState() {
@@ -94,12 +99,13 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
   }
 
   void _newRound() {
-    if (_pool.length < 6) {
+    final template = _templateForRound();
+    if (_pool.length < template.pairCount) {
       _pool = List<_ImageItem>.from(_fallbackPool);
     }
-    final picks = List<_ImageItem>.from(_pool)..shuffle(_rng);
-    final selected = picks.take(6).toList();
-    _tiles = [...selected, ...selected]..shuffle(_rng);
+    final selected = _selectRoundItems(template.pairCount);
+    _targetMatches = selected.length;
+    _tiles = _buildTilesForTemplate(selected, template);
 
     setState(() {
       _selectedId = null;
@@ -110,6 +116,56 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
       _checking = false;
     });
     _pairStartedAt = null;
+  }
+
+  _ImageRoundTemplate _templateForRound() {
+    final difficulty = _roundsCompleted <= 1 ? 1 : (_roundsCompleted <= 4 ? 2 : 3);
+    final templates = <_ImageRoundTemplate>[
+      const _ImageRoundTemplate(pairCount: 4, shufflePasses: 1),
+      const _ImageRoundTemplate(pairCount: 5, shufflePasses: 2),
+      const _ImageRoundTemplate(pairCount: 6, shufflePasses: 2),
+      const _ImageRoundTemplate(pairCount: 6, shufflePasses: 3),
+    ];
+    if (difficulty == 1) return templates[0];
+    if (difficulty == 2) return templates[1];
+    return templates[2 + _rng.nextInt(2)];
+  }
+
+  List<_ImageItem> _selectRoundItems(int pairCount) {
+    final available = List<_ImageItem>.from(_pool)..shuffle(_rng);
+    final cappedCount = (pairCount.clamp(2, available.length) as num).toInt();
+    final selected = available.take(cappedCount).toList();
+    final key = selected.map((e) => e.id).toList()..sort();
+    final keyText = key.join(',');
+
+    if (_recentRoundKeys.contains(keyText) && _pool.length > cappedCount) {
+      final retry = List<_ImageItem>.from(_pool)..shuffle(_rng);
+      final retrySelected = retry.take(cappedCount).toList();
+      final retryKey = (retrySelected.map((e) => e.id).toList()..sort()).join(',');
+      _rememberRoundKey(retryKey);
+      return retrySelected;
+    }
+
+    _rememberRoundKey(keyText);
+    return selected;
+  }
+
+  List<_ImageItem> _buildTilesForTemplate(
+    List<_ImageItem> selected,
+    _ImageRoundTemplate template,
+  ) {
+    final tiles = <_ImageItem>[...selected, ...selected];
+    for (var i = 0; i < template.shufflePasses; i++) {
+      tiles.shuffle(_rng);
+    }
+    return tiles;
+  }
+
+  void _rememberRoundKey(String key) {
+    if (_recentRoundKeys.length >= _maxRecentRoundMemory) {
+      _recentRoundKeys.remove(_recentRoundKeys.first);
+    }
+    _recentRoundKeys.add(key);
   }
 
   Future<void> _loadDynamicItems() async {
@@ -195,7 +251,8 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
         _selectedIndex = null;
       });
 
-      if (_matchedIds.length == 6) {
+      if (_matchedIds.length == _targetMatches) {
+        _roundsCompleted++;
         await _playRewardAnimation();
         if (!mounted) return;
         _newRound();
@@ -522,4 +579,14 @@ class _MatchImageGamePageState extends State<MatchImageGamePage>
     if (_checking) return;
     _checkMatch(item.id, index);
   }
+}
+
+class _ImageRoundTemplate {
+  final int pairCount;
+  final int shufflePasses;
+
+  const _ImageRoundTemplate({
+    required this.pairCount,
+    required this.shufflePasses,
+  });
 }

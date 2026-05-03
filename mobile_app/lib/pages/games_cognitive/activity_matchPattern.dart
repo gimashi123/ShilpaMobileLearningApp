@@ -28,6 +28,7 @@ class PatternGamePage extends StatefulWidget {
 class _PatternGamePageState extends State<PatternGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
+  final Set<String> _recentRoundKeys = <String>{};
 
   // Animation & Hint State
   final List<GlobalKey> _optionKeys = List.generate(4, (index) => GlobalKey());
@@ -76,6 +77,8 @@ class _PatternGamePageState extends State<PatternGamePage>
   Duration _totalReactionTime = Duration.zero;
   int _reactionSamples = 0;
   DateTime? _roundStartedAt;
+
+  static const int _maxRecentRoundMemory = 12;
 
   @override
   void initState() {
@@ -152,14 +155,7 @@ class _PatternGamePageState extends State<PatternGamePage>
   void _newRound({bool speak = false}) {
     if (_typeOrder.isEmpty) return;
     type = _typeOrder[(level - 1) % _typeOrder.length];
-
-    if (level <= 2) {
-      _makeABAB();
-    } else if (level <= 4) {
-      _makeABCABC();
-    } else {
-      _makeAABAAB();
-    }
+    _generateDynamicRound();
 
     setState(() {
       _showHandHint = false;
@@ -174,45 +170,115 @@ class _PatternGamePageState extends State<PatternGamePage>
     }
   }
 
-  // --- Pattern Logic (Unchanged) ---
-  void _makeABAB() {
+  void _generateDynamicRound() {
     final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
+    const maxAttempts = 20;
+
+    for (var i = 0; i < maxAttempts; i++) {
+      final round = _buildRoundForLevel(bank);
+      final key = '${type}|${round.pattern.join(",")}|${round.answer}';
+      if (!_recentRoundKeys.contains(key)) {
+        pattern = round.pattern;
+        answer = round.answer;
+        options = round.options;
+        _rememberRoundKey(key);
+        return;
+      }
     }
-    pattern = [a, b, a, b];
-    answer = a;
-    options = _buildOptions(answer, bank, 3);
+
+    // Fallback when randomness collides repeatedly.
+    final fallback = _buildRoundForLevel(bank);
+    pattern = fallback.pattern;
+    answer = fallback.answer;
+    options = fallback.options;
+    _rememberRoundKey('${type}|${pattern.join(",")}|${answer}');
   }
 
-  void _makeABCABC() {
-    final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
-    }
-    String c = bank[_rng.nextInt(bank.length)];
-    while (c == a || c == b) {
-      c = bank[_rng.nextInt(bank.length)];
-    }
-    pattern = [a, b, c, a, b, c];
-    answer = a;
-    options = _buildOptions(answer, bank, 4);
+  _GeneratedRound _buildRoundForLevel(List<String> bank) {
+    final difficulty = level <= 3 ? 1 : (level <= 7 ? 2 : 3);
+    final availableTemplates = _templatesForDifficulty(difficulty, bank.length);
+    final template = availableTemplates[_rng.nextInt(availableTemplates.length)];
+    final values = _pickDistinct(bank, template.uniqueTokenCount);
+    final sequence = template.builder(values);
+    final correct = template.next(values);
+    final builtOptions = _buildOptions(correct, bank, 4);
+    return _GeneratedRound(pattern: sequence, answer: correct, options: builtOptions);
   }
 
-  void _makeAABAAB() {
-    final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
+  List<_PatternTemplate> _templatesForDifficulty(int difficulty, int bankSize) {
+    final templates = <_PatternTemplate>[
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[1], v[0], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[0], v[1], v[0], v[0], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[1], v[1], v[0], v[1], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[1], v[2], v[0], v[1], v[2]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[1], v[2], v[2], v[0], v[1], v[2], v[2]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[0], v[1], v[2], v[0], v[0], v[1], v[2]],
+        next: (v) => v[0],
+      ),
+    ];
+
+    final filteredByBank = templates
+        .where((t) => t.uniqueTokenCount <= bankSize)
+        .toList();
+    if (filteredByBank.isEmpty) {
+      return [
+        _PatternTemplate(
+          uniqueTokenCount: 2,
+          builder: (v) => [v[0], v[1], v[0], v[1]],
+          next: (v) => v[0],
+        ),
+      ];
     }
-    pattern = [a, a, b, a, a, b];
-    answer = a;
-    options = _buildOptions(answer, bank, 4);
+
+    if (difficulty == 1) {
+      return filteredByBank.where((t) => t.uniqueTokenCount == 2).toList();
+    }
+    if (difficulty == 2) {
+      return filteredByBank.where((t) => t.uniqueTokenCount <= 3).toList();
+    }
+    return filteredByBank;
+  }
+
+  List<String> _pickDistinct(List<String> bank, int count) {
+    final shuffled = List<String>.from(bank)..shuffle(_rng);
+    if (shuffled.length >= count) {
+      return shuffled.take(count).toList();
+    }
+
+    final values = List<String>.from(shuffled);
+    while (values.length < count) {
+      values.add(bank[_rng.nextInt(bank.length)]);
+    }
+    return values;
+  }
+
+  void _rememberRoundKey(String key) {
+    if (_recentRoundKeys.length >= _maxRecentRoundMemory) {
+      _recentRoundKeys.remove(_recentRoundKeys.first);
+    }
+    _recentRoundKeys.add(key);
   }
 
   List<String> _bankForType(String t) {
@@ -224,9 +290,12 @@ class _PatternGamePageState extends State<PatternGamePage>
   }
 
   List<String> _buildOptions(String correct, List<String> bank, int count) {
+    if (bank.isEmpty) return [correct];
     final set = <String>{correct};
-    while (set.length < count) {
+    var attempts = 0;
+    while (set.length < count && attempts < 40) {
       set.add(bank[_rng.nextInt(bank.length)]);
+      attempts++;
     }
     final list = set.toList()..shuffle(_rng);
     return list;
@@ -549,4 +618,28 @@ class _StarRewardBox extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GeneratedRound {
+  final List<String> pattern;
+  final String answer;
+  final List<String> options;
+
+  const _GeneratedRound({
+    required this.pattern,
+    required this.answer,
+    required this.options,
+  });
+}
+
+class _PatternTemplate {
+  final int uniqueTokenCount;
+  final List<String> Function(List<String>) builder;
+  final String Function(List<String>) next;
+
+  const _PatternTemplate({
+    required this.uniqueTokenCount,
+    required this.builder,
+    required this.next,
+  });
 }

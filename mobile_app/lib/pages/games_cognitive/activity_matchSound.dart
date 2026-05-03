@@ -46,6 +46,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   final _rng = Random();
   final AudioPlayer _player = AudioPlayer();
   final AudioPlayer _sfxPlayer = AudioPlayer();
+  final Set<String> _recentRoundKeys = <String>{};
 
   // Keys for hint tracking
   final List<GlobalKey> _cardKeys = List.generate(4, (index) => GlobalKey());
@@ -97,6 +98,11 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
   Duration _totalReactionTime = Duration.zero;
   int _reactionSamples = 0;
   DateTime? _roundSoundPlayedAt;
+  int _roundsCompleted = 0;
+  Duration _autoPlayDelay = const Duration(seconds: 3);
+  Duration _hintDelay = const Duration(seconds: 4);
+
+  static const int _maxRecentRoundMemory = 12;
 
   @override
   void initState() {
@@ -145,10 +151,12 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       _items = List<SoundItem>.from(_fallbackItems);
     }
     _cancelAllTimers();
-    _current = _items[_rng.nextInt(_items.length)];
-    final pool = _items.where((e) => e.id != _current.id).toList()
-      ..shuffle(_rng);
-    _choices = [_current, ...pool.take(3)]..shuffle(_rng);
+    final template = _templateForRound();
+    _autoPlayDelay = template.autoPlayDelay;
+    _hintDelay = template.hintDelay;
+    final round = _generateRound(template.choiceCount);
+    _current = round.current;
+    _choices = round.choices;
 
     _soundPlayedThisRound = false;
     _roundSoundPlayedAt = null;
@@ -160,10 +168,60 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
       _showStar = false;
     });
 
-    _autoPlayTimer = Timer(const Duration(seconds: 3), () {
+    _autoPlayTimer = Timer(_autoPlayDelay, () {
       if (!mounted || _locked || _soundPlayedThisRound) return;
       _playSound();
     });
+  }
+
+  _SoundRoundTemplate _templateForRound() {
+    final difficulty = _roundsCompleted <= 2 ? 1 : (_roundsCompleted <= 6 ? 2 : 3);
+    if (difficulty == 1) {
+      return const _SoundRoundTemplate(
+        choiceCount: 3,
+        autoPlayDelay: Duration(seconds: 4),
+        hintDelay: Duration(seconds: 5),
+      );
+    }
+    if (difficulty == 2) {
+      return const _SoundRoundTemplate(
+        choiceCount: 4,
+        autoPlayDelay: Duration(seconds: 3),
+        hintDelay: Duration(seconds: 4),
+      );
+    }
+    return const _SoundRoundTemplate(
+      choiceCount: 4,
+      autoPlayDelay: Duration(seconds: 2),
+      hintDelay: Duration(seconds: 3),
+    );
+  }
+
+  _SoundRound _generateRound(int choiceCount) {
+    final validChoices = choiceCount.clamp(2, _items.length);
+    final cappedChoices = (validChoices as num).toInt();
+
+    for (var i = 0; i < 20; i++) {
+      final current = _items[_rng.nextInt(_items.length)];
+      final pool = _items.where((e) => e.id != current.id).toList()..shuffle(_rng);
+      final choices = <SoundItem>[current, ...pool.take(cappedChoices - 1)]..shuffle(_rng);
+      final key = '${current.id}|${choices.map((e) => e.id).toList()..sort()}';
+      if (_recentRoundKeys.contains(key)) continue;
+      _rememberRoundKey(key);
+      return _SoundRound(current: current, choices: choices);
+    }
+
+    final current = _items[_rng.nextInt(_items.length)];
+    final pool = _items.where((e) => e.id != current.id).toList()..shuffle(_rng);
+    final choices = <SoundItem>[current, ...pool.take(cappedChoices - 1)]..shuffle(_rng);
+    return _SoundRound(current: current, choices: choices);
+  }
+
+  void _rememberRoundKey(String key) {
+    if (_recentRoundKeys.length >= _maxRecentRoundMemory) {
+      _recentRoundKeys.remove(_recentRoundKeys.first);
+    }
+    _recentRoundKeys.add(key);
   }
 
   Future<void> _playSound() async {
@@ -183,7 +241,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     setState(() => _feedback = "දැන් නිවැරදි රූපය තට්ටු කරන්න");
 
     _hintTimer?.cancel();
-    _hintTimer = Timer(const Duration(seconds: 4), () {
+    _hintTimer = Timer(_hintDelay, () {
       if (!mounted || _locked) return;
       _startBlinkHint();
     });
@@ -274,6 +332,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
     });
 
     if (correct) {
+      _roundsCompleted++;
       setState(() => _feedback = "හරි! හොඳයි.");
       await _playRewardAnimation();
       if (!mounted) return;
@@ -428,7 +487,7 @@ class _SoundPictureMatchGameState extends State<SoundPictureMatchGame>
               ),
 
             // HAND HINT OVERLAY
-            if (_showHandHint)
+            if (_showHandHint && _choices.any((it) => it.id == _current.id))
               HandHintOverlay(
                 targetKey:
                     _cardKeys[_choices.indexWhere((it) => it.id == _current.id)],
@@ -500,11 +559,33 @@ class _RewardBox extends StatelessWidget {
           Text("⭐", style: TextStyle(fontSize: 72)),
           SizedBox(height: 6),
           Text(
-            "හරි! හොඳ වැඩයි.",
+            "හරි! හොඳයි.",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ],
       ),
     );
   }
+}
+
+class _SoundRoundTemplate {
+  final int choiceCount;
+  final Duration autoPlayDelay;
+  final Duration hintDelay;
+
+  const _SoundRoundTemplate({
+    required this.choiceCount,
+    required this.autoPlayDelay,
+    required this.hintDelay,
+  });
+}
+
+class _SoundRound {
+  final SoundItem current;
+  final List<SoundItem> choices;
+
+  const _SoundRound({
+    required this.current,
+    required this.choices,
+  });
 }

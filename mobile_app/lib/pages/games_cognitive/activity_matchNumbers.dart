@@ -125,6 +125,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   final _rng = Random();
   final AudioPlayer _sfxPlayer = AudioPlayer();
   final GlobalKey _correctKey = GlobalKey(); // Key to track correct answer position
+  final Set<String> _recentRoundKeys = <String>{};
 
   static const List<NumberItem> _fallbackItems = [
     NumberItem(value: 1, word: "එක"),
@@ -163,6 +164,10 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
   Duration _totalReactionTime = Duration.zero;
   int _reactionSamples = 0;
   DateTime? _roundStartedAt;
+  String _promptText = "අංකයට ගැලපෙන වචනය තෝරන්න";
+  int _targetAnswerValue = 1;
+
+  static const int _maxRecentRoundMemory = 15;
 
   @override
   void initState() {
@@ -210,7 +215,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
 
   void _startBlinkHint() {
     _blinkTimer?.cancel();
-    final correctIndex = _choices.indexWhere((it) => it.value == _current.value);
+    final correctIndex = _choices.indexWhere((it) => it.value == _targetAnswerValue);
     if (correctIndex == -1) return;
 
     setState(() {
@@ -237,12 +242,14 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
       _items = List<NumberItem>.from(_fallbackItems);
     }
     _cancelHintTimers();
-    _current = _items[_rng.nextInt(_items.length)];
-    final pool = _items.where((e) => e.value != _current.value).toList()..shuffle(_rng);
-    _choices = [_current, ...pool.take(3)]..shuffle(_rng);
+    final round = _generateRound();
+    _current = round.current;
+    _choices = round.choices;
+    _promptText = round.prompt;
+    _targetAnswerValue = round.answerValue;
 
     setState(() {
-      _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
+      _feedback = _promptText;
       _feedbackColor = Colors.black87;
       _locked = false;
       _showStar = false;
@@ -286,7 +293,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
       _showHandHint = false; // Hide hand if user interacts
     });
 
-    final correct = picked.value == _current.value;
+    final correct = picked.value == _targetAnswerValue;
     _questionsPlayed++;
     if (correct) {
       _correctAnswers++;
@@ -309,11 +316,61 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
       if (!mounted) return;
       setState(() {
         _locked = false;
-        _feedback = "අංකයට ගැලපෙන වචනය තෝරන්න";
+        _feedback = _promptText;
         _feedbackColor = Colors.black87;
       });
       _startHintTimer();
     }
+  }
+
+  _NumberRound _generateRound() {
+    final sorted = List<NumberItem>.from(_items)
+      ..sort((a, b) => a.value.compareTo(b.value));
+    if (sorted.isEmpty) {
+      final fallback = const NumberItem(value: 1, word: "එක");
+      return _NumberRound(
+        current: fallback,
+        choices: [fallback],
+        prompt: "අංකයට ගැලපෙන වචනය තෝරන්න",
+        answerValue: fallback.value,
+      );
+    }
+
+    for (var i = 0; i < 20; i++) {
+      final current = sorted[_rng.nextInt(sorted.length)];
+      final key = 'direct|${current.value}';
+      if (_recentRoundKeys.contains(key)) continue;
+      _rememberRoundKey(key);
+      return _NumberRound(
+        current: current,
+        choices: _buildChoices(sorted, current.value, 4),
+        prompt: "අංකයට ගැලපෙන වචනය තෝරන්න",
+        answerValue: current.value,
+      );
+    }
+
+    final current = sorted[_rng.nextInt(sorted.length)];
+    return _NumberRound(
+      current: current,
+      choices: _buildChoices(sorted, current.value, 4),
+      prompt: "අංකයට ගැලපෙන වචනය තෝරන්න",
+      answerValue: current.value,
+    );
+  }
+
+  List<NumberItem> _buildChoices(List<NumberItem> items, int answerValue, int count) {
+    final answer = items.firstWhere((i) => i.value == answerValue);
+    final pool = items.where((i) => i.value != answerValue).toList()..shuffle(_rng);
+    final distractorCount = ((count - 1).clamp(0, pool.length) as num).toInt();
+    final choices = <NumberItem>[answer, ...pool.take(distractorCount)]..shuffle(_rng);
+    return choices;
+  }
+
+  void _rememberRoundKey(String key) {
+    if (_recentRoundKeys.length >= _maxRecentRoundMemory) {
+      _recentRoundKeys.remove(_recentRoundKeys.first);
+    }
+    _recentRoundKeys.add(key);
   }
 
   Future<void> _playRewardAnimation() async {
@@ -375,7 +432,7 @@ class _NumberMatchingGamePageState extends State<NumberMatchingGamePage>
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.2),
                       itemBuilder: (context, index) {
                         final item = _choices[index];
-                        final isCorrect = item.value == _current.value;
+                        final isCorrect = item.value == _targetAnswerValue;
                         return _WordCard(
                           key: isCorrect ? _correctKey : null, // Attach key to correct choice
                           word: item.word,
@@ -454,4 +511,18 @@ class _WordCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NumberRound {
+  final NumberItem current;
+  final List<NumberItem> choices;
+  final String prompt;
+  final int answerValue;
+
+  const _NumberRound({
+    required this.current,
+    required this.choices,
+    required this.prompt,
+    required this.answerValue,
+  });
 }
