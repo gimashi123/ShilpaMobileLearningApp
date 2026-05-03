@@ -142,9 +142,11 @@ router.get("/by-type", async (req: Request, res: Response) => {
 
 router.post("/generate-braille-pdf", generateBraillePdf);
 
-router.get("/random-save", async (req: Request, res: Response) => {
+router.get("/random-save", requireAuth, async (req: Request, res: Response) => {
     try {
         const { grade, subject, type } = req.query;
+        const userId = (req as AuthRequest).user?.id;
+        const userRole = (req as AuthRequest).user?.role;
 
         if (!grade || !subject || !type) {
             return res.status(400).json({
@@ -173,6 +175,8 @@ router.get("/random-save", async (req: Request, res: Response) => {
             grade: String(grade),
             subject: String(subject),
             type: String(type),
+            creatorId: userId,
+            creatorRole: userRole as any,
             questions: quizzes.map((q) => ({
                 questionId: q._id,
                 question: q.question,
@@ -190,6 +194,50 @@ router.get("/random-save", async (req: Request, res: Response) => {
         return res.status(500).json({
             message: "Server error while generating quiz",
         });
+    }
+});
+
+router.post("/save-paper", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { grade, subject, type, questions } = req.body;
+        const userId = (req as AuthRequest).user?.id;
+        const userRole = (req as AuthRequest).user?.role;
+
+        const generatedQuiz = await GeneratedQuiz.create({
+            grade,
+            subject,
+            type,
+            creatorId: userId,
+            creatorRole: userRole as any,
+            questions,
+        });
+
+        res.status(201).json({
+            message: "Paper saved to dashboard",
+            quizId: generatedQuiz._id,
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get("/my-papers", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).user?.id;
+        const papers = await GeneratedQuiz.find({ creatorId: userId }).sort({ createdAt: -1 });
+        res.json({ papers });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get("/paper/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+        const paper = await GeneratedQuiz.findById(req.params.id);
+        if (!paper) return res.status(404).json({ message: "Paper not found" });
+        res.json({ paper });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
     }
 });
 

@@ -11,6 +11,8 @@ export interface IGeneratedQuiz extends Document {
     subject: string;
     type: string;
     questions: IGeneratedQuizQuestion[];
+    creatorId: mongoose.Types.ObjectId;
+    creatorRole: 'teacher' | 'parent';
     createdAt: Date;
 }
 
@@ -50,6 +52,16 @@ const GeneratedQuizSchema = new Schema<IGeneratedQuiz>(
         questions: {
             type: [GeneratedQuizQuestionSchema],
             required: true,
+        },
+        creatorId: {
+            type: Schema.Types.ObjectId,
+            ref: "User", // Assuming a generic User model or specific ones
+            required: false, // Optional for now to not break existing data
+        },
+        creatorRole: {
+            type: String,
+            enum: ['teacher', 'parent', 'admin'],
+            required: false,
         },
         createdAt: {
             type: Date,

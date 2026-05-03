@@ -71,4 +71,47 @@ router.get("/history", requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.get("/by-email/:email", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const student = await User.findOne({ email: req.params.email, role: "student" });
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const userId = student._id;
+
+    // 1. Get summary
+    const completedLessonsCount = await LessonProgress.countDocuments({ userId });
+    const quizCount = await QuizHistory.countDocuments({ userId });
+    const gameCount = await SignGameHistory.countDocuments({ userId });
+
+    // 2. Get history
+    const [lessons, quizzes, games] = await Promise.all([
+      LessonProgress.find({ userId }).populate("lessonId").sort({ completedAt: -1 }).limit(10),
+      QuizHistory.find({ userId }).sort({ createdAt: -1 }).limit(10),
+      SignGameHistory.find({ userId }).sort({ createdAt: -1 }).limit(10)
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        summary: {
+          name: student.name,
+          totalXp: student.signGameXp || 0,
+          lessonsCompleted: completedLessonsCount,
+          quizzesCompleted: quizCount,
+          gamesPlayed: gameCount,
+          grade: student.student?.grade,
+        },
+        history: {
+          lessons,
+          quizzes,
+          games
+        }
+      }
+    });
+  } catch (err: any) {
+    logger.error(`[PROGRESS] By email error: ${err.message}`);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

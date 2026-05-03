@@ -137,6 +137,7 @@ const TeacherPaperBuilder = () => {
     const [result,setResult] = useState<ValidationResult[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isSaved, setIsSaved] = useState(false);
 
     /* LOAD QUIZ */
 
@@ -150,14 +151,15 @@ const TeacherPaperBuilder = () => {
 
                 setLoading(true);
 
+                const token = localStorage.getItem("token");
                 const res = await fetch(
-                    `http://localhost:3000/api/quizzes/random-save?grade=3&subject=${subject}&type=${type}`
+                    `http://localhost:3000/api/quizzes/random?grade=3&subject=${subject}&type=${type}`
                 );
 
                 const data = await res.json();
 
                 setQuizzes(data.quizzes || []);
-                setQuizId(data.quizId || "");
+                // setQuizId(data.quizId || ""); // quizId will be set after saving
 
             }catch(err){
 
@@ -251,9 +253,9 @@ const TeacherPaperBuilder = () => {
 
     };
 
-    /* GENERATE PDF */
+    /* GENERATE PDF AND SAVE */
 
-    const generateBraillePDF=()=>{
+    const generateBraillePDF= async ()=>{
 
         const doc = new jsPDF();
         let y=20;
@@ -261,23 +263,49 @@ const TeacherPaperBuilder = () => {
         doc.text("Braille Mathematics Quiz",20,y);
         y+=15;
 
-        doc.text(`Quiz ID: ${quizId}`,20,y);
-        y+=15;
+        // Save to backend first or after
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("http://localhost:3000/api/quizzes/save-paper", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    grade: "3",
+                    subject,
+                    type,
+                    questions: quizzes.map(q => ({
+                        questionId: q._id,
+                        question: q.question,
+                        answer: q.answer
+                    }))
+                })
+            });
 
-        quizzes.forEach((q,index)=>{
+            const data = await res.json();
+            if (res.ok) {
+                setQuizId(data.quizId);
+                setIsSaved(true);
+                
+                doc.text(`Quiz ID: ${data.quizId}`,20,y);
+                y+=15;
 
-            doc.text(`${index+1}.`,20,y);
+                quizzes.forEach((q,index)=>{
+                    doc.text(`${index+1}.`,20,y);
+                    const tokens = questionToTokens(q.question);
+                    drawBrailleSequence(doc,tokens,35,y-2);
+                    y+=18;
+                });
 
-            const tokens = questionToTokens(q.question);
-
-            drawBrailleSequence(doc,tokens,35,y-2);
-
-            y+=18;
-
-        });
-
-        doc.save(`braille_quiz_${quizId}.pdf`);
-
+                doc.save(`braille_quiz_${data.quizId}.pdf`);
+                alert("Paper generated and saved to dashboard!");
+            }
+        } catch (err) {
+            console.error("Failed to save paper:", err);
+            alert("Failed to save paper to dashboard");
+        }
     };
 
     /* UPLOAD FULL ANSWER SHEET */
@@ -306,6 +334,51 @@ const TeacherPaperBuilder = () => {
 
         setResult(validation);
 
+    };
+
+    const checkIndividualAnswer = async (file: File, index: number) => {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        // Assuming level1 prediction for individual digits
+        const res = await fetch(
+            "http://localhost:8000/api/visual-impairment/predict-level1",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await res.json();
+        const predicted = data.prediction;
+        const correct = Number(quizzes[index].answer);
+
+        const newResult = [...result];
+        const validation = {
+            question: index + 1,
+            correct,
+            predicted,
+            isCorrect: predicted === correct
+        };
+
+        // Find if already exists and update, or add
+        const existingIdx = newResult.findIndex(r => r.question === index + 1);
+        if (existingIdx > -1) {
+            newResult[existingIdx] = validation;
+        } else {
+            newResult.push(validation);
+        }
+        
+        setResult(newResult);
+    };
+
+    const [checkingIndex, setCheckingIndex] = useState<number | null>(null);
+    const individualFileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleIndividualUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0] && checkingIndex !== null) {
+            checkIndividualAnswer(e.target.files[0], checkingIndex);
+        }
     };
 
     const handleSheetUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{
@@ -344,11 +417,22 @@ const TeacherPaperBuilder = () => {
                         Upload Answer Sheet
                     </UploadButton>
 
+                    <Button onClick={() => alert("Answers Submitted Successfully!")} style={{ background: "#8e44ad" }}>
+                        Submit Answer
+                    </Button>
+
                     <input
                         type="file"
                         hidden
                         ref={fileInputRef}
                         onChange={handleSheetUpload}
+                    />
+
+                    <input
+                        type="file"
+                        hidden
+                        ref={individualFileInputRef}
+                        onChange={handleIndividualUpload}
                     />
 
                     {loading && (
@@ -371,8 +455,29 @@ const TeacherPaperBuilder = () => {
 
                             {quizzes.map((q,index)=>(
                                 <QuestionItem key={q._id}>
-                                    <QuestionNumber>{index+1}.</QuestionNumber>
-                                    {q.question}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <QuestionNumber>{index + 1}.</QuestionNumber>
+                                            {q.question}
+                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                setCheckingIndex(index);
+                                                individualFileInputRef.current?.click();
+                                            }}
+                                            style={{
+                                                padding: '4px 12px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #3498db',
+                                                background: 'white',
+                                                color: '#3498db',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Check Answer
+                                        </button>
+                                    </div>
                                 </QuestionItem>
                             ))}
 
