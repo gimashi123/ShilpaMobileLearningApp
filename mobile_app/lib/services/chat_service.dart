@@ -33,7 +33,13 @@ class ChatService {
     if (_chatBackendUrlFromEnv.trim().isNotEmpty) {
       return _normalizeChatUrl(_chatBackendUrlFromEnv.trim());
     }
-    return _normalizeChatUrl(AppConfig.pythonBackendUrl);
+    if (kIsWeb) return 'http://localhost:8000/chat';
+    if (Platform.isAndroid) {
+      return _normalizeChatUrl(AppConfig.apiChatBaseUrl);
+    }
+    // if (Platform.isAndroid) return 'http://127.0.0.1:8000/chat';
+
+    return AppConfig.apiChatBaseUrl;
   }
 
   static String _normalizeChatUrl(String rawUrl) {
