@@ -11,6 +11,7 @@ class LessonDetailScreen extends StatelessWidget {
   final String grade;
   final String? description;
   final String? videoUrl;
+  final String? lessonId;
   final Color themeColor;
   final InputMode inputMode;
 
@@ -21,6 +22,7 @@ class LessonDetailScreen extends StatelessWidget {
     required this.grade,
     this.description,
     this.videoUrl,
+    this.lessonId,
     required this.inputMode,
     this.themeColor = const Color(0xFF6C63FF),
   });
@@ -90,6 +92,7 @@ class LessonDetailScreen extends StatelessWidget {
                               builder: (_) => VideoPlayerPage(
                                 videoUrl: fullUrl,
                                 title: title,
+                                lessonId: lessonId,
                               ),
                             ),
                           );

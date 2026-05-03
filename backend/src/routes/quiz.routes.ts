@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import Quiz from '../models/Quiz';
 import { generateBraillePdf } from "../controllers/braillePDF.controller";
 import GeneratedQuiz from "@models/GeneratedQuiz";
+import requireAuth, { AuthRequest } from "../middlewares/auth.middleware";
+import QuizHistory from "../models/QuizHistory";
+import User from "../models/BlindStudent";
+import logger from "../config/logger.conf";
 
 const router = Router();
 
@@ -199,8 +203,77 @@ router.get("/math-level1", async (req, res) => {
     res.json(quizzes);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch quizzes" });
-  }
+    }
 });
 
+// Save Quiz History
+router.post('/history', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+
+        const {
+            disabilityType,
+            difficultyLevel = 1,
+            totalQuestions = 10,
+            correctCount = 0,
+            questions = [],
+        } = req.body;
+
+        if (!disabilityType) {
+            return res.status(400).json({
+                success: false,
+                message: "disabilityType is required",
+            });
+        }
+
+        const score = totalQuestions > 0
+            ? Math.round((correctCount / totalQuestions) * 100)
+            : 0;
+
+        const history = await QuizHistory.create({
+            userId,
+            disabilityType,
+            difficultyLevel,
+            totalQuestions,
+            correctCount,
+            score,
+            questions,
+        });
+
+        const wrongCount = totalQuestions - correctCount;
+        const xpGained = (correctCount * 5) - (wrongCount * 2);
+
+        const user = await User.findById(userId);
+        let totalXp = 0;
+        if (user) {
+            user.signGameXp = Math.max(0, (user.signGameXp || 0) + xpGained);
+            await user.save();
+            totalXp = user.signGameXp;
+        }
+
+        logger.info(
+            `[QUIZ] Saved history for user=${userId}, disability=${disabilityType}, level=${difficultyLevel}, score=${correctCount}/${totalQuestions} (${score}%), xpGained=${xpGained}, totalXp=${totalXp}`
+        );
+
+        return res.status(201).json({
+            success: true,
+            data: {
+                id: history._id,
+                score,
+                correctCount,
+                totalQuestions,
+                difficultyLevel,
+                xpGained,
+                totalXp,
+            },
+        });
+    } catch (err: any) {
+        logger.error(`[QUIZ] Error saving history: ${err.message}`);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 export default router;

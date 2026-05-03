@@ -3,6 +3,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import VideoLesson from "../models/Lessons";
 import User from "../models/BlindStudent";
+import LessonProgress from "../models/LessonProgress";
 import { HTTP_STATUS } from "@/utils/http.codes";
 
 // ---------- CREATE LESSON (admin upload) ----------
@@ -111,5 +112,56 @@ export const getMyLessons = async (req: AuthRequest, res: Response) => {
     return res
       .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
       .json({ message: "Server error fetching student lessons" });
+  }
+};
+
+// ---------- MARK LESSON AS COMPLETE ----------
+export const completeLesson = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized" });
+    }
+
+    const lessonId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if lesson exists
+    const lesson = await VideoLesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    // Create or update progress (upsert logic via unique index in model)
+    await LessonProgress.findOneAndUpdate(
+      { userId, lessonId },
+      { completedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ success: true, message: "Lesson marked as complete" });
+  } catch (e: any) {
+    console.error("COMPLETE_LESSON_ERROR:", e.message || e);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error marking lesson complete" });
+  }
+};
+
+// ---------- GET COMPLETED LESSONS ----------
+export const getCompletedLessons = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized" });
+    }
+
+    const userId = req.user.id;
+    const progress = await LessonProgress.find({ userId }).populate("lessonId");
+
+    return res.json({ success: true, data: progress });
+  } catch (e: any) {
+    console.error("GET_COMPLETED_LESSONS_ERROR:", e.message || e);
+    return res
+      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+      .json({ message: "Server error fetching completed lessons" });
   }
 };

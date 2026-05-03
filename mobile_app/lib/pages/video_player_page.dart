@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:mobile_app/services/progress_api.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final String videoUrl;
   final String title;
+  final String? lessonId;
 
   const VideoPlayerPage({
     super.key,
     required this.videoUrl,
     required this.title,
+    this.lessonId,
   });
 
   @override
@@ -51,7 +54,22 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           });
         }
       }
+      
+      // Auto-complete when video finishes
+      if (_initialized && 
+          _controller.value.position >= _controller.value.duration && 
+          widget.lessonId != null) {
+        _markAsComplete();
+      }
     });
+  }
+
+  bool _completedSent = false;
+  void _markAsComplete() async {
+    if (_completedSent) return;
+    _completedSent = true;
+    print("Video finished, marking lesson ${widget.lessonId} as complete...");
+    await ProgressApi.completeLesson(widget.lessonId!);
   }
 
   @override

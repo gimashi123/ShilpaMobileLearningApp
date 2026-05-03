@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
+import 'package:mobile_app/pages/profile/progress_report_screen.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
 import 'package:mobile_app/models/input_modes.dart';
@@ -733,6 +734,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 30),
 
                   // Menu items
+                  _buildMenuItem(
+                    icon: Icons.bar_chart_rounded,
+                    text: 'My Progress',
+                    subtitle: 'View your learning achievements',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProgressReportScreen(),
+                        ),
+                      );
+                    },
+                    gradientColors: const [
+                      Color(0xFF6A11CB),
+                      Color(0xFF2575FC),
+                    ],
+                  ),
+
                   _buildMenuItem(
                     icon: Icons.edit_rounded,
                     text: 'Edit Profile',

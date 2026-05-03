@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:mobile_app/widgets/top_nav_bar.dart';
 import 'package:mobile_app/services/braille_pdf_service.dart';
+import 'package:mobile_app/services/sign_game_api.dart';
+import 'package:mobile_app/services/quiz_api.dart';
+import 'package:mobile_app/session/session.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({Key? key}) : super(key: key);
@@ -70,6 +73,9 @@ class _QuizPageState extends State<QuizPage> {
   bool _answered = false;
   int? _chosenOption;
 
+  int _level = 1;
+  List<Map<String, dynamic>> answersHistory = [];
+
   // ✅ TTS only
   final FlutterTts _tts = FlutterTts();
 
@@ -130,14 +136,23 @@ class _QuizPageState extends State<QuizPage> {
     await _speakQuestionAndGuide();
   }
 
-  void _selectOperation(OpType op) {
+  Future<void> _selectOperation(OpType op) async {
     setState(() {
       _selectedOp = op;
       _score = 0;
       _questionNumber = 0;
       _answered = false;
       _chosenOption = null;
+      answersHistory.clear();
     });
+
+    try {
+      final token = Session.token ?? "";
+      final dType = Session.disabilityType ?? "visual";
+      _level = await SignGameApi.getLevel(token, dType);
+    } catch (_) {
+      _level = 1;
+    }
 
     _nextQuestion();
   }
@@ -156,45 +171,59 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _generateQuestion() {
-    switch (_selectedOp) {
-      case OpType.add:
-        _a = _rand.nextInt(50) + 1;
-        _b = _rand.nextInt(50) + 1;
-        _correctAnswer = _a + _b;
-        break;
-
-      case OpType.sub:
-        final x = _rand.nextInt(50) + 1;
-        final y = _rand.nextInt(50) + 1;
-        _a = max(x, y);
-        _b = min(x, y);
-        _correctAnswer = _a - _b;
-        break;
-
-      case OpType.mul:
-        _a = _rand.nextInt(12) + 1;
-        _b = _rand.nextInt(12) + 1;
-        _correctAnswer = _a * _b;
-        break;
-
-      case OpType.div:
-        _b = _rand.nextInt(11) + 1;
-        final result = _rand.nextInt(12) + 1;
-        _a = _b * result;
-        _correctAnswer = result;
-        break;
-
-      default:
-        _a = 0;
-        _b = 0;
-        _correctAnswer = 0;
+    if (_selectedOp == null) return;
+    
+    if (_level == 1) {
+      if (_selectedOp == OpType.add) {
+        _correctAnswer = 1 + _rand.nextInt(10); 
+        _a = _rand.nextInt(_correctAnswer + 1);
+        _b = _correctAnswer - _a;
+      } else if (_selectedOp == OpType.sub) {
+        _a = 10 + _rand.nextInt(11); 
+        _correctAnswer = 1 + _rand.nextInt(10); 
+        _b = _a - _correctAnswer;
+      } else if (_selectedOp == OpType.mul) {
+        _correctAnswer = 1 + _rand.nextInt(10);
+        List<int> factors = [];
+        for (int f = 1; f <= _correctAnswer; f++) {
+          if (_correctAnswer % f == 0) factors.add(f);
+        }
+        _a = factors[_rand.nextInt(factors.length)];
+        _b = _correctAnswer ~/ _a;
+      } else if (_selectedOp == OpType.div) {
+        _correctAnswer = 1 + _rand.nextInt(10); 
+        _b = 1 + _rand.nextInt(5); 
+        _a = _correctAnswer * _b; 
+      }
+    } else {
+      if (_selectedOp == OpType.add) {
+        _correctAnswer = 10 + _rand.nextInt(21); 
+        _a = _rand.nextInt(_correctAnswer + 1);
+        _b = _correctAnswer - _a;
+      } else if (_selectedOp == OpType.sub) {
+        _correctAnswer = 10 + _rand.nextInt(21); 
+        _b = _rand.nextInt(21); 
+        _a = _correctAnswer + _b;
+      } else if (_selectedOp == OpType.mul) {
+        _correctAnswer = 10 + _rand.nextInt(21); 
+        List<int> factors = [];
+        for (int f = 1; f <= _correctAnswer; f++) {
+          if (_correctAnswer % f == 0) factors.add(f);
+        }
+        _a = factors[_rand.nextInt(factors.length)];
+        _b = _correctAnswer ~/ _a;
+      } else if (_selectedOp == OpType.div) {
+        _correctAnswer = 10 + _rand.nextInt(21); 
+        _b = 1 + _rand.nextInt(5); 
+        _a = _correctAnswer * _b;
+      }
     }
 
     final Set<int> opts = {_correctAnswer};
     while (opts.length < 4) {
       final delta = (_rand.nextInt(10) + 1) * (_rand.nextBool() ? 1 : -1);
       final candidate = _correctAnswer + delta;
-      if (candidate >= 0) opts.add(candidate);
+      if (candidate >= 0 && candidate != _correctAnswer) opts.add(candidate);
     }
     _options = opts.toList()..shuffle(_rand);
   }
@@ -276,6 +305,13 @@ D $dOpt.
       _answered = true;
       _chosenOption = val;
       if (val == _correctAnswer) _score++;
+      
+      answersHistory.add({
+        'questionText': "$_a ${_selectedOp!.symbol} $_b = ?",
+        'userAnswer': val,
+        'correctAnswer': _correctAnswer,
+        'isCorrect': val == _correctAnswer,
+      });
     });
 
     if (val == _correctAnswer) {
@@ -296,8 +332,23 @@ D $dOpt.
     }
   }
 
-  void _showResult() async {
-    await _speak("ප්‍රශ්න ඉවරයි. ඔබගේ ලකුණු $_totalQuestions න් $_scoreයි.");
+  Future<void> _showResult() async {
+    int xpGained = 0;
+    try {
+      final token = Session.token ?? "";
+      final dType = Session.disabilityType ?? "visual";
+      final res = await QuizApi.saveHistory(
+        token: token,
+        disabilityType: dType,
+        difficultyLevel: _level,
+        totalQuestions: _totalQuestions,
+        correctCount: _score,
+        questions: answersHistory,
+      );
+      xpGained = res['xpGained'] ?? 0;
+    } catch (_) {}
+
+    await _speak("ප්‍රශ්න ඉවරයි. ඔබගේ ලකුණු $_totalQuestions න් $_scoreයි. ${xpGained != 0 ? 'ඔබට එක්ස්පී ලකුණු $xpGained ක් ලැබුණා.' : ''}");
 
     if (!mounted) return;
 
@@ -305,7 +356,7 @@ D $dOpt.
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Quiz Finished'),
-        content: Text('Your score: $_score / $_totalQuestions'),
+        content: Text('Your score: $_score / $_totalQuestions\n${xpGained != 0 ? 'XP Gained: ${xpGained > 0 ? '+' : ''}$xpGained ✨' : ''}'),
         actions: [
           TextButton(
             onPressed: () {
@@ -375,7 +426,9 @@ D $dOpt.
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: InkWell(
-        onTap: () => _selectOperation(op),
+        onTap: () {
+          _selectOperation(op);
+        },
         borderRadius: BorderRadius.circular(10),
         child: Container(
           decoration: BoxDecoration(

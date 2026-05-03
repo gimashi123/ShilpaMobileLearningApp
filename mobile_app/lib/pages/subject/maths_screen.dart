@@ -123,8 +123,11 @@ class _StudentLessonsPageState extends State<StudentLessonsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            VideoPlayerPage(videoUrl: fullUrl, title: _titleOf(lesson)),
+        builder: (_) => VideoPlayerPage(
+          videoUrl: fullUrl,
+          title: _titleOf(lesson),
+          lessonId: lesson['_id']?.toString(),
+        ),
       ),
     );
   }

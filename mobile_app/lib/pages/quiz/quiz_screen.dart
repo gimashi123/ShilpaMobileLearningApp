@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:mobile_app/services/sign_game_api.dart';
+import 'package:mobile_app/services/quiz_api.dart';
 import 'package:mobile_app/session/session.dart';
 
 
@@ -260,14 +261,13 @@ class _QuizScreenState extends State<QuizScreen>
       try {
         final token = Session.token ?? "";
         final dType = Session.disabilityType ?? "hearing";
-        final res = await SignGameApi.saveHistory(
+        final res = await QuizApi.saveHistory(
           token: token,
           disabilityType: dType,
           difficultyLevel: _level,
           totalQuestions: quizzes.length,
           correctCount: score,
           questions: answersHistory,
-          source: 'quiz'
         );
         
         setState(() {
