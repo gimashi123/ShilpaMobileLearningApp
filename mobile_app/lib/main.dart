@@ -163,8 +163,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialPageRoute(
       builder: (_) => QuizScreen(
-        grade: args?['grade'] ?? '3',
-        type: args?['type'] ?? 'addition',
+        operation: args?['operation'] ?? 'add',
       ),
     );
   }

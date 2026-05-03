@@ -35,6 +35,7 @@ router.post("/history", async (req: AuthRequest, res: Response) => {
       totalQuestions = 10,
       correctCount = 0,
       questions = [],
+      source = "game",
     } = req.body;
 
     if (!disabilityType) {
@@ -60,7 +61,11 @@ router.post("/history", async (req: AuthRequest, res: Response) => {
 
     let xpGained = 0;
     const wrongCount = totalQuestions - correctCount;
-    xpGained = (correctCount * 10) - (wrongCount * 2);
+    if (source === "quiz") {
+      xpGained = (correctCount * 5) - (wrongCount * 2);
+    } else {
+      xpGained = (correctCount * 10) - (wrongCount * 2);
+    }
 
     const user = await User.findById(userId);
     let totalXp = 0;

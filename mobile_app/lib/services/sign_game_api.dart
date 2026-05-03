@@ -40,6 +40,7 @@ class SignGameApi {
     required int totalQuestions,
     required int correctCount,
     required List<Map<String, dynamic>> questions,
+    String source = "game",
   }) async {
     final url = Uri.parse('$baseUrl/api/sign-game/history');
 
@@ -56,6 +57,7 @@ class SignGameApi {
           'totalQuestions': totalQuestions,
           'correctCount': correctCount,
           'questions': questions,
+          'source': source,
         }),
       );
 
