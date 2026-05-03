@@ -149,6 +149,8 @@ flutter:
     - assets/images/cognitive/cat.png
     - assets/images/cognitive/car.png
     - assets/images/cognitive/bell.png
+    - assets/images/cognitive/apple.png
+    - assets/images/cognitive/ball.png
     - assets/images/cognitive/dinosaur.gif
     - assets/images/cognitive/dinosaur_2.gif
     - assets/models/lq_model.tflite

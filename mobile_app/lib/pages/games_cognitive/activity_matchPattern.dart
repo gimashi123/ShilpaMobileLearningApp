@@ -5,6 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:mobile_app/pages/games_cognitive/cognitive_game_loading_screen.dart';
+import 'package:mobile_app/services/cognitive.dart';
 import 'hand_hint_overlay.dart';
 import 'idle_dino_overlay.dart';
 
@@ -17,8 +18,6 @@ class PatternGameApp extends StatelessWidget {
   }
 }
 
-enum PatternType { colors, shapes, numbers }
-
 class PatternGamePage extends StatefulWidget {
   const PatternGamePage({super.key});
 
@@ -29,6 +28,7 @@ class PatternGamePage extends StatefulWidget {
 class _PatternGamePageState extends State<PatternGamePage>
     with SingleTickerProviderStateMixin {
   final _rng = Random();
+  final Set<String> _recentRoundKeys = <String>{};
 
   // Animation & Hint State
   final List<GlobalKey> _optionKeys = List.generate(4, (index) => GlobalKey());
@@ -46,10 +46,21 @@ class _PatternGamePageState extends State<PatternGamePage>
   // Levels & Pattern State
   int level = 1;
   int score = 0;
-  PatternType type = PatternType.colors;
+  String type = 'colors';
   late List<String> pattern;
   late String answer;
   late List<String> options;
+  bool _isLoadingPatternTypes = true;
+
+  static const Map<String, List<String>> _fallbackPatternTypes = {
+    'colors': ["🔵", "🔴", "🟡", "🟢"],
+    'shapes': ["⬛", "⬜", "🔺", "⭐"],
+    'numbers': ["1", "2", "3", "4", "5"],
+  };
+  Map<String, List<String>> _patternTypes = Map<String, List<String>>.from(
+    _fallbackPatternTypes,
+  );
+  List<String> _typeOrder = List<String>.from(_fallbackPatternTypes.keys);
 
   // UI feedback
   String feedback = "නිවැරදි ඊළඟ අංගය තට්ටු කරන්න";
@@ -67,6 +78,8 @@ class _PatternGamePageState extends State<PatternGamePage>
   int _reactionSamples = 0;
   DateTime? _roundStartedAt;
 
+  static const int _maxRecentRoundMemory = 12;
+
   @override
   void initState() {
     super.initState();
@@ -83,7 +96,7 @@ class _PatternGamePageState extends State<PatternGamePage>
     );
 
     _setupTts();
-    _newRound(speak: true);
+    _loadDynamicPatternTypes();
   }
 
   Future<void> _setupTts() async {
@@ -105,16 +118,44 @@ class _PatternGamePageState extends State<PatternGamePage>
     super.dispose();
   }
 
-  void _newRound({bool speak = false}) {
-    type = PatternType.values[(level - 1) % PatternType.values.length];
+  Future<void> _loadDynamicPatternTypes() async {
+    setState(() => _isLoadingPatternTypes = true);
+    final fetched = await _fetchPatternTypesFromApi();
+    if (!mounted) return;
 
-    if (level <= 2) {
-      _makeABAB();
-    } else if (level <= 4) {
-      _makeABCABC();
+    if (fetched.isNotEmpty) {
+      _patternTypes = fetched;
+      _typeOrder = fetched.keys.toList();
     } else {
-      _makeAABAAB();
+      _patternTypes = Map<String, List<String>>.from(_fallbackPatternTypes);
+      _typeOrder = List<String>.from(_fallbackPatternTypes.keys);
     }
+
+    _newRound(speak: true);
+    if (!mounted) return;
+    setState(() => _isLoadingPatternTypes = false);
+  }
+
+  Future<Map<String, List<String>>> _fetchPatternTypesFromApi() async {
+    try {
+      final items = await fetchMatchPatternTypeItems();
+      final data = <String, List<String>>{};
+      for (final item in items) {
+        final cleaned = item.bank.where((e) => e.trim().isNotEmpty).toList();
+        if (item.type.trim().isNotEmpty && cleaned.length >= 3) {
+          data[item.type.trim()] = cleaned;
+        }
+      }
+      return data;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  void _newRound({bool speak = false}) {
+    if (_typeOrder.isEmpty) return;
+    type = _typeOrder[(level - 1) % _typeOrder.length];
+    _generateDynamicRound();
 
     setState(() {
       _showHandHint = false;
@@ -129,62 +170,132 @@ class _PatternGamePageState extends State<PatternGamePage>
     }
   }
 
-  // --- Pattern Logic (Unchanged) ---
-  void _makeABAB() {
+  void _generateDynamicRound() {
     final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
+    const maxAttempts = 20;
+
+    for (var i = 0; i < maxAttempts; i++) {
+      final round = _buildRoundForLevel(bank);
+      final key = '${type}|${round.pattern.join(",")}|${round.answer}';
+      if (!_recentRoundKeys.contains(key)) {
+        pattern = round.pattern;
+        answer = round.answer;
+        options = round.options;
+        _rememberRoundKey(key);
+        return;
+      }
     }
-    pattern = [a, b, a, b];
-    answer = a;
-    options = _buildOptions(answer, bank, 3);
+
+    // Fallback when randomness collides repeatedly.
+    final fallback = _buildRoundForLevel(bank);
+    pattern = fallback.pattern;
+    answer = fallback.answer;
+    options = fallback.options;
+    _rememberRoundKey('${type}|${pattern.join(",")}|${answer}');
   }
 
-  void _makeABCABC() {
-    final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
-    }
-    String c = bank[_rng.nextInt(bank.length)];
-    while (c == a || c == b) {
-      c = bank[_rng.nextInt(bank.length)];
-    }
-    pattern = [a, b, c, a, b, c];
-    answer = a;
-    options = _buildOptions(answer, bank, 4);
+  _GeneratedRound _buildRoundForLevel(List<String> bank) {
+    final difficulty = level <= 3 ? 1 : (level <= 7 ? 2 : 3);
+    final availableTemplates = _templatesForDifficulty(difficulty, bank.length);
+    final template = availableTemplates[_rng.nextInt(availableTemplates.length)];
+    final values = _pickDistinct(bank, template.uniqueTokenCount);
+    final sequence = template.builder(values);
+    final correct = template.next(values);
+    final builtOptions = _buildOptions(correct, bank, 4);
+    return _GeneratedRound(pattern: sequence, answer: correct, options: builtOptions);
   }
 
-  void _makeAABAAB() {
-    final bank = _bankForType(type);
-    final a = bank[_rng.nextInt(bank.length)];
-    String b = bank[_rng.nextInt(bank.length)];
-    while (b == a) {
-      b = bank[_rng.nextInt(bank.length)];
+  List<_PatternTemplate> _templatesForDifficulty(int difficulty, int bankSize) {
+    final templates = <_PatternTemplate>[
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[1], v[0], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[0], v[1], v[0], v[0], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 2,
+        builder: (v) => [v[0], v[1], v[1], v[0], v[1], v[1]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[1], v[2], v[0], v[1], v[2]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[1], v[2], v[2], v[0], v[1], v[2], v[2]],
+        next: (v) => v[0],
+      ),
+      _PatternTemplate(
+        uniqueTokenCount: 3,
+        builder: (v) => [v[0], v[0], v[1], v[2], v[0], v[0], v[1], v[2]],
+        next: (v) => v[0],
+      ),
+    ];
+
+    final filteredByBank = templates
+        .where((t) => t.uniqueTokenCount <= bankSize)
+        .toList();
+    if (filteredByBank.isEmpty) {
+      return [
+        _PatternTemplate(
+          uniqueTokenCount: 2,
+          builder: (v) => [v[0], v[1], v[0], v[1]],
+          next: (v) => v[0],
+        ),
+      ];
     }
-    pattern = [a, a, b, a, a, b];
-    answer = a;
-    options = _buildOptions(answer, bank, 4);
+
+    if (difficulty == 1) {
+      return filteredByBank.where((t) => t.uniqueTokenCount == 2).toList();
+    }
+    if (difficulty == 2) {
+      return filteredByBank.where((t) => t.uniqueTokenCount <= 3).toList();
+    }
+    return filteredByBank;
   }
 
-  List<String> _bankForType(PatternType t) {
-    switch (t) {
-      case PatternType.colors:
-        return const ["🔵", "🔴", "🟡", "🟢"];
-      case PatternType.shapes:
-        return const ["⬛", "⬜", "🔺", "⭐"];
-      case PatternType.numbers:
-        return const ["1", "2", "3", "4", "5"];
+  List<String> _pickDistinct(List<String> bank, int count) {
+    final shuffled = List<String>.from(bank)..shuffle(_rng);
+    if (shuffled.length >= count) {
+      return shuffled.take(count).toList();
     }
+
+    final values = List<String>.from(shuffled);
+    while (values.length < count) {
+      values.add(bank[_rng.nextInt(bank.length)]);
+    }
+    return values;
+  }
+
+  void _rememberRoundKey(String key) {
+    if (_recentRoundKeys.length >= _maxRecentRoundMemory) {
+      _recentRoundKeys.remove(_recentRoundKeys.first);
+    }
+    _recentRoundKeys.add(key);
+  }
+
+  List<String> _bankForType(String t) {
+    final bank = _patternTypes[t];
+    if (bank == null || bank.isEmpty) {
+      return const ["1", "2", "3", "4", "5"];
+    }
+    return bank;
   }
 
   List<String> _buildOptions(String correct, List<String> bank, int count) {
+    if (bank.isEmpty) return [correct];
     final set = <String>{correct};
-    while (set.length < count) {
+    var attempts = 0;
+    while (set.length < count && attempts < 40) {
       set.add(bank[_rng.nextInt(bank.length)]);
+      attempts++;
     }
     final list = set.toList()..shuffle(_rng);
     return list;
@@ -315,6 +426,10 @@ class _PatternGamePageState extends State<PatternGamePage>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingPatternTypes) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final size = MediaQuery.sizeOf(context);
     final scale = (size.shortestSide / 360).clamp(0.85, 1.2);
     final questionRow = [...pattern, "?"];
@@ -503,4 +618,28 @@ class _StarRewardBox extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GeneratedRound {
+  final List<String> pattern;
+  final String answer;
+  final List<String> options;
+
+  const _GeneratedRound({
+    required this.pattern,
+    required this.answer,
+    required this.options,
+  });
+}
+
+class _PatternTemplate {
+  final int uniqueTokenCount;
+  final List<String> Function(List<String>) builder;
+  final String Function(List<String>) next;
+
+  const _PatternTemplate({
+    required this.uniqueTokenCount,
+    required this.builder,
+    required this.next,
+  });
 }
