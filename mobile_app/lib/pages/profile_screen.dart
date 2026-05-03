@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile_app/pages/profile/edit_profile.dart';
+import 'package:mobile_app/pages/profile/progress_report_screen.dart';
 import 'package:mobile_app/services/auth_api.dart';
 import 'package:mobile_app/session/session.dart';
 import 'package:mobile_app/models/input_modes.dart';
@@ -341,6 +342,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     final disabilityType = (me?["disabilityType"] ?? "").toString();
     final isCognitive = disabilityType.toLowerCase() == "cognitive";
 
+    int signGameXp = 0;
+    if (me?["signGameXp"] != null) {
+      if (me!["signGameXp"] is num) {
+        signGameXp = (me!["signGameXp"] as num).toInt();
+      } else if (me!["signGameXp"] is String) {
+        signGameXp = int.tryParse(me!["signGameXp"]) ?? 0;
+      }
+    }
+    final signGameLevel = signGameXp >= 1000 ? 2 : 1;
+    final xpProgress = (signGameXp / 1000).clamp(0.0, 1.0);
+
     final dynamic studentRaw = me?["student"];
     final Map<String, dynamic>? studentObj =
         (studentRaw is Map<String, dynamic>) ? studentRaw : null;
@@ -584,6 +596,86 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                   const SizedBox(height: 30),
 
+                  // XP Progress Card
+                  Container(
+                      padding: const EdgeInsets.all(20),
+                      margin: const EdgeInsets.only(bottom: 30),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.purple.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text('🏆', style: TextStyle(fontSize: 24)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Level $signGameLevel',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '$signGameXp / 1000 XP',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: xpProgress,
+                              minHeight: 12,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7AF2D6)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            signGameLevel == 1 
+                              ? 'Reach 1000 XP to unlock harder questions!' 
+                              : 'You are at the maximum level! Amazing work! 🎉',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Quote of the day
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -642,6 +734,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 30),
 
                   // Menu items
+                  _buildMenuItem(
+                    icon: Icons.bar_chart_rounded,
+                    text: 'My Progress',
+                    subtitle: 'View your learning achievements',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProgressReportScreen(),
+                        ),
+                      );
+                    },
+                    gradientColors: const [
+                      Color(0xFF6A11CB),
+                      Color(0xFF2575FC),
+                    ],
+                  ),
+
                   _buildMenuItem(
                     icon: Icons.edit_rounded,
                     text: 'Edit Profile',

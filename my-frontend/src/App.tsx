@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Register from './pages/Register';
 import Login from './pages/Login'; 
-import ParentDashboard from './pages/ParentDashboard';
+import ParentDashboard from './pages/dashboard/ParentDashboard.tsx';
 import TeacherDashboard from './pages/dashboard/TeacherDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import QuizCreate from "./pages/Quiz/QuizCreate.tsx";
@@ -12,6 +12,8 @@ import ParentsPage from "./pages/ParentsPage.tsx";
 import CreatePaper from './pages/paper/CreatePaper.tsx';
 import ChooseLesson from './pages/paper/ChooseLesson.tsx';
 import TeacherPaperBuilder from "./pages/paper/PaperBuilder.tsx";
+import ViewPaper from './pages/paper/ViewPaper.tsx';
+import StudentProgress from './pages/dashboard/StudentProgress.tsx';
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
         <Route path="/paper-create" element={<CreatePaper />} />
         <Route path="/teacher/create-paper/:subject" element={<ChooseLesson />} />
         <Route path="/teacher/create-paper/:subject/:type" element={<TeacherPaperBuilder />} />
+        <Route path="/paper-view/:id" element={<ViewPaper />} />
+        <Route path="/progress-view" element={<StudentProgress />} />
         {/* Add more routes as needed */}
       </Routes>
     </Router>

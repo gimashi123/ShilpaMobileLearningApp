@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/component/top_nav_bar.dart';
+import 'package:mobile_app/pages/quiz/quiz_screen.dart';
 
 class QuizPageSimple extends StatelessWidget {
   const QuizPageSimple({super.key});
@@ -147,41 +148,69 @@ class QuizPageSimple extends StatelessWidget {
                           childAspectRatio: 3/2,
                           children: [
                             _QuizCard(
-                              title: "ගණිත ප්‍රශ්න",
-                              icon: Icons.calculate,
+                              title: "එකතු කිරීම",
+                              icon: Icons.add,
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               onTap: () {
-                                Navigator.pushNamed(context, '/general_quiz');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const QuizScreen(operation: 'add'),
+                                  ),
+                                );
                               },
                             ),
                             _QuizCard(
-                              title: "සිංහල ප්‍රශ්න",
-                              icon: Icons.menu_book,
+                              title: "අඩු කිරීම",
+                              icon: Icons.remove,
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      "සිංහල ප්‍රශ්න ඉක්මනින් එයි",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    backgroundColor: Colors.deepPurple.withOpacity(0.9),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: const EdgeInsets.all(20),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const QuizScreen(operation: 'sub'),
+                                  ),
+                                );
+                              },
+                            ),
+                            _QuizCard(
+                              title: "ගුණ කිරීම",
+                              icon: Icons.close, // multiplication
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFC466B), Color(0xFF3F5EFB)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const QuizScreen(operation: 'mul'),
+                                  ),
+                                );
+                              },
+                            ),
+                            _QuizCard(
+                              title: "බෙදීම",
+                              icon: Icons.percent, // roughly division
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFDC830), Color(0xFFF37335)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const QuizScreen(operation: 'div'),
                                   ),
                                 );
                               },

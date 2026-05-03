@@ -5,7 +5,7 @@ import * as Icons from "lucide-react";
 import StudentsPage from "../StudentPage.tsx";
 import TeachersPage from "../TeacherPage.tsx";
 import ParentsPage from "../ParentsPage.tsx";
-import { hover } from "framer-motion";
+
 
 type User = {
     id: string;
@@ -321,6 +321,7 @@ const Dashboard = () => {
         // { id: "parents", label: "Parents", icon: Icons.Heart, description: "Parent portal", color: "#ec4899" },
         // { id: "teachers", label: "Teachers", icon: Icons.GraduationCap, description: "Faculty management", color: "#8b5cf6" },
         { id: "messages", label: "Messages", icon: Icons.MessageSquare, description: "Communications", color: "#f59e0b" },
+        { id: "papers", label: "My Papers", icon: Icons.FileText, description: "Generated assessments", color: "#ec4899" },
         { id: "settings", label: "Settings", icon: Icons.Settings, description: "Preferences", color: "#64748b" },
     ];
 
@@ -561,6 +562,8 @@ const Dashboard = () => {
                     {activeTab === "teachers" && <TeachersPage />}
                     {activeTab === "parents" && <ParentsPage />}
 
+                    {activeTab === "papers" && <MyPapersSection />}
+
                     {activeTab === "messages" && (
                         <div style={{
                             background: "#ffffff",
@@ -594,6 +597,79 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
+        </div>
+    );
+};
+
+const MyPapersSection = () => {
+    const navigate = useNavigate();
+    const [papers, setPapers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPapers = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch("http://localhost:3000/api/quizzes/my-papers", {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json();
+                setPapers(data.papers || []);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPapers();
+    }, []);
+
+    if (loading) return <div style={{ padding: "20px" }}>Loading papers...</div>;
+
+    return (
+        <div style={{ background: "white", padding: "24px", borderRadius: "16px", border: "1px solid #edf2f7" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                <Icons.FileText size={24} color="#ec4899" />
+                <h3 style={{ margin: 0 }}>My Generated Papers</h3>
+            </div>
+            {papers.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                    <Icons.FileX size={48} style={{ marginBottom: "12px", opacity: 0.5 }} />
+                    <p>No papers generated yet. Start by creating a new paper!</p>
+                </div>
+            ) : (
+                <div style={{ display: "grid", gap: "16px" }}>
+                    {papers.map((p) => (
+                        <div key={p._id} style={{ padding: "16px", border: "1px solid #e2e8f0", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div>
+                                <div style={{ fontWeight: 600, color: "#1e293b" }}>{p.subject.toUpperCase()} - {p.type}</div>
+                                <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>
+                                    Grade {p.grade} • {p.questions.length} Questions • {new Date(p.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => navigate(`/paper-view/${p._id}`)}
+                                style={{ 
+                                    padding: "8px 16px", 
+                                    background: "#3b82f6", 
+                                    color: "white", 
+                                    border: "none", 
+                                    borderRadius: "8px", 
+                                    cursor: "pointer",
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px"
+                                }}
+                            >
+                                <Icons.Eye size={16} />
+                                View Paper
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

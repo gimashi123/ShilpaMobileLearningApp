@@ -9,6 +9,7 @@ export interface UserDetails {
   };
   // 👇 NEW – what Flutter will read
   disabilityType: string;
+  signGameXp?: number;
 }
 
 export interface AuthResponse {

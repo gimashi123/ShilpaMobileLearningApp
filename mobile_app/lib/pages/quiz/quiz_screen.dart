@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/models/quiz.dart';
+import 'dart:math';
+import 'package:mobile_app/services/sign_game_api.dart';
 import 'package:mobile_app/services/quiz_api.dart';
+import 'package:mobile_app/session/session.dart';
+
 
 class QuizScreen extends StatefulWidget {
-  final String grade;
-  final String type;
-
-  const QuizScreen({super.key, required this.grade, required this.type});
+  final String operation;
+  const QuizScreen({super.key, required this.operation});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -14,7 +15,10 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen>
     with SingleTickerProviderStateMixin {
-  List<Quiz> quizzes = [];
+  List<Map<String, dynamic>> quizzes = [];
+  List<Map<String, dynamic>> answersHistory = [];
+  int _level = 1;
+  int _xpGained = 0;
   int currentIndex = 0;
   int score = 0;
 
@@ -66,18 +70,17 @@ class _QuizScreenState extends State<QuizScreen>
 
   Future<void> loadQuizzes() async {
     try {
-      final data = await QuizApi.fetchRandomQuizzes(
-        grade: widget.grade,
-        type: widget.type,
-      );
+      final token = Session.token ?? "";
+      final dType = Session.disabilityType ?? "hearing";
+      
+      _level = await SignGameApi.getLevel(token, dType);
+      _generateQuestions(_level, widget.operation);
 
       setState(() {
-        quizzes = data;
         loading = false;
       });
 
-      // Focus on text field after loading
-      if (data.isNotEmpty) {
+      if (quizzes.isNotEmpty) {
         Future.delayed(const Duration(milliseconds: 300), () {
           FocusScope.of(context).requestFocus(_focusNode);
         });
@@ -86,11 +89,82 @@ class _QuizScreenState extends State<QuizScreen>
       setState(() {
         loading = false;
       });
-
-      // Show friendly error dialog
       if (mounted) {
         _showFriendlyErrorDialog();
       }
+    }
+  }
+
+  void _generateQuestions(int level, String operation) {
+    quizzes.clear();
+    answersHistory.clear();
+    final random = Random();
+    
+    for (int i = 0; i < 10; i++) {
+      int a = 0, b = 0, ans = 0;
+
+      if (level == 1) {
+        if (operation == 'add') {
+          // answer 1-10
+          ans = 1 + random.nextInt(10); 
+          a = random.nextInt(ans + 1);
+          b = ans - a;
+        } else if (operation == 'sub') {
+          // operands 10-20, answer 1-10 (e.g. 15-9 = 6)
+          a = 10 + random.nextInt(11); // 10..20
+          ans = 1 + random.nextInt(10); // 1..10
+          b = a - ans;
+        } else if (operation == 'mul') {
+          // answer 1-10
+          ans = 1 + random.nextInt(10);
+          List<int> factors = [];
+          for (int f = 1; f <= ans; f++) {
+            if (ans % f == 0) factors.add(f);
+          }
+          a = factors[random.nextInt(factors.length)];
+          b = ans ~/ a;
+        } else if (operation == 'div') {
+          // operands around 10-20, answer 1-10 (e.g. 15/3 = 5)
+          ans = 1 + random.nextInt(10); // 1..10
+          b = 1 + random.nextInt(5); // divisor 1..5
+          a = ans * b; // dividend
+        }
+      } else {
+        // LEVEL 2
+        if (operation == 'add') {
+          // answer 10-30
+          ans = 10 + random.nextInt(21); // 10..30
+          a = random.nextInt(ans + 1);
+          b = ans - a;
+        } else if (operation == 'sub') {
+          // answer 10-30
+          ans = 10 + random.nextInt(21); // 10..30
+          b = random.nextInt(21); // 0..20
+          a = ans + b;
+        } else if (operation == 'mul') {
+          // answer 10-30
+          ans = 10 + random.nextInt(21); // 10..30
+          List<int> factors = [];
+          for (int f = 1; f <= ans; f++) {
+            if (ans % f == 0) factors.add(f);
+          }
+          a = factors[random.nextInt(factors.length)];
+          b = ans ~/ a;
+        } else if (operation == 'div') {
+          // answer 10-30
+          ans = 10 + random.nextInt(21); // 10..30
+          b = 1 + random.nextInt(5); // 1..5
+          a = ans * b;
+        }
+      }
+
+      String symbol = operation == 'add' ? '+' : operation == 'sub' ? '-' : operation == 'mul' ? '×' : '÷';
+
+      quizzes.add({
+        'id': i.toString(),
+        'question': '$a $symbol $b = ?',
+        'correctAnswer': ans,
+      });
     }
   }
 
@@ -148,58 +222,65 @@ class _QuizScreenState extends State<QuizScreen>
     });
 
     final currentQuiz = quizzes[currentIndex];
-    final userAnswer = _controller.text.trim();
+    final userAnswer = int.tryParse(_controller.text.trim());
+    final correctAns = currentQuiz["correctAnswer"];
+    final isCorrect = userAnswer == correctAns;
 
-    try {
-      final result = await QuizApi.checkAnswer(
-        quizId: currentQuiz.id,
-        userAnswer: userAnswer,
-      );
+    answersHistory.add({
+      'questionText': currentQuiz["question"],
+      'userAnswer': userAnswer,
+      'correctAnswer': correctAns,
+      'isCorrect': isCorrect,
+    });
 
-      final isCorrect = result["correct"] == true;
-
-      setState(() {
-        if (isCorrect) {
-          score++;
-          feedback = "ඔබගේ පිළිතුර නිවැරදි ";
-        } else {
-          feedback = "ඔබගේ පිළිතුර වැරදි! නිවැරදි පිළිතුර: ${result["correctAnswer"]}";
-        }
-      });
-
-      // Haptic feedback for answer
-      // if (isCorrect) {
-      //   HapticFeedback.lightImpact();
-      // } else {
-      //   HapticFeedback.selectionClick();
-      // }
-
-      // Show feedback with animation
-      await Future.delayed(const Duration(milliseconds: 1800));
-
-      if (currentIndex < quizzes.length - 1) {
-        setState(() {
-          currentIndex++;
-          feedback = null;
-          _controller.clear();
-          canProceed = false;
-          isProcessing = false;
-        });
-
-        // Refocus on text field
-        Future.delayed(const Duration(milliseconds: 100), () {
-          FocusScope.of(context).requestFocus(_focusNode);
-        });
+    setState(() {
+      if (isCorrect) {
+        score++;
+        feedback = "ඔබගේ පිළිතුර නිවැරදි ✨";
       } else {
-        setState(() {
-          showFinal = true;
-        });
+        feedback = "ඔබගේ පිළිතුර වැරදි! නිවැරදි පිළිතුර: $correctAns";
       }
-    } catch (e) {
+    });
+
+    await Future.delayed(const Duration(milliseconds: 1800));
+
+    if (currentIndex < quizzes.length - 1) {
       setState(() {
-        feedback = "😅 Oops! Connection issue. Try again?";
+        currentIndex++;
+        feedback = null;
+        _controller.clear();
+        canProceed = false;
         isProcessing = false;
       });
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        FocusScope.of(context).requestFocus(_focusNode);
+      });
+    } else {
+      // Save to backend!
+      try {
+        final token = Session.token ?? "";
+        final dType = Session.disabilityType ?? "hearing";
+        final res = await QuizApi.saveHistory(
+          token: token,
+          disabilityType: dType,
+          difficultyLevel: _level,
+          totalQuestions: quizzes.length,
+          correctCount: score,
+          questions: answersHistory,
+        );
+        
+        setState(() {
+          _xpGained = res['xpGained'] ?? 0;
+          showFinal = true;
+          isProcessing = false;
+        });
+      } catch (e) {
+        setState(() {
+          showFinal = true;
+          isProcessing = false;
+        });
+      }
     }
   }
 
@@ -378,7 +459,25 @@ class _QuizScreenState extends State<QuizScreen>
                               ),
                             ],
                           ),
+                          
                           const SizedBox(height: 15),
+                          if (_xpGained != 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: _xpGained > 0 ? Colors.green.shade50 : Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _xpGained > 0 ? '+ $_xpGained XP ✨' : '$_xpGained XP',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: _xpGained > 0 ? Colors.green.shade700 : Colors.red.shade700,
+                                ),
+                              ),
+                            ),
+
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -682,7 +781,7 @@ class _QuizScreenState extends State<QuizScreen>
                             ),
                           ),
                           child: Text(
-                            quiz.question,
+                            quiz['question'],
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 28,

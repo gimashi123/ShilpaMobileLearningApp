@@ -255,6 +255,7 @@ class _LearnContentState extends State<LearnContent> {
                                   'Grade ${lesson['grade']?.toString() ?? '-'}',
                               description: lesson['description']?.toString(),
                               videoUrl: lesson['videoUrl']?.toString(),
+                              lessonId: lesson['_id']?.toString(),
                               inputMode: widget.inputMode,
                               themeColor: themeColor,
                             ),

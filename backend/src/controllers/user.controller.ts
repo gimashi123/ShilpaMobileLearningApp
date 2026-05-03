@@ -13,7 +13,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 
     // IMPORTANT: don't return password
     const user = await User.findById(userId).select(
-      "_id name email role disabilityType student createdAt updatedAt",
+      "_id name email role disabilityType student signGameXp createdAt updatedAt",
     );
 
     if (!user) {
@@ -30,6 +30,7 @@ export const getMe = async (req: AuthRequest, res: Response) => {
         role: user.role,
         disabilityType: user.disabilityType,
         student: user.student, // {grade, age}
+        signGameXp: user.signGameXp,
       },
       HTTP_STATUS.OK,
     );
@@ -67,7 +68,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     }
 
     const user = await User.findByIdAndUpdate(userId, update, { new: true }).select(
-      "_id name email role disabilityType student",
+      "_id name email role disabilityType student signGameXp",
     );
 
     if (!user) {
@@ -81,6 +82,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       role: user.role,
       disabilityType: user.disabilityType,
       student: user.student,
+      signGameXp: user.signGameXp,
     }, HTTP_STATUS.OK);
   } catch (err) {
     console.error("UPDATE_ME_ERROR", err);

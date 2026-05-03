@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../config/AppConfig.dart';
+import '../../services/sign_game_api.dart';
+import '../../session/session.dart';
 
 /// =======================
 /// Unified Question Model + Bank (Levels 1, 2, 4)
@@ -31,92 +33,61 @@ class QuestionBank {
     return 1; // Fallback
   }
 
-  static MathQuestion randomQuestion() {
-    // Pick a level to generate a question for:
-    // 0 = Level 1 (1-10)
-    // 1 = Level 2 (11-20)
-    // 2 = Level 4 (75-100)
-    final levelChoice = _rng.nextInt(3);
+  /// Dynamically generates a math question whose answer is always in [1, 10].
+  /// Uses addition, subtraction, and multiplication with randomised operands
+  /// so that no two rounds feel the same.
+  static MathQuestion randomQuestion({int difficultyLevel = 1}) {
+    // Pick an answer first, then build the question around it
+    final answer = _rng.nextInt(10) + 1; // 1..10
+    final op = _rng.nextInt(3); // 0: +, 1: -, 2: ×
 
-    final op = _rng.nextInt(3); // 0:+, 1:-, 2:*
-
-    if (levelChoice == 0) {
-      // OVERALL ANSWER RANGE: 1 - 10
-      if (op == 0) { // +
-        final a = _rng.nextInt(10) + 1;
-        final b = _rng.nextInt(10 - a + 1);
-        return MathQuestion("$a + $b = ?", a + b);
-      } else if (op == 1) { // -
-        final a = _rng.nextInt(10) + 1;
-        final b = _rng.nextInt(a); // smaller than a
-        return MathQuestion("$a - $b = ?", a - b);
-      } else { // *
-        const pairs = [
-          [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9], [1, 10],
-          [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
-          [3, 1], [3, 2], [3, 3],
-          [4, 1], [4, 2],
-          [5, 1], [5, 2],
-          [6, 1], [7, 1], [8, 1], [9, 1], [10, 1],
-        ];
-        final p = pairs[_rng.nextInt(pairs.length)];
-        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
-      }
-    } else if (levelChoice == 1) {
-      // OVERALL ANSWER RANGE: 11 - 20
-      if (op == 0) { // +
-        final a = _rng.nextInt(15) + 5; // 5 to 19
-        final targetAns = 11 + _rng.nextInt(10); // 11 to 20
-        final b = targetAns - a;
-        if (b >= 0) {
-          return MathQuestion("$a + $b = ?", targetAns);
-        } else {
-          return MathQuestion("10 + ${targetAns - 10} = ?", targetAns);
-        }
-      } else if (op == 1) { // -
-        final ans = _rng.nextInt(10) + 11; // 11 to 20
-        final b = _rng.nextInt(10) + 1; // 1 to 10
-        final a = ans + b;
-        return MathQuestion("$a - $b = ?", ans);
-      } else { // *
-        const pairs = [
-          [2, 6], [2,  7], [2,  8], [2,  9], [2, 10],
-          [3, 4], [3,  5], [3,  6],
-          [4, 3], [4,  4], [4,  5],
-          [5, 3], [5,  4],
-          [6, 2], [6,  3],
-          [7, 2], [8,  2], [9,  2], [10, 2],
-        ];
-        final p = pairs[_rng.nextInt(pairs.length)];
-        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
+    if (difficultyLevel == 2) {
+      // Level 2: Harder operands (10-20) but answer is still 1-10
+      if (op == 0) {
+        // Addition: small + small = answer
+        final a = _rng.nextInt(answer) + 1;
+        final b = answer - a;
+        return MathQuestion("$a + $b = ?", answer);
+      } else if (op == 1) {
+        // Subtraction: a - b = answer, where a is between 11-20
+        final b = _rng.nextInt(10) + 1; // 1..10
+        final a = answer + b; // Will be between 2..20
+        return MathQuestion("$a - $b = ?", answer);
+      } else {
+        // Division (instead of multiplication) for Level 2
+        // a / b = answer => a = answer * b
+        final b = _rng.nextInt(3) + 2; // 2..4 (small divisors)
+        final a = answer * b;
+        return MathQuestion("$a ÷ $b = ?", answer);
       }
     } else {
-      // OVERALL ANSWER RANGE: 75 - 100 (Level 4)
-      if (op == 0) { // +
-        final targetAns = 75 + _rng.nextInt(26); // 75 to 100
-        final a = _rng.nextInt(targetAns - 10) + 10;
-        final b = targetAns - a;
-        return MathQuestion("$a + $b = ?", targetAns);
-      } else if (op == 1) { // -
-        final ans = 75 + _rng.nextInt(26); // 75 to 100
-        final b = _rng.nextInt(20) + 1;
-        final a = ans + b;
-        return MathQuestion("$a - $b = ?", ans);
-      } else { // *
-        // Products in 75-100
-        const pairs = [
-          [8, 10], [9, 9], [9, 10], [10, 8], [10, 9], [10, 10]
-        ];
-        final p = pairs[_rng.nextInt(pairs.length)];
-        return MathQuestion("${p[0]} × ${p[1]} = ?", p[0] * p[1]);
+      // Level 1: Basic
+      if (op == 0) {
+        // Addition: a + b = answer, where a >= 1
+        final a = _rng.nextInt(answer) + 1; // 1..answer
+        final b = answer - a;
+        return MathQuestion("$a + $b = ?", answer);
+      } else if (op == 1) {
+        // Subtraction: a - b = answer, where b >= 0, a <= 20
+        final b = _rng.nextInt(11); // 0..10
+        final a = answer + b;
+        return MathQuestion("$a - $b = ?", answer);
+      } else {
+        // Multiplication: a × b = answer (pick a valid factor pair)
+        final factors = <List<int>>[];
+        for (int f = 1; f <= answer; f++) {
+          if (answer % f == 0) factors.add([f, answer ~/ f]);
+        }
+        final pair = factors[_rng.nextInt(factors.length)];
+        return MathQuestion("${pair[0]} × ${pair[1]} = ?", answer);
       }
     }
   }
 
-  static List<MathQuestion> buildLevel(int count) {
+  static List<MathQuestion> buildLevel(int count, {int difficultyLevel = 1}) {
     final list = <MathQuestion>[];
     while (list.length < count) {
-      list.add(randomQuestion());
+      list.add(randomQuestion(difficultyLevel: difficultyLevel));
     }
     return list;
   }
@@ -133,11 +104,17 @@ class MathGameDeaf extends StatefulWidget {
 }
 
 class _MathGameDeafState extends State<MathGameDeaf> {
-  List<MathQuestion> _questions = QuestionBank.buildLevel(10);
+  List<MathQuestion> _questions = [];
   final List<MathQuestion> _wrongQuestions = [];
+  final List<Map<String, dynamic>> _questionHistory = [];
+
+  /// Track how many times each question has been retried (max 2 retries)
+  final Map<MathQuestion, int> _retryCount = {};
 
   bool _started = false;
   int _index = 0;
+  int _difficultyLevel = 1;
+  bool _isLoadingLevel = false;
 
   bool _checked = false;
   bool _isCorrect = false;
@@ -147,6 +124,30 @@ class _MathGameDeafState extends State<MathGameDeaf> {
 
   bool get _levelFinished => _index >= _questions.length;
   MathQuestion get _currentQ => _questions[_index];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLevelAndStart();
+  }
+
+  Future<void> _fetchLevelAndStart() async {
+    setState(() => _isLoadingLevel = true);
+    final token = Session.token;
+    if (token != null) {
+      final level = await SignGameApi.getLevel(token, 'hearing');
+      setState(() {
+        _difficultyLevel = level;
+        _isLoadingLevel = false;
+        _questions = QuestionBank.buildLevel(10, difficultyLevel: level);
+      });
+    } else {
+      setState(() {
+        _isLoadingLevel = false;
+        _questions = QuestionBank.buildLevel(10);
+      });
+    }
+  }
 
   void _resetForNextQuestion() {
     _checked = false;
@@ -158,8 +159,10 @@ class _MathGameDeafState extends State<MathGameDeaf> {
 
   void _startLevel() {
     setState(() {
-      _questions = QuestionBank.buildLevel(10);
+      _questions = QuestionBank.buildLevel(10, difficultyLevel: _difficultyLevel);
       _wrongQuestions.clear();
+      _retryCount.clear();
+      _questionHistory.clear();
       _started = true;
       _index = 0;
       _resetForNextQuestion();
@@ -178,8 +181,45 @@ class _MathGameDeafState extends State<MathGameDeaf> {
     
     setState(() {
       _index++;
-      if (!_levelFinished) _resetForNextQuestion();
+      if (_levelFinished) {
+        _saveHistory();
+      } else {
+        _resetForNextQuestion();
+      }
     });
+  }
+
+  Future<void> _saveHistory() async {
+    final token = Session.token;
+    if (token == null || _questionHistory.isEmpty) return;
+
+    final correctCount = _questionHistory.where((q) => q['isCorrect'] == true).length;
+    final totalCount = _questionHistory.length;
+
+    final result = await SignGameApi.saveHistory(
+      token: token,
+      disabilityType: 'hearing',
+      difficultyLevel: _difficultyLevel,
+      totalQuestions: totalCount,
+      correctCount: correctCount,
+      questions: _questionHistory,
+    );
+
+    if (result['success'] == true) {
+      final xpGained = result['xpGained'];
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Round Finished! You earned $xpGained XP 🎉',
+              style: const TextStyle(fontSize: 16),
+            ),
+            backgroundColor: xpGained > 0 ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _checkUsingSign() async {
@@ -215,11 +255,39 @@ class _MathGameDeafState extends State<MathGameDeaf> {
 
       // CORRECT MATH CONNECTION: 
       _isCorrect = (result.prediction != null && result.prediction == expected);
+
+      _questionHistory.add({
+        'questionText': _currentQ.text,
+        'correctAnswer': expected,
+        'userAnswer': result.prediction,
+        'isCorrect': _isCorrect,
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingLevel) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF667EEA).withOpacity(0.15),
+                const Color(0xFF764BA2).withOpacity(0.12),
+                const Color(0xFFFFF8E1).withOpacity(0.95),
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     if (!_started) {
       return Scaffold(
         body: Container(
