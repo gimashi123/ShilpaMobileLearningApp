@@ -38,42 +38,43 @@ class QuestionBank {
   /// so that no two rounds feel the same.
   static MathQuestion randomQuestion({int difficultyLevel = 1}) {
     // Pick an answer first, then build the question around it
-    final answer = _rng.nextInt(10) + 1; // 1..10
+    // Restrict to 1-9 as requested
+    final answer = _rng.nextInt(9) + 1; // 1..9
     final op = _rng.nextInt(3); // 0: +, 1: -, 2: ×
 
     if (difficultyLevel == 2) {
-      // Level 2: Harder operands (10-20) but answer is still 1-10
+      // Level 2: Harder operands but answer is still 1-9
       if (op == 0) {
-        // Addition: small + small = answer
         final a = _rng.nextInt(answer) + 1;
         final b = answer - a;
         return MathQuestion("$a + $b = ?", answer);
       } else if (op == 1) {
-        // Subtraction: a - b = answer, where a is between 11-20
-        final b = _rng.nextInt(10) + 1; // 1..10
-        final a = answer + b; // Will be between 2..20
+        // Subtraction: a - b = answer
+        final b = _rng.nextInt(5) + 1; // 1..5
+        final a = answer + b; 
         return MathQuestion("$a - $b = ?", answer);
       } else {
-        // Division (instead of multiplication) for Level 2
-        // a / b = answer => a = answer * b
-        final b = _rng.nextInt(3) + 2; // 2..4 (small divisors)
+        // Division
+        final b = _rng.nextInt(2) + 2; // 2..3
         final a = answer * b;
         return MathQuestion("$a ÷ $b = ?", answer);
       }
     } else {
-      // Level 1: Basic
+      // Level 1: Basic (1-9 numbers)
       if (op == 0) {
-        // Addition: a + b = answer, where a >= 1
-        final a = _rng.nextInt(answer) + 1; // 1..answer
+        // Addition: a + b = answer
+        final a = _rng.nextInt(answer) + 1;
         final b = answer - a;
         return MathQuestion("$a + $b = ?", answer);
       } else if (op == 1) {
-        // Subtraction: a - b = answer, where b >= 0, a <= 20
-        final b = _rng.nextInt(11); // 0..10
+        // Subtraction: a - b = answer, where a is also within 1-9
+        // To keep a <= 9, b must be <= (9 - answer)
+        int maxB = 9 - answer;
+        final b = maxB > 0 ? _rng.nextInt(maxB + 1) : 0;
         final a = answer + b;
         return MathQuestion("$a - $b = ?", answer);
       } else {
-        // Multiplication: a × b = answer (pick a valid factor pair)
+        // Multiplication: a × b = answer
         final factors = <List<int>>[];
         for (int f = 1; f <= answer; f++) {
           if (answer % f == 0) factors.add([f, answer ~/ f]);

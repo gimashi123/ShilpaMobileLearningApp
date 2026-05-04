@@ -99,66 +99,51 @@ class _QuizScreenState extends State<QuizScreen>
     quizzes.clear();
     answersHistory.clear();
     final random = Random();
-    
-    for (int i = 0; i < 10; i++) {
+
+    // Reduce to 5 questions as requested
+    for (int i = 0; i < 5; i++) {
       int a = 0, b = 0, ans = 0;
 
-      if (level == 1) {
-        if (operation == 'add') {
-          // answer 1-10
-          ans = 1 + random.nextInt(10); 
-          a = random.nextInt(ans + 1);
-          b = ans - a;
-        } else if (operation == 'sub') {
-          // operands 10-20, answer 1-10 (e.g. 15-9 = 6)
-          a = 10 + random.nextInt(11); // 10..20
-          ans = 1 + random.nextInt(10); // 1..10
-          b = a - ans;
-        } else if (operation == 'mul') {
-          // answer 1-10
+      if (operation == 'add') {
+        if (level == 1) {
+          // Level 1: sum up to 10
           ans = 1 + random.nextInt(10);
-          List<int> factors = [];
-          for (int f = 1; f <= ans; f++) {
-            if (ans % f == 0) factors.add(f);
-          }
-          a = factors[random.nextInt(factors.length)];
-          b = ans ~/ a;
-        } else if (operation == 'div') {
-          // operands around 10-20, answer 1-10 (e.g. 15/3 = 5)
-          ans = 1 + random.nextInt(10); // 1..10
-          b = 1 + random.nextInt(5); // divisor 1..5
-          a = ans * b; // dividend
-        }
-      } else {
-        // LEVEL 2
-        if (operation == 'add') {
-          // answer 10-30
-          ans = 10 + random.nextInt(21); // 10..30
           a = random.nextInt(ans + 1);
           b = ans - a;
-        } else if (operation == 'sub') {
-          // answer 10-30
-          ans = 10 + random.nextInt(21); // 10..30
-          b = random.nextInt(21); // 0..20
-          a = ans + b;
-        } else if (operation == 'mul') {
-          // answer 10-30
-          ans = 10 + random.nextInt(21); // 10..30
-          List<int> factors = [];
-          for (int f = 1; f <= ans; f++) {
-            if (ans % f == 0) factors.add(f);
-          }
-          a = factors[random.nextInt(factors.length)];
-          b = ans ~/ a;
-        } else if (operation == 'div') {
-          // answer 10-30
-          ans = 10 + random.nextInt(21); // 10..30
-          b = 1 + random.nextInt(5); // 1..5
-          a = ans * b;
+        } else {
+          // Level 2+: sum up to 30 or more
+          ans = 10 + random.nextInt(21 + (level * 5));
+          a = random.nextInt(ans + 1);
+          b = ans - a;
         }
+      } else if (operation == 'sub') {
+        if (level == 1) {
+          // Level 1: 1-digit subtraction
+          a = 1 + random.nextInt(9); // 1..9
+          b = random.nextInt(a + 1); // 0..a
+          ans = a - b;
+        } else {
+          // Level 2+: larger numbers
+          a = 10 + random.nextInt(21 + (level * 5));
+          b = random.nextInt(a + 1);
+          ans = a - b;
+        }
+      } else if (operation == 'mul') {
+        // multiplier is fixed based on level (e.g. x2 for level 1)
+        b = level + 1;
+        // a is random, e.g. 1x2, 2x2, 3x2...
+        a = 1 + random.nextInt(10 + (level * 2));
+        ans = a * b;
+      } else if (operation == 'div') {
+        // divisor is fixed based on level (e.g. /2 for level 1)
+        b = level + 1;
+        // ans is random, so a is always a multiple of b
+        ans = 1 + random.nextInt(10 + (level * 2));
+        a = ans * b;
       }
 
-      String symbol = operation == 'add' ? '+' : operation == 'sub' ? '-' : operation == 'mul' ? '×' : '÷';
+      String symbol =
+          operation == 'add' ? '+' : operation == 'sub' ? '-' : operation == 'mul' ? '×' : '÷';
 
       quizzes.add({
         'id': i.toString(),

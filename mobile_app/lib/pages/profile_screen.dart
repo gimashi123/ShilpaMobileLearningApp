@@ -384,30 +384,30 @@ class _ProfileScreenState extends State<ProfileScreen>
                   // Header with back button and greeting
                   Row(
                     children: [
-                      // Back button - only shows if there's something to go back to
-                      if (Navigator.canPop(context))
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF7AF2D6).withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              onPressed: _navigateToHomeByDisabilityType,
-                              color: const Color(0xFF2C3E50),
-                              iconSize: 24,
-                            ),
+                      // Back button - always visible to allow returning home
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF7AF2D6).withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            onPressed: _navigateToHomeByDisabilityType,
+                            color: const Color(0xFF2C3E50),
+                            iconSize: 24,
+                            tooltip: 'Back to Home',
                           ),
                         ),
+                      ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
