@@ -120,9 +120,8 @@ class SpeechService {
         },
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 5), // Quicker response
-        cancelOnError: false, 
-        listenMode:
-            stt.ListenMode.confirmation, // Optimized for short commands
+        cancelOnError: false,
+        listenMode: stt.ListenMode.confirmation, // Optimized for short commands
         onDevice: true, // Faster and often more sensitive
         partialResults: true,
       );

@@ -392,7 +392,7 @@ class EyeTrackingService {
   void _processFace(Face face, double imgWidth, double imgHeight) {
     final stopwatch = Stopwatch()..start();
 
-    // Step 1: Landmark Extraction (Requirement 3.2 - Research Ready)
+    // Step 1: Landmark Extraction
     final leftEye = face.landmarks[FaceLandmarkType.leftEye];
     final rightEye = face.landmarks[FaceLandmarkType.rightEye];
     final noseBase = face.landmarks[FaceLandmarkType.noseBase];
@@ -478,7 +478,7 @@ class EyeTrackingService {
     } else {
       currentGaze.value = smoothedPos;
     }
-    
+
     isStableNotifier.value = isStable;
 
     _gazeController.add(
